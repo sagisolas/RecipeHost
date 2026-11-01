@@ -2,6 +2,10 @@
 
 Kotlin Multiplatform project (Android + iOS + shared).
 
+## Rules
+- Implementation must be flexible when working with mod loader, to easily support other modloaders later.
+- Use at least dependencies as possible. Do not use farbic-api if there are builtin methods.
+
 ## Agent skills
 
 ### Issue tracker

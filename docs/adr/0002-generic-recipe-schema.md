@@ -1,0 +1,7 @@
+# Generic Recipe schema with type_id + extras map
+
+`Recipe` on the wire is a single generic shape: `{ type_id, inputs: repeated Slot, results: repeated ItemStack, extras: map<string, string> }`. `type_id` is Minecraft's `RecipeType` id (e.g. `minecraft:crafting_shaped`, `minecraft:smelting`); type-specific metadata — shaped `width`/`height`, smelting `cooktime`/`xp`, smithing template slot — lives in `extras` under documented keys.
+
+Per-type protobuf messages were rejected because modded and datapack recipes (KubeJS, Create, Mekanism, Thermal) define arbitrary `RecipeType`s that the mod cannot anticipate. A typed schema would silently drop them; the generic schema enumerates them with their metadata preserved, and the mobile app can render known types richly while still showing something useful for unknown types.
+
+The trade-off: the mobile app must know the `extras` key conventions per `type_id` to render shaped-grid layouts or smelting times. This is accepted as the cost of modded-recipe support, and the key list is documented alongside the protobuf schema.
