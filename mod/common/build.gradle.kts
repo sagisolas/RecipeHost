@@ -15,6 +15,12 @@ dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
     mappings(loom.officialMojangMappings())
     implementation(project(":protocol"))
+
+    testImplementation(libs.junit)
+}
+
+tasks.test {
+    useJUnit()
 }
 
 java {

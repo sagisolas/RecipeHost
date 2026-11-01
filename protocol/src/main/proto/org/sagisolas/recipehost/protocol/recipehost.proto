@@ -14,7 +14,14 @@ message Envelope {
     IconBatch icon_batch = 4;
     Done done = 5;
     Error error = 6;
+    Auth auth = 7;
   }
+}
+
+// First Envelope the mobile app sends on connect. Authenticates the Session
+// against the 256-bit token shown on the QR screen.
+message Auth {
+  bytes token = 1;
 }
 
 // First Envelope the companion mod sends after accepting a Token.
