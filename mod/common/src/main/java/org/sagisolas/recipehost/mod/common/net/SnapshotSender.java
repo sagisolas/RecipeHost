@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.common.net;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Error;
+import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
@@ -30,10 +31,7 @@ public final class SnapshotSender {
             drainRecipes(out, source.recipeBatches());
             drainIcons(out, source.iconBatches());
         } catch (RuntimeException | IOException ex) {
-            Error error = new Error.Builder()
-                    .code("source_failure")
-                    .message(String.valueOf(ex.getMessage()))
-                    .build();
+            Error error = new Error.Builder().code(ErrorCode.SOURCE_FAILURE).build();
             EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(error).build());
             if (ex instanceof IOException) throw (IOException) ex;
             throw new IOException(ex);

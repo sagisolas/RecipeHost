@@ -81,6 +81,12 @@ message Icon {
 message Done {}
 
 message Error {
-  string code = 1;
-  string message = 2;
+  ErrorCode code = 1;
+}
+
+enum ErrorCode {
+  UNSPECIFIED = 0;
+  UNAUTHORIZED = 1;
+  BUSY = 2;
+  SOURCE_FAILURE = 3;
 }

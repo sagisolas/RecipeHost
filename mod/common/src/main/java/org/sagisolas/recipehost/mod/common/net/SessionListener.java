@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.common.net;
 import okio.ByteString;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Error;
+import org.sagisolas.recipehost.protocol.ErrorCode;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -18,8 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * envelope carrying the 256-bit token shown on the QR screen.
  *
  * <p>Concurrent connection attempts while a session is active receive an
- * {@code Error{code="busy"}} and are closed. Mismatched tokens receive
- * {@code Error{code="unauthorized"}}.
+ * {@code Error{BUSY}} and are closed. Mismatched tokens receive
+ * {@code Error{UNAUTHORIZED}}.
  */
 public final class SessionListener implements Closeable {
 
@@ -62,7 +63,7 @@ public final class SessionListener implements Closeable {
             }
 
             if (!sessionActive.compareAndSet(false, true)) {
-                sendErrorAndClose(client, "busy", "another session is active");
+                sendErrorAndClose(client, ErrorCode.BUSY);
                 continue;
             }
 
@@ -76,7 +77,7 @@ public final class SessionListener implements Closeable {
         try {
             Envelope first = EnvelopeFraming.readFrame(client.getInputStream());
             if (first == null || first.auth == null || !expectedToken.equals(first.auth.token)) {
-                writeError(client.getOutputStream(), "unauthorized", "token mismatch");
+                writeError(client.getOutputStream(), ErrorCode.UNAUTHORIZED);
                 return;
             }
             SnapshotSender.send(client.getOutputStream(), source);
@@ -88,14 +89,14 @@ public final class SessionListener implements Closeable {
         }
     }
 
-    private static void sendErrorAndClose(Socket client, String code, String message) {
+    private static void sendErrorAndClose(Socket client, ErrorCode code) {
         try (Socket s = client) {
-            writeError(s.getOutputStream(), code, message);
+            writeError(s.getOutputStream(), code);
         } catch (IOException ignored) {}
     }
 
-    private static void writeError(OutputStream out, String code, String message) throws IOException {
-        Error err = new Error.Builder().code(code).message(message).build();
+    private static void writeError(OutputStream out, ErrorCode code) throws IOException {
+        Error err = new Error.Builder().code(code).build();
         EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(err).build());
         out.flush();
     }

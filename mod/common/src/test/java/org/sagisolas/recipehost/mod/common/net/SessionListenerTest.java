@@ -5,6 +5,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Auth;
 import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
@@ -72,7 +73,7 @@ public class SessionListenerTest {
             List<Envelope> frames = readAll(s);
             assertEquals("only an Error frame expected", 1, frames.size());
             assertNotNull(frames.get(0).error);
-            assertEquals("unauthorized", frames.get(0).error.code);
+            assertEquals(ErrorCode.UNAUTHORIZED, frames.get(0).error.code);
         }
 
         // Source must never have been consumed — handshake() was never called.
@@ -100,7 +101,7 @@ public class SessionListenerTest {
             List<Envelope> frames = readAll(second);
             assertEquals(1, frames.size());
             assertNotNull(frames.get(0).error);
-            assertEquals("busy", frames.get(0).error.code);
+            assertEquals(ErrorCode.BUSY, frames.get(0).error.code);
         }
 
         source.release.countDown();
