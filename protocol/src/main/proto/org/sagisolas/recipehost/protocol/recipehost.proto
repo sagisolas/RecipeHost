@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package org.sagisolas.recipehost.protocol;
+
+option java_package = "org.sagisolas.recipehost.protocol";
+option java_multiple_files = true;
+
+// Top-level framed message exchanged over a Session.
+message Envelope {
+  oneof payload {
+    Handshake handshake = 1;
+    ItemBatch item_batch = 2;
+    RecipeBatch recipe_batch = 3;
+    IconBatch icon_batch = 4;
+    Done done = 5;
+    Error error = 6;
+  }
+}
+
+// First Envelope the companion mod sends after accepting a Token.
+message Handshake {
+  uint32 protocol_version = 1;
+  string minecraft_version = 2;
+  string locale = 3;
+  repeated ModInfo mods = 4;
+  uint32 total_items = 5;
+  uint32 total_recipes = 6;
+}
+
+message ModInfo {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+}
+
+message ItemBatch {
+  repeated Item items = 1;
+}
+
+message Item {
+  string id = 1;           // namespaced id, e.g. "minecraft:stick"
+  string display_name = 2; // localized via the mod's locale (see Handshake)
+}
+
+message RecipeBatch {
+  repeated Recipe recipes = 1;
+}
+
+message Recipe {
+  string type_id = 1;              // e.g. "minecraft:crafting_shaped"
+  repeated Slot inputs = 2;
+  repeated ItemStack results = 3;
+  map<string, string> extras = 4;  // type-specific metadata, see ADR 0002
+}
+
+message Slot {
+  repeated ItemStack stacks = 1;   // expanded ingredient alternatives
+}
+
+message ItemStack {
+  string item_id = 1;
+  uint32 count = 2;                // 0 interpreted as 1
+}
+
+message IconBatch {
+  repeated Icon icons = 1;
+}
+
+message Icon {
+  string item_id = 1;
+  bytes png = 2;                   // 16x16 PNG
+}
+
+message Done {}
+
+message Error {
+  string code = 1;
+  string message = 2;
+}

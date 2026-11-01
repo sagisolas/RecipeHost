@@ -1,0 +1,23 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "recipehost"
+version = "${version}"
+displayName = "RecipeHost"
+description = "Companion mod that streams recipes and icons to the RecipeHost mobile app."
+
+[[dependencies.recipehost]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.recipehost]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21,1.22)"
+ordering = "NONE"
+side = "CLIENT"

@@ -5,6 +5,16 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.wire)
+}
+
+wire {
+    sourcePath {
+        srcDir(rootProject.layout.projectDirectory.dir("protocol/src/main/proto"))
+    }
+    kotlin {
+        android = false
+    }
 }
 
 kotlin {
@@ -42,6 +52,7 @@ kotlin {
             implementation(libs.compose.uiTooling)
         }
         commonMain.dependencies {
+            implementation(libs.wire.runtime)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

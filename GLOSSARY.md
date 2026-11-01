@@ -61,5 +61,5 @@ A 16×16 PNG of an `Item`, produced on the render thread via `GuiGraphics.render
 ### Mod internals
 
 **Platform (class)**:
-The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:forge`). Exposes the narrow set of operations the companion mod can't do portably against Mojmap-named Minecraft APIs: mod list, config dir, client-started callback, keybinding registration. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
+The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:neoforge`). Exposes the narrow set of operations the companion mod can't do portably against Mojmap-named Minecraft APIs: mod list, config dir, client-started callback, keybinding registration. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
 _Avoid_: PlatformHooks, PlatformBridge

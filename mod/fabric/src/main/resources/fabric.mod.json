@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "recipehost",
+  "version": "${version}",
+  "name": "RecipeHost",
+  "description": "Companion mod that streams recipes and icons to the RecipeHost mobile app.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "org.sagisolas.recipehost.mod.fabric.RecipeHostFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15",
+    "minecraft": "~1.21",
+    "java": ">=21"
+  }
+}
