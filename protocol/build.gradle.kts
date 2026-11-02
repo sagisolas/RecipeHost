@@ -19,4 +19,10 @@ wire {
 
 dependencies {
     api(libs.wire.runtime)
+
+    testImplementation(libs.junit)
+}
+
+tasks.test {
+    useJUnit()
 }

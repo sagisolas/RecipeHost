@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.net;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.Icon;
 import org.sagisolas.recipehost.protocol.IconBatch;

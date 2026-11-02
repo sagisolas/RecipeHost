@@ -1,10 +1,7 @@
-package org.sagisolas.recipehost.mod.net;
+package org.sagisolas.recipehost.protocol;
 
 import okio.ByteString;
 import org.junit.Test;
-import org.sagisolas.recipehost.protocol.Auth;
-import org.sagisolas.recipehost.protocol.Done;
-import org.sagisolas.recipehost.protocol.Envelope;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

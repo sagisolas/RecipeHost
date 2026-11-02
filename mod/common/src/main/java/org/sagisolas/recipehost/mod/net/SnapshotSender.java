@@ -2,6 +2,7 @@ package org.sagisolas.recipehost.mod.net;
 
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.Error;
 import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;

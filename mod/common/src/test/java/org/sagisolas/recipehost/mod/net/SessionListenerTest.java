@@ -5,6 +5,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Auth;
 import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;

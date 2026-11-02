@@ -1,6 +1,4 @@
-package org.sagisolas.recipehost.mod.net;
-
-import org.sagisolas.recipehost.protocol.Envelope;
+package org.sagisolas.recipehost.protocol;
 
 import java.io.EOFException;
 import java.io.IOException;
