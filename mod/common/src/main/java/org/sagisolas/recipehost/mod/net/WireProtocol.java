@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common.net;
+package org.sagisolas.recipehost.mod.net;
 
 /**
  * Wire-protocol constants shared by every {@link SnapshotSource} implementation

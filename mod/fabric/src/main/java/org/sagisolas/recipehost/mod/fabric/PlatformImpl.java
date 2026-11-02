@@ -6,7 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.multiplayer.ClientLevel;
-import org.sagisolas.recipehost.mod.common.ModDescriptor;
+import org.sagisolas.recipehost.mod.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -24,7 +24,7 @@ public final class PlatformImpl {
                         mod.getMetadata().getId(),
                         mod.getMetadata().getName(),
                         mod.getMetadata().getVersion().getFriendlyString()))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     public static Path configDir() {

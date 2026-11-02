@@ -7,7 +7,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
-import org.sagisolas.recipehost.mod.common.ModDescriptor;
+import org.sagisolas.recipehost.mod.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;

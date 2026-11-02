@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common;
+package org.sagisolas.recipehost.mod;
 
 public final class RecipeHost {
 

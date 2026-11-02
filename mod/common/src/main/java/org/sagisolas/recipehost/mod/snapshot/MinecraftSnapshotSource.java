@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common.snapshot;
+package org.sagisolas.recipehost.mod.snapshot;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -9,10 +9,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import okio.ByteString;
-import org.sagisolas.recipehost.mod.common.ModDescriptor;
-import org.sagisolas.recipehost.mod.common.Platform;
-import org.sagisolas.recipehost.mod.common.net.SnapshotSource;
-import org.sagisolas.recipehost.mod.common.net.WireProtocol;
+import org.sagisolas.recipehost.mod.ModDescriptor;
+import org.sagisolas.recipehost.mod.Platform;
+import org.sagisolas.recipehost.mod.net.SnapshotSource;
+import org.sagisolas.recipehost.mod.net.WireProtocol;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.Icon;
 import org.sagisolas.recipehost.protocol.IconBatch;

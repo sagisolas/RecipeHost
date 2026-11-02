@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common.snapshot;
+package org.sagisolas.recipehost.mod.snapshot;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.resources.language.I18n;

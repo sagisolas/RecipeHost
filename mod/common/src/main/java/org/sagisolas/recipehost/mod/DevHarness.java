@@ -1,9 +1,9 @@
-package org.sagisolas.recipehost.mod.common;
+package org.sagisolas.recipehost.mod;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import okio.ByteString;
-import org.sagisolas.recipehost.mod.common.net.SessionListener;
-import org.sagisolas.recipehost.mod.common.snapshot.MinecraftSnapshotSource;
+import org.sagisolas.recipehost.mod.net.SessionListener;
+import org.sagisolas.recipehost.mod.snapshot.MinecraftSnapshotSource;
 
 import java.io.IOException;
 import java.net.InetAddress;

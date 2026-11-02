@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common;
+package org.sagisolas.recipehost.mod;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.client.KeyMapping;

@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.architecturyPlugin)
 }
 
+architectury {
+    platformSetupLoomIde()
+    fabric()
+}
+
 loom {
     silentMojangMappingsLicense()
 }

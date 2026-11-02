@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common.net;
+package org.sagisolas.recipehost.mod.net;
 
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;

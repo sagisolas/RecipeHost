@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.architecturyPlugin)
 }
 
+architectury {
+    platformSetupLoomIde()
+    neoForge()
+}
+
 repositories {
     maven {
         name = "NeoForged"

@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.common.snapshot;
+package org.sagisolas.recipehost.mod.snapshot;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
