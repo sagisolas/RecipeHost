@@ -2,6 +2,7 @@ package org.sagisolas.recipehost.mod.neoforge;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.ModList;
@@ -10,6 +11,7 @@ import org.sagisolas.recipehost.mod.common.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @OnlyIn(Dist.CLIENT)
@@ -42,5 +44,10 @@ public final class PlatformImpl {
 
     public static String minecraftVersion() {
         return SharedConstants.getCurrentVersion().getName();
+    }
+
+    // TODO: wire ClientPlayerNetworkEvent.LoggingIn (or LevelEvent.Load) when NeoForge dev work starts.
+    public static void onWorldJoin(Consumer<ClientLevel> callback) {
+        // No-op on NeoForge until the loader slice lands. Dev harness is Fabric-only for now.
     }
 }

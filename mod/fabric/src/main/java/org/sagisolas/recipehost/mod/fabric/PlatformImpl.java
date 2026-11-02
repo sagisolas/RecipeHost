@@ -5,10 +5,12 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.multiplayer.ClientLevel;
 import org.sagisolas.recipehost.mod.common.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Environment(EnvType.CLIENT)
@@ -41,5 +43,9 @@ public final class PlatformImpl {
 
     public static String minecraftVersion() {
         return SharedConstants.getCurrentVersion().getName();
+    }
+
+    public static void onWorldJoin(Consumer<ClientLevel> callback) {
+        WorldJoinDispatcher.register(callback);
     }
 }

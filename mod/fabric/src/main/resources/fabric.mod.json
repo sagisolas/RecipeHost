@@ -10,6 +10,9 @@
       "org.sagisolas.recipehost.mod.fabric.RecipeHostFabricClient"
     ]
   },
+  "mixins": [
+    "recipehost.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15",
     "minecraft": "~1.21",

@@ -2,9 +2,11 @@ package org.sagisolas.recipehost.mod.common;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.multiplayer.ClientLevel;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Loader-agnostic access to the handful of operations the companion mod can't do
@@ -39,6 +41,11 @@ public final class Platform {
 
     @ExpectPlatform
     public static String minecraftVersion() {
+        throw new AssertionError("@ExpectPlatform not wired");
+    }
+
+    @ExpectPlatform
+    public static void onWorldJoin(Consumer<ClientLevel> callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
 }

@@ -7,6 +7,7 @@ public final class RecipeHost {
     private RecipeHost() {}
 
     public static void init() {
-        // Entry hook invoked by each loader's PlatformImpl once the client is ready.
+        // DEV ONLY — until the QR-screen slice lands, bind a listener on world-join.
+        Platform.onWorldJoin(DevHarness::bindOrRebind);
     }
 }
