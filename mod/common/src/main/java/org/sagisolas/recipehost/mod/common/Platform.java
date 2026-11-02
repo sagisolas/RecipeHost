@@ -36,4 +36,9 @@ public final class Platform {
     public static void registerKeybinding(KeyMapping keyMapping) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
+
+    @ExpectPlatform
+    public static String minecraftVersion() {
+        throw new AssertionError("@ExpectPlatform not wired");
+    }
 }

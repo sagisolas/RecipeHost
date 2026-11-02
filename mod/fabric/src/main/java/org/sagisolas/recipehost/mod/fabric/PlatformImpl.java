@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.fabric;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
 import org.sagisolas.recipehost.mod.common.ModDescriptor;
 
@@ -36,5 +37,9 @@ public final class PlatformImpl {
     // TODO: keybinding registration without fabric-api (Mixin into KeyMapping.ALL or Options).
     public static void registerKeybinding(KeyMapping keyMapping) {
         throw new UnsupportedOperationException("registerKeybinding: wire a Mixin instead of fabric-api");
+    }
+
+    public static String minecraftVersion() {
+        return SharedConstants.getCurrentVersion().getName();
     }
 }

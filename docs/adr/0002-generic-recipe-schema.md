@@ -4,4 +4,13 @@
 
 Per-type protobuf messages were rejected because modded and datapack recipes (KubeJS, Create, Mekanism, Thermal) define arbitrary `RecipeType`s that the mod cannot anticipate. A typed schema would silently drop them; the generic schema enumerates them with their metadata preserved, and the mobile app can render known types richly while still showing something useful for unknown types.
 
-The trade-off: the mobile app must know the `extras` key conventions per `type_id` to render shaped-grid layouts or smelting times. This is accepted as the cost of modded-recipe support, and the key list is documented alongside the protobuf schema.
+The trade-off: the mobile app must know the `extras` key conventions per `type_id` to render shaped-grid layouts or smelting times. This is accepted as the cost of modded-recipe support.
+
+## Pinned `extras` keys (v1)
+
+The vanilla-dispatch mapper emits exactly these keys; additions require an ADR amendment.
+
+- `minecraft:crafting_shaped` → `width`, `height` (both stringified ints).
+- `minecraft:smelting` / `minecraft:blasting` / `minecraft:smoking` / `minecraft:campfire_cooking` → `cook_time` (ticks, int), `xp` (float).
+- All other baseline types (shapeless, smithing, stonecutter) → no `extras`.
+- Shell entries for unknown types → no `extras`; `type_id` and `results` only.

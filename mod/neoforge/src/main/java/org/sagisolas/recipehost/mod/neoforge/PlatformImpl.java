@@ -1,5 +1,6 @@
 package org.sagisolas.recipehost.mod.neoforge;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -37,5 +38,9 @@ public final class PlatformImpl {
     // TODO: keybinding registration — subscribe to RegisterKeyMappingsEvent.
     public static void registerKeybinding(KeyMapping keyMapping) {
         throw new UnsupportedOperationException("registerKeybinding: wire RegisterKeyMappingsEvent");
+    }
+
+    public static String minecraftVersion() {
+        return SharedConstants.getCurrentVersion().getName();
     }
 }
