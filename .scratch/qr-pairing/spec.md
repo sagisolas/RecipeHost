@@ -76,8 +76,8 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
     - Creates a new token with `SecureRandom` (32 bytes).
     - Binds `0.0.0.0:0` (an ephemeral port) with a fresh `MinecraftSnapshotSource`.
     - Logs the payload URI at INFO for the probe.
-  - `screenClosed()`: schedules unbind after 30 s. An active session runs to completion, because closing the server socket leaves accepted sockets alone.
-  - `sessionEnded()`: unbinds immediately.
+  - `screenClosed()`: schedules unbind after 60 s. An active session runs to completion, because closing the server socket leaves accepted sockets alone.
+  - `snapshotDelivered()`: unbinds immediately. A mid-stream drop does not unbind, so the app can retry with the same QR within the grace period.
   - `worldLeft()`: unbinds immediately.
 - `HostAddresses` is a thin, untested adapter: every address of every interface from `NetworkInterface.getNetworkInterfaces()`, unfiltered and in enumeration order. **The mobile app filters**: it knows its own local IP and subnet, so it can pick the reachable host better than the mod can.
 - `PairingPayload` (pure):
@@ -88,7 +88,8 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 ### Net
 
-- `SessionListener` gets an `onSessionEnd` callback. It is fired from `handleClient`'s `finally` only after a successful auth, so UNAUTHORIZED and BUSY attempts don't end pairing.
+- `SessionListener` gets an `onSnapshotDelivered` callback. It fires only when `SnapshotSender.send` returns normally (`Done` written), so UNAUTHORIZED, BUSY and mid-stream drops don't end pairing.
+- `SessionListener` also gets `onTerminated`. It fires exactly once, after `close()` and once no session is streaming. The Minecraft adapter closes `MinecraftSnapshotSource` there, so a grace-period unbind never frees the icon framebuffer under an active `Snapshot`.
 
 ### QR encoding
 
@@ -120,18 +121,18 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
   - the same result when the occupied list is shuffled.
 - `PairingControllerTest` uses a fake scheduler and a fake listener factory. It checks that:
   - open binds with a fresh token;
-  - close followed by 30 s unbinds;
+  - close followed by 60 s unbinds;
   - reopening inside the grace period cancels the unbind and rotates the token;
-  - session end unbinds;
+  - snapshot delivered unbinds;
   - world leave unbinds.
-- `SessionListenerTest`: one new case checking that `onSessionEnd` fires after an authenticated session and not after UNAUTHORIZED or BUSY.
+- `SessionListenerTest`: new cases checking that `onSnapshotDelivered` fires after `Done` and not after UNAUTHORIZED, BUSY or a mid-stream source failure.
 - In-game smoke test, on both loaders:
   - The button appears.
   - It follows the recipe-book toggle.
   - It steps aside for another mod's button.
   - The QR scans to the logged URI.
   - The probe pulls a snapshot.
-  - The port is closed 30 s after leaving the screen.
+  - The port is closed 60 s after leaving the screen.
 
 ## Issues
 

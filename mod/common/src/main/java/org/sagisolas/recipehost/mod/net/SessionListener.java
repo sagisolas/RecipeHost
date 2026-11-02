@@ -28,19 +28,36 @@ public final class SessionListener implements Closeable {
     private final ServerSocket serverSocket;
     private final ByteString expectedToken;
     private final SnapshotSource source;
+    private final Runnable onSnapshotDelivered;
+    private final Runnable onTerminated;
+    private final AtomicBoolean terminated = new AtomicBoolean(false);
     private final AtomicBoolean sessionActive = new AtomicBoolean(false);
     private volatile Thread acceptThread;
     private volatile boolean closed = false;
 
-    private SessionListener(ServerSocket serverSocket, ByteString expectedToken, SnapshotSource source) {
+    private SessionListener(ServerSocket serverSocket, ByteString expectedToken, SnapshotSource source,
+                            Runnable onSnapshotDelivered, Runnable onTerminated) {
         this.serverSocket = serverSocket;
         this.expectedToken = expectedToken;
         this.source = source;
+        this.onSnapshotDelivered = onSnapshotDelivered;
+        this.onTerminated = onTerminated;
     }
 
     public static SessionListener bind(InetAddress address, int port, ByteString expectedToken, SnapshotSource source) throws IOException {
+        return bind(address, port, expectedToken, source, () -> {}, () -> {});
+    }
+
+    /**
+     * @param onSnapshotDelivered runs on the session thread once a full {@code Snapshot}
+     *                            (through {@code Done}) has been written to an authenticated client.
+     * @param onTerminated        runs exactly once, after {@link #close()} and once no session is
+     *                            streaming any more — the point at which {@code source} may be released.
+     */
+    public static SessionListener bind(InetAddress address, int port, ByteString expectedToken, SnapshotSource source,
+                                       Runnable onSnapshotDelivered, Runnable onTerminated) throws IOException {
         ServerSocket ss = new ServerSocket(port, 4, address);
-        return new SessionListener(ss, expectedToken, source);
+        return new SessionListener(ss, expectedToken, source, onSnapshotDelivered, onTerminated);
     }
 
     public int port() {
@@ -82,11 +99,13 @@ public final class SessionListener implements Closeable {
                 return;
             }
             SnapshotSender.send(client.getOutputStream(), source);
+            onSnapshotDelivered.run();
         } catch (IOException ignored) {
             // Client disconnected or socket error — nothing to recover.
         } finally {
             try { client.close(); } catch (IOException ignored) {}
             sessionActive.set(false);
+            if (closed) terminateOnce();
         }
     }
 
@@ -108,5 +127,10 @@ public final class SessionListener implements Closeable {
         serverSocket.close();
         Thread t = acceptThread;
         if (t != null) t.interrupt();
+        if (!sessionActive.get()) terminateOnce();
+    }
+
+    private void terminateOnce() {
+        if (terminated.compareAndSet(false, true)) onTerminated.run();
     }
 }

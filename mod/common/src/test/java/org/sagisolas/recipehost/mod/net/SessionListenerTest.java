@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -109,6 +110,104 @@ public class SessionListenerTest {
         first.close();
     }
 
+    @Test
+    public void deliveredSnapshotFiresOnSnapshotDelivered() throws Exception {
+        byte[] token = tokenOf(5);
+        EmptySource source = new EmptySource(new Handshake.Builder().protocol_version(1).build());
+        CountDownLatch delivered = new CountDownLatch(1);
+
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source, delivered::countDown, () -> {});
+        listener.start();
+
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            EnvelopeFraming.writeFrame(s.getOutputStream(),
+                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+            s.getOutputStream().flush();
+            readAll(s);
+        }
+
+        assertTrue("onSnapshotDelivered must fire after Done", delivered.await(2, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void wrongTokenDoesNotFireOnSnapshotDelivered() throws Exception {
+        AtomicInteger delivered = new AtomicInteger();
+        EmptySource source = new EmptySource(new Handshake.Builder().protocol_version(1).build());
+
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(tokenOf(6)), source, delivered::incrementAndGet, () -> {});
+        listener.start();
+
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            EnvelopeFraming.writeFrame(s.getOutputStream(),
+                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(tokenOf(7))).build()).build());
+            s.getOutputStream().flush();
+            readAll(s); // EOF ⇒ server's handleClient has finished
+        }
+
+        assertEquals(0, delivered.get());
+    }
+
+    @Test
+    public void midStreamSourceFailureDoesNotFireOnSnapshotDelivered() throws Exception {
+        byte[] token = tokenOf(8);
+        AtomicInteger delivered = new AtomicInteger();
+        SnapshotSource failing = new EmptySource(new Handshake.Builder().protocol_version(1).build()) {
+            @Override public Iterator<ItemBatch> itemBatches() { throw new IllegalStateException("boom"); }
+        };
+
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), failing, delivered::incrementAndGet, () -> {});
+        listener.start();
+
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            EnvelopeFraming.writeFrame(s.getOutputStream(),
+                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+            s.getOutputStream().flush();
+            List<Envelope> frames = readAll(s);
+            assertNotNull("stream must end with Error", frames.get(frames.size() - 1).error);
+        }
+
+        assertEquals(0, delivered.get());
+    }
+
+    @Test
+    public void closeWithoutActiveSessionTerminatesImmediately() throws Exception {
+        AtomicInteger terminated = new AtomicInteger();
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(tokenOf(9)),
+                new EmptySource(new Handshake.Builder().build()), () -> {}, terminated::incrementAndGet);
+        listener.start();
+
+        listener.close();
+        listener.close();
+
+        assertEquals("terminated exactly once", 1, terminated.get());
+    }
+
+    @Test
+    public void closeDuringActiveSessionTerminatesOnlyAfterSessionFinishes() throws Exception {
+        byte[] token = tokenOf(10);
+        BlockingSource source = new BlockingSource(new Handshake.Builder().protocol_version(1).build());
+        CountDownLatch terminated = new CountDownLatch(1);
+
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source,
+                () -> {}, terminated::countDown);
+        listener.start();
+
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            EnvelopeFraming.writeFrame(s.getOutputStream(),
+                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+            s.getOutputStream().flush();
+            assertTrue(source.entered.await(2, TimeUnit.SECONDS));
+
+            listener.close();
+            assertEquals("session still streaming — source must stay open", 1, terminated.getCount());
+
+            source.release.countDown();
+            readAll(s);
+        }
+
+        assertTrue("terminated once the session finished", terminated.await(2, TimeUnit.SECONDS));
+    }
+
     private static byte[] tokenOf(int seed) {
         byte[] b = new byte[32];
         for (int i = 0; i < 32; i++) b[i] = (byte) (seed + i);
@@ -128,7 +227,7 @@ public class SessionListenerTest {
         return frames;
     }
 
-    private static final class EmptySource implements SnapshotSource {
+    private static class EmptySource implements SnapshotSource {
         final Handshake handshake;
         final CountDownLatch consumed = new CountDownLatch(1);
         final java.util.concurrent.atomic.AtomicInteger handshakeCalls = new java.util.concurrent.atomic.AtomicInteger(0);

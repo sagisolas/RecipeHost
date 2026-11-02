@@ -20,4 +20,4 @@ Spec: ../spec.md
 - Smoke test on both loaders:
   - the QR scans to the logged URI;
   - the probe pulls a snapshot;
-  - the port is closed 30 s after leaving the screen.
+  - the port is closed 60 s after leaving the screen.

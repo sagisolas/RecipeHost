@@ -1,30 +1,50 @@
 package org.sagisolas.recipehost.tools.probe
 
 import okio.ByteString
+import okio.ByteString.Companion.decodeBase64
 import org.sagisolas.recipehost.protocol.Auth
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.EnvelopeFraming
 import org.sagisolas.recipehost.protocol.ErrorCode
+import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.URI
+import java.net.URLDecoder
 import kotlin.system.exitProcess
 
-private const val DEFAULT_HOST = "localhost"
-private const val DEFAULT_PORT = 25566
-private val DEV_TOKEN: ByteString = ByteString.of(*ByteArray(32))
-
+/** Usage: probe 'recipehost://pair?v=1&h=…&p=…&t=…'  (copy the URI from the game log). */
 fun main(args: Array<String>) {
-    val host = args.getOrNull(0) ?: DEFAULT_HOST
-    val port = args.getOrNull(1)?.toInt() ?: DEFAULT_PORT
+    val uri = args.getOrNull(0) ?: run {
+        System.err.println("usage: probe '<pairing payload URI from the game log>'")
+        exitProcess(2)
+    }
+    val query = URI(uri).rawQuery.split("&").associate {
+        val (k, v) = it.split("=", limit = 2)
+        k to URLDecoder.decode(v, Charsets.UTF_8)
+    }
+    val hosts = query.getValue("h").split(",")
+    val port = query.getValue("p").toInt()
+    val token: ByteString = query.getValue("t").decodeBase64()
+        ?: error("token is not valid base64url")
 
-    println("[probe] connecting to $host:$port")
+    // Hosts are unfiltered (see GLOSSARY: Pairing payload) — try each until one connects.
+    val socket = hosts.firstNotNullOfOrNull { host ->
+        runCatching { Socket().apply { connect(InetSocketAddress(host, port), 1000) } }
+            .onFailure { println("[probe] $host:$port unreachable: ${it.message}") }
+            .getOrNull()
+            ?.also { println("[probe] connected to $host:$port") }
+    } ?: run {
+        System.err.println("[probe] no host reachable")
+        exitProcess(1)
+    }
 
-    Socket(host, port).use { socket ->
+    socket.use { socket ->
         val out = socket.getOutputStream()
         val input = socket.getInputStream()
 
         EnvelopeFraming.writeFrame(
             out,
-            Envelope.Builder().auth(Auth.Builder().token(DEV_TOKEN).build()).build(),
+            Envelope.Builder().auth(Auth.Builder().token(token).build()).build(),
         )
         out.flush()
 

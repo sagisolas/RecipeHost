@@ -7,7 +7,7 @@ public final class RecipeHost {
     private RecipeHost() {}
 
     public static void init() {
-        // DEV ONLY — until the QR-screen slice lands, bind a listener on world-join.
-        Platform.onWorldJoin(DevHarness::bindOrRebind);
+        // Inventory button + world-leave hooks are wired in the inventory-button slice
+        // (.scratch/qr-pairing/issues/03-inventory-button.md).
     }
 }
