@@ -23,6 +23,10 @@ The in-game Minecraft UI that displays pairing data (addresses + port + token) a
 A 256-bit random value generated when the QR screen opens and embedded in the QR payload. Authenticates exactly one `Session`; dies with it.
 _Avoid_: Secret, key, password
 
+**Pairing payload**:
+The `recipehost://pair?v=1&h=<hosts>&p=<port>&t=<token>` URI encoded in the QR code. `h` lists every host address of the player's machine, unfiltered — the mobile app picks the reachable one. `t` is the `Token`, base64url without padding.
+_Avoid_: QR data, connection string
+
 **Session**:
 A single mobile ↔ companion-mod TCP connection, authenticated by one `Token`. Only one `Session` is active at a time; concurrent connects are refused.
 _Avoid_: Connection (used only for the raw TCP layer)
