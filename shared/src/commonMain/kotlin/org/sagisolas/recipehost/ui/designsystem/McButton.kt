@@ -4,7 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -13,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 
 /**
- * A button with Minecraft's widget proportions: size it by width and the height follows from
- * [McDimens.WIDGET_ASPECT_RATIO]. Normal, pressed and disabled each have their own background.
+ * A button [McDimens.WidgetHeight] tall; it wraps its text unless the caller gives it a width.
+ * Normal, pressed and disabled each have their own background.
  */
 @Composable
 internal fun McButton(
@@ -25,11 +26,16 @@ internal fun McButton(
 ) {
     McPressable(
         onClick = onClick,
-        painters = McTheme.skin.button,
-        modifier = modifier.aspectRatio(McDimens.WIDGET_ASPECT_RATIO),
+        textures = McTheme.skin.button,
+        modifier = modifier.height(McDimens.WidgetHeight),
         enabled = enabled,
     ) {
-        McText(text, color = McTheme.colors.onDark(enabled), maxLines = 1)
+        McText(
+            text = text,
+            modifier = Modifier.padding(horizontal = McDimens.WidgetPadding),
+            color = McTheme.colors.onDark(enabled),
+            maxLines = 1,
+        )
     }
 }
 
@@ -43,7 +49,7 @@ internal fun McSquareButton(
 ) {
     McPressable(
         onClick = onClick,
-        painters = McTheme.skin.button,
+        textures = McTheme.skin.button,
         modifier = modifier.size(McDimens.SquareButtonSize),
         enabled = enabled,
     ) {
@@ -58,7 +64,7 @@ internal fun McSquareButton(
 @Composable
 internal fun McPressable(
     onClick: () -> Unit,
-    painters: McStatePainters,
+    textures: McStateTextures,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     role: Role = Role.Button,
@@ -69,7 +75,7 @@ internal fun McPressable(
     Box(
         modifier = modifier.clickable(
             interactionSource = interactionSource,
-            indication = McStateIndication(painters, enabled),
+            indication = McStateIndication(textures, enabled),
             enabled = enabled,
             role = role,
             onClick = onClick,

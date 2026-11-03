@@ -110,10 +110,10 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 
 ### Design system (`ui/designsystem`)
 
-- **Textures.** The user supplies the GUI textures as PNGs in `shared/src/commonMain/composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_` (for example `container_slot.png`, `widget_button.png`, `widget_button_highlighted.png`). Each component has a fixed aspect ratio taken from its texture and a fixed size in dp, like any mobile UI. The texture is the component's background `Painter`, and Compose scales it to fill. There is **no nine-slice in v1**. We'll check in practice whether this is enough and add nine-slice only if a component really needs to stretch.
+- **Textures.** The design system owns its GUI textures (the Minecraft look is its only skin): PNGs in `shared/src/commonMain/composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_` (for example `container_slot.png`, `widget_button.png`, `widget_button_highlighted.png`); design-system-only ones are prefixed `recipehost_`. `rememberMcSkin()` maps each to its component as an `McTexture` with its nine-slice border, and `McTheme` provides it, so call sites never pick a texture. Every texture is drawn as a **nine-slice**: corners keep their proportions and edges and centre stretch, so components can take whatever width or height the layout gives them. Sizes are in dp, like any mobile UI (e.g. widgets have a fixed height and any width).
 - **No GUI scale.** Components don't scale with the screen. Larger screens get different layouts, not bigger components.
 - **Font.** Monocraft (OFL), bundled in the app's `composeResources/font` and handed to the design system by `AppTheme`, with its licence file next to it. Text sizes are ordinary `sp`.
-- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`. The design system is written as if it were a separate module: it imports nothing from the app (no `Res`, items or Catalog). The app passes in its font and skin through `McTheme(typography, skin)`, wrapped by the app-side `AppTheme`.
+- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`. The design system is written as if it were a separate module: it uses `Res` only for its own textures and imports nothing app-specific (no items, Catalog or app code). The app passes in its font through `McTheme(typography)`, wrapped by the app-side `AppTheme`.
 - **Item Icons** (`ui/item`, app code, not design system): `ItemIcon` draws an Icon in a `McSlot`'s content area with nearest-neighbour filtering and the skin's missing texture as placeholder; `ItemIconCache` decodes and caches Icons by item key and is an app-scoped instance owned by `AppGraph`.
 - No `material3`, so remove it from `shared/build.gradle.kts` and the version catalog. Use foundation, ui and runtime only.
 
@@ -143,7 +143,6 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 - A "browse as Instance" filter.
 - Icon variants (NBT, enchantment).
 - Resuming a Snapshot or fetching only Icons.
-- Nine-slice textures.
 
 ## Testing (TDD at pure and fake seams)
 
@@ -180,9 +179,9 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 3. `SessionClient` on ktor-network: hosts tried in turn, Auth, the retry and error rules.
 4. Catalog schema on SQLDelight, and `ScanIngest`, including the app-scoped scan scope.
 5. Catalog queries and domain logic: grid and search, mod list and `Version selection`, Recipes and Uses with Instance variants, ItemStack resolution.
-6. Design system foundations: Monocraft, core components with flat-colour backgrounds.
+6. Design system foundations: Monocraft, nine-slice textured components (placeholder textures).
 7. App shell: `AppGraph`, `Navigator` with bottom-navigation tabs, Android wrapper (`GmsQrScanner`, deep link, driver); iOS stub kept compiling.
 8. Screens: Welcome, Scan progress, Items tab (grid and mod list).
 9. Item screen: Recipes and Uses tabs, pager, "From <instance>" selector, generic recipe layout.
 10. Settings tab: Clear Catalog.
-11. Design system textures: the real GUI textures and component sizes replace the flat colours.
+11. Design system textures: the real GUI textures, their borders and component sizes replace the placeholders.

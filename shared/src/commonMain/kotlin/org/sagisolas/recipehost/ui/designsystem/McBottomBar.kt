@@ -41,7 +41,7 @@ internal fun McBottomBar(
             val selected = index == selectedIndex
             McPressable(
                 onClick = { onSelect(index) },
-                painters = if (selected) McStatePainters.all(skin.bottomBarItemSelected) else skin.bottomBarItem,
+                textures = if (selected) McStateTextures.all(skin.bottomBarItemSelected) else skin.bottomBarItem,
                 modifier = Modifier.weight(1f).fillMaxHeight().semantics { this.selected = selected },
                 role = Role.Tab,
             ) {

@@ -32,7 +32,12 @@ internal fun ItemIcon(
     if (bitmap != null) {
         Image(bitmap, contentDescription = null, modifier = iconModifier, filterQuality = FilterQuality.None)
     } else {
-        Image(McTheme.skin.missingTexture, contentDescription = null, modifier = iconModifier)
+        Image(
+            McTheme.skin.missingTexture,
+            contentDescription = null,
+            modifier = iconModifier,
+            filterQuality = FilterQuality.None,
+        )
     }
 }
 

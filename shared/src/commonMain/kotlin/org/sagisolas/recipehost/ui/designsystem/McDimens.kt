@@ -4,8 +4,12 @@ import androidx.compose.ui.unit.dp
 
 /** Fixed sizes. Components don't scale with the screen; larger screens get different layouts. */
 internal object McDimens {
-    /** Width to height of a button, dropdown and text field (Minecraft's 200×20 widget). */
-    const val WIDGET_ASPECT_RATIO = 10f
+    /** Size on screen of one texture pixel, shared by every texture so all borders look alike. */
+    val TexturePixelSize = 2.dp
+    /** Height of a button, dropdown and text field; their width is up to the layout. */
+    val WidgetHeight = 40.dp
+    /** Space between a widget's edge and its text. */
+    val WidgetPadding = 8.dp
     val SquareButtonSize = 40.dp
     val SlotSize = 36.dp
     /** The slot's frame is 1/18 of its size on each side, so the content area is 16/18 of it. */

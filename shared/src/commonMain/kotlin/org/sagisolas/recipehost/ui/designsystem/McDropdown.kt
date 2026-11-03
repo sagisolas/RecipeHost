@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -26,7 +26,7 @@ import androidx.compose.ui.window.PopupProperties
 
 /**
  * A button showing the selected option; tapping it opens a list of [options] below it.
- * Size it by width, like [McButton].
+ * [McDimens.WidgetHeight] tall and as wide as the space it's given.
  */
 @Composable
 internal fun <T> McDropdown(
@@ -42,13 +42,13 @@ internal fun <T> McDropdown(
     Box(modifier.onSizeChanged { anchorSize = it }) {
         McPressable(
             onClick = { expanded = true },
-            painters = McTheme.skin.button,
-            modifier = Modifier.aspectRatio(McDimens.WIDGET_ASPECT_RATIO),
+            textures = McTheme.skin.button,
+            modifier = Modifier.fillMaxWidth().height(McDimens.WidgetHeight),
             enabled = enabled,
         ) {
             val color = McTheme.colors.onDark(enabled)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = McDimens.WidgetPadding),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 McText(label(selected), Modifier.weight(1f), color = color, maxLines = 1)
@@ -70,7 +70,7 @@ internal fun <T> McDropdown(
                                     expanded = false
                                     onSelect(option)
                                 },
-                                painters = McTheme.skin.dropdownOption,
+                                textures = McTheme.skin.dropdownOption,
                                 modifier = Modifier.fillMaxWidth(),
                                 role = Role.DropdownList,
                                 contentAlignment = Alignment.CenterStart,

@@ -24,7 +24,7 @@ internal fun McTabs(
             val selected = index == selectedIndex
             McPressable(
                 onClick = { onSelect(index) },
-                painters = if (selected) McStatePainters.all(skin.tabSelected) else skin.tab,
+                textures = if (selected) McStateTextures.all(skin.tabSelected) else skin.tab,
                 modifier = Modifier.weight(1f).fillMaxHeight().semantics { this.selected = selected },
                 role = Role.Tab,
             ) {

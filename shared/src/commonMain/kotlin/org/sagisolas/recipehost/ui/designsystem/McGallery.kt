@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.ui.designsystem
+    package org.sagisolas.recipehost.ui.designsystem
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -20,13 +20,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-/** Every design-system component on one screen, for eyeballing looks and states. */
+/**
+ * Every design-system component on one screen, for eyeballing looks and states.
+ */
 @Composable
 internal fun McGallery(modifier: Modifier = Modifier) {
     Column(Modifier.fillMaxSize().mcBackground(McTheme.skin.screen).then(modifier)) {
@@ -49,6 +50,8 @@ internal fun McGallery(modifier: Modifier = Modifier) {
                 var clicks by remember { mutableIntStateOf(0) }
                 McButton("Clicked $clicks times", onClick = { clicks++ }, Modifier.width(240.dp))
                 McButton("Disabled", onClick = {}, Modifier.width(240.dp), enabled = false)
+                McButton("Wraps its text", onClick = {})
+                McButton("Full width", onClick = {}, Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     McSquareButton("✓", onClick = {})
                     McSquareButton("✓", onClick = {}, enabled = false)
@@ -63,8 +66,14 @@ internal fun McGallery(modifier: Modifier = Modifier) {
             Section("McSlot") {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     McSlot()
-                    McSlot { SlotImage(ColorPainter(Color(0xFF3060C0))) }
-                    McSlot { SlotImage(McTheme.skin.missingTexture) }
+                    McSlot {
+                        Image(
+                            McTheme.skin.missingTexture,
+                            contentDescription = null,
+                            modifier = Modifier.size(McDimens.SlotContentSize),
+                            filterQuality = FilterQuality.None,
+                        )
+                    }
                 }
             }
 
@@ -92,11 +101,10 @@ internal fun McGallery(modifier: Modifier = Modifier) {
         }
 
         var tab by remember { mutableIntStateOf(0) }
+        val missingTexture = McTheme.skin.missingTexture
+        val icon = remember(missingTexture) { BitmapPainter(missingTexture, filterQuality = FilterQuality.None) }
         McBottomBar(
-            items = listOf(
-                McBottomBarItem("Items", ColorPainter(Color(0xFF55FF55))),
-                McBottomBarItem("Settings", ColorPainter(Color(0xFFFFAA00))),
-            ),
+            items = listOf(McBottomBarItem("Items", icon), McBottomBarItem("Settings", icon)),
             selectedIndex = tab,
             onSelect = { tab = it },
         )
@@ -109,11 +117,6 @@ private fun Section(title: String, content: @Composable () -> Unit) {
         McText(title, color = McTheme.colors.textOnDark, style = McTheme.typography.small)
         content()
     }
-}
-
-@Composable
-private fun SlotImage(painter: Painter) {
-    Image(painter, contentDescription = null, modifier = Modifier.size(McDimens.SlotContentSize))
 }
 
 @Preview

@@ -12,23 +12,23 @@ import kotlinx.coroutines.launch
 
 /**
  * An [androidx.compose.foundation.Indication] that draws the background for the current
- * interaction state: [McStatePainters.disabled] when not [enabled], [McStatePainters.pressed]
- * while any press is active, otherwise [McStatePainters.normal].
+ * interaction state: [McStateTextures.disabled] when not [enabled], [McStateTextures.pressed]
+ * while any press is active, otherwise [McStateTextures.normal].
  *
  * Pass a remembered `InteractionSource` to `clickable` with it: with `null`, `clickable`
  * creates the indication only on first press, so nothing would be drawn before that.
  */
 internal data class McStateIndication(
-    private val painters: McStatePainters,
+    private val textures: McStateTextures,
     private val enabled: Boolean,
 ) : IndicationNodeFactory {
     override fun create(interactionSource: InteractionSource): DelegatableNode =
-        McStateIndicationNode(interactionSource, painters, enabled)
+        McStateIndicationNode(interactionSource, textures, enabled)
 }
 
 private class McStateIndicationNode(
     private val interactionSource: InteractionSource,
-    private val painters: McStatePainters,
+    private val textures: McStateTextures,
     private val enabled: Boolean,
 ) : Modifier.Node(), DrawModifierNode {
     private var pressed = false
@@ -52,12 +52,12 @@ private class McStateIndicationNode(
     }
 
     override fun ContentDrawScope.draw() {
-        val painter = when {
-            !enabled -> painters.disabled
-            pressed -> painters.pressed
-            else -> painters.normal
+        val texture = when {
+            !enabled -> textures.disabled
+            pressed -> textures.pressed
+            else -> textures.normal
         }
-        with(painter) { draw(size) }
+        if (texture != null) with(texture.painter) { draw(size) }
         drawContent()
     }
 }

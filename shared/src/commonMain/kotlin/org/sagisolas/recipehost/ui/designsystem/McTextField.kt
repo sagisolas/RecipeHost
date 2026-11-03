@@ -1,7 +1,7 @@
 package org.sagisolas.recipehost.ui.designsystem
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -15,9 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.unit.dp
 
-/** A single-line text field with Minecraft's widget proportions. Size it by width. */
+/** A single-line text field [McDimens.WidgetHeight] tall. Give it a width. */
 @Composable
 internal fun McTextField(
     state: TextFieldState,
@@ -31,7 +30,7 @@ internal fun McTextField(
     BasicTextField(
         state = state,
         modifier = modifier
-            .aspectRatio(McDimens.WIDGET_ASPECT_RATIO)
+            .height(McDimens.WidgetHeight)
             .onFocusChanged { focused = it.isFocused },
         enabled = enabled,
         textStyle = McTheme.typography.body.copy(color = colors.onDark(enabled)),
@@ -47,7 +46,7 @@ internal fun McTextField(
                             else -> skin.textField
                         },
                     )
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = McDimens.WidgetPadding),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 if (state.text.isEmpty() && hint.isNotEmpty()) {

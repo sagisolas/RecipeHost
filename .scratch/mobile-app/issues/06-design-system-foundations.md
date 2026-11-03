@@ -1,14 +1,14 @@
-# Design system foundations: Monocraft, core components with flat-colour backgrounds
+# Design system foundations: Monocraft, nine-slice textured components
 
-Status: ready-for-agent
+Status: resolved
 Spec: ../spec.md
 
 ## What
 
 In `ui/designsystem`, using only Compose foundation, ui and runtime. Remove `material3` from `shared/build.gradle.kts` and the version catalog.
 
-- **No GUI scale.** Components have a fixed aspect ratio and a fixed size in dp, like any mobile UI. They don't scale with the screen. Larger screens get different layouts.
-- **Backgrounds**: each component draws its background from a `Painter` that Compose stretches to the component's bounds. For now every background is a flat colour (`ColorPainter`). The real textures and their sizes are issue 11.
+- **No GUI scale.** Components have sizes in dp, like any mobile UI. They don't scale with the screen. Larger screens get different layouts.
+- **Backgrounds**: each component draws its texture from the design system's skin as a nine-slice. For now the textures are generated placeholder PNGs; the real textures and their sizes are issue 11.
 - **States**: `McButton` has separate looks for normal, pressed and disabled, driven by the Compose `Indication` / `IndicationNodeFactory` API reading the `InteractionSource`, not by `collectIsPressedAsState` recomposition.
 - **Font**: Monocraft (OFL), stored as `composeResources/font/monocraft.ttf` with its `OFL.txt`. `McTypography` sizes are ordinary `sp`.
 - **Components**:
@@ -32,3 +32,5 @@ In `ui/designsystem`, using only Compose foundation, ui and runtime. Remove `mat
 - Nine-slice candidates (components that stretch with fixed proportions not fitting):
   - `McPanel`, `McTabs`, `McBottomBar` and `McProgressBar` take their width from the layout (panel also its height from content), so their texture will stretch.
   - `McButton`, `McDropdown` and `McTextField` keep Minecraft's 10:1 ratio, so their height follows their width: a 240dp-wide button is only 24dp tall, under the 48dp touch target. Either fix the dp height and let the texture stretch horizontally (nine-slice) or pick sizes in issue 11.
+- Decided after review: nine-slice now rather than fixed proportions, because many components already need to adjust to screen sizes. `NineSlicePainter` is added and `McButton`, `McDropdown` and `McTextField` have a fixed height and any width instead of the 10:1 ratio.
+- Decided after nine-slice: flat colours removed. The design system owns its textures (the Minecraft look is its only skin); `McSkin` holds `McTexture`s (image + nine-slice border) built by `rememberMcSkin()` from placeholder PNGs in `composeResources/drawable/`, and `McTheme` provides it. The app only passes the font.

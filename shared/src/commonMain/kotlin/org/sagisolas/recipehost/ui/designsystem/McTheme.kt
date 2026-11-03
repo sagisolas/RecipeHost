@@ -15,20 +15,18 @@ internal object McTheme {
 }
 
 /**
- * Provides [typography], [colors] and [skin] to [content]. The design system owns no fonts or
- * textures: the app passes its own (e.g. a typography built from its bundled font). The
- * defaults are neutral, for previews.
+ * Provides the design system's skin, [typography] and [colors] to [content]. The app passes
+ * its typography (built from its bundled font); the default is a system monospace font.
  */
 @Composable
 internal fun McTheme(
     typography: McTypography = McTypography.of(FontFamily.Monospace),
     colors: McColors = McColors(),
-    skin: McSkin = McSkin.flat(),
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalMcColors provides colors,
-        LocalMcSkin provides skin,
+        LocalMcSkin provides rememberMcSkin(),
         LocalMcTypography provides typography,
         content = content,
     )

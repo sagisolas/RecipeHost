@@ -1,75 +1,105 @@
 package org.sagisolas.recipehost.ui.designsystem
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.ImageBitmap
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.imageResource
+import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.boss_bar_green_background
+import org.sagisolas.recipehost.shared.generated.resources.boss_bar_green_progress
+import org.sagisolas.recipehost.shared.generated.resources.container_slot
+import org.sagisolas.recipehost.shared.generated.resources.menu_background
+import org.sagisolas.recipehost.shared.generated.resources.missing_texture
+import org.sagisolas.recipehost.shared.generated.resources.popup_background
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_pressed
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_selected
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_dropdown_option_pressed
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_text_field_disabled
+import org.sagisolas.recipehost.shared.generated.resources.widget_button
+import org.sagisolas.recipehost.shared.generated.resources.widget_button_disabled
+import org.sagisolas.recipehost.shared.generated.resources.widget_button_highlighted
+import org.sagisolas.recipehost.shared.generated.resources.widget_tab
+import org.sagisolas.recipehost.shared.generated.resources.widget_tab_highlighted
+import org.sagisolas.recipehost.shared.generated.resources.widget_tab_selected
+import org.sagisolas.recipehost.shared.generated.resources.widget_text_field
+import org.sagisolas.recipehost.shared.generated.resources.widget_text_field_highlighted
 
-/**
- * Every component background. Compose stretches each painter to the component's bounds.
- * Today these are flat colours; issue 11 swaps them for the user-supplied textures
- * (as `BitmapPainter(..., filterQuality = FilterQuality.None)`).
- */
+/** Every component's texture; [McTheme] provides the one from [rememberMcSkin]. */
 @Immutable
 internal data class McSkin(
-    val screen: Painter,
-    val panel: Painter,
-    val button: McStatePainters,
-    val textField: Painter,
-    val textFieldFocused: Painter,
-    val textFieldDisabled: Painter,
-    val dropdownOption: McStatePainters,
-    val slot: Painter,
-    val tabSelected: Painter,
-    val tab: McStatePainters,
-    val progressTrack: Painter,
-    val progressFill: Painter,
-    val bottomBar: Painter,
-    val bottomBarItemSelected: Painter,
-    val bottomBarItem: McStatePainters,
-    /** Shown where an image is missing or can't be decoded. */
-    val missingTexture: Painter,
-) {
-    companion object {
-        fun flat(): McSkin {
-            val transparent = ColorPainter(Color.Transparent)
-            return McSkin(
-                screen = ColorPainter(Color(0xFF1E1E1E)),
-                panel = ColorPainter(Color(0xFFC6C6C6)),
-                button = McStatePainters(
-                    normal = ColorPainter(Color(0xFF6F6F6F)),
-                    pressed = ColorPainter(Color(0xFF4A4A4A)),
-                    disabled = ColorPainter(Color(0xFF2C2C2C)),
-                ),
-                textField = ColorPainter(Color(0xFF000000)),
-                textFieldFocused = ColorPainter(Color(0xFF2A2A2A)),
-                textFieldDisabled = ColorPainter(Color(0xFF3A3A3A)),
-                dropdownOption = McStatePainters(
-                    normal = transparent,
-                    pressed = ColorPainter(Color(0xFFA0A0A0)),
-                    disabled = transparent,
-                ),
-                slot = ColorPainter(Color(0xFF8B8B8B)),
-                tabSelected = ColorPainter(Color(0xFFC6C6C6)),
-                tab = McStatePainters(
-                    normal = ColorPainter(Color(0xFF9E9E9E)),
-                    pressed = ColorPainter(Color(0xFF7A7A7A)),
-                    disabled = ColorPainter(Color(0xFF5A5A5A)),
-                ),
-                progressTrack = ColorPainter(Color(0xFF404040)),
-                progressFill = ColorPainter(Color(0xFF80FF20)),
-                bottomBar = ColorPainter(Color(0xFF2B2B2B)),
-                bottomBarItemSelected = ColorPainter(Color(0xFF555555)),
-                bottomBarItem = McStatePainters(
-                    normal = transparent,
-                    pressed = ColorPainter(Color(0xFF3C3C3C)),
-                    disabled = transparent,
-                ),
-                missingTexture = ColorPainter(Color(0xFFB040B0)),
-            )
-        }
-    }
+    val screen: McTexture,
+    val panel: McTexture,
+    val button: McStateTextures,
+    val textField: McTexture,
+    val textFieldFocused: McTexture,
+    val textFieldDisabled: McTexture,
+    val dropdownOption: McStateTextures,
+    val slot: McTexture,
+    val tabSelected: McTexture,
+    val tab: McStateTextures,
+    val progressTrack: McTexture,
+    val progressFill: McTexture,
+    val bottomBar: McTexture,
+    val bottomBarItemSelected: McTexture,
+    val bottomBarItem: McStateTextures,
+    /** Shown, unsliced and nearest-neighbour, where an image is missing or can't be decoded. */
+    val missingTexture: ImageBitmap,
+)
+
+internal val LocalMcSkin = staticCompositionLocalOf<McSkin> {
+    error("No McSkin provided: wrap the content in McTheme")
 }
 
-internal val LocalMcSkin = staticCompositionLocalOf { McSkin.flat() }
+/**
+ * The design system's skin, from its textures in `composeResources/drawable` (named after
+ * Minecraft's sprite paths with `/` replaced by `_`). Borders are in texture pixels.
+ */
+@Composable
+internal fun rememberMcSkin(): McSkin {
+    val button = texture(Res.drawable.widget_button, border = 2)
+    val tab = texture(Res.drawable.widget_tab, border = 2)
+    return McSkin(
+        screen = texture(Res.drawable.menu_background, border = 0),
+        panel = texture(Res.drawable.popup_background, border = 2),
+        button = McStateTextures(
+            normal = button,
+            pressed = texture(Res.drawable.widget_button_highlighted, border = 2),
+            disabled = texture(Res.drawable.widget_button_disabled, border = 1),
+        ),
+        textField = texture(Res.drawable.widget_text_field, border = 1),
+        textFieldFocused = texture(Res.drawable.widget_text_field_highlighted, border = 1),
+        textFieldDisabled = texture(Res.drawable.recipehost_text_field_disabled, border = 1),
+        dropdownOption = McStateTextures(
+            normal = null,
+            pressed = texture(Res.drawable.recipehost_dropdown_option_pressed, border = 1),
+            disabled = null,
+        ),
+        slot = texture(Res.drawable.container_slot, border = 1),
+        tabSelected = texture(Res.drawable.widget_tab_selected, border = 2),
+        tab = McStateTextures(
+            normal = tab,
+            pressed = texture(Res.drawable.widget_tab_highlighted, border = 2),
+            disabled = tab,
+        ),
+        progressTrack = texture(Res.drawable.boss_bar_green_background, border = 1),
+        progressFill = texture(Res.drawable.boss_bar_green_progress, border = 1),
+        bottomBar = texture(Res.drawable.recipehost_bottom_bar, border = 1),
+        bottomBarItemSelected = texture(Res.drawable.recipehost_bottom_bar_item_selected, border = 1),
+        bottomBarItem = McStateTextures(
+            normal = null,
+            pressed = texture(Res.drawable.recipehost_bottom_bar_item_pressed, border = 0),
+            disabled = null,
+        ),
+        missingTexture = imageResource(Res.drawable.missing_texture),
+    )
+}
+
+@Composable
+private fun texture(resource: DrawableResource, border: Int): McTexture {
+    val image = imageResource(resource)
+    return remember(image, border) { McTexture(image, SliceInsets(border), McDimens.TexturePixelSize) }
+}
