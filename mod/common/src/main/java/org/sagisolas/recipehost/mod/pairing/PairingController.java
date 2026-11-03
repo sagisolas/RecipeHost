@@ -62,7 +62,9 @@ public final class PairingController {
 
     public synchronized void screenClosed() {
         cancelPendingUnbind();
-        pendingUnbind = scheduler.schedule(this::unbind, GRACE);
+        int gen = generation;
+        // Guarded by generation: cancel() can't stop a timer that's already running.
+        pendingUnbind = scheduler.schedule(() -> unbindIfCurrent(gen), GRACE);
     }
 
     public synchronized void worldLeft() {

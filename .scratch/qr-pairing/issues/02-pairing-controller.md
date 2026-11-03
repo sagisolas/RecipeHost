@@ -8,7 +8,7 @@ Spec: ../spec.md
 
 - `SessionListener` gets an `onSnapshotDelivered` callback. It fires only after `Done` is written.
 - `PairingController` has injected collaborators: listener factory, scheduler, token source, address source. It implements:
-  - `open() → String` pairing URI (the Minecraft `ListenerFactory` in `Pairing` captures the level);
+  - `open() → String` pairing URI (`MinecraftListenerFactory` captures the level);
   - `screenClosed()`, which unbinds after 60 s;
   - `snapshotDelivered()`;
   - `worldLeft()`.

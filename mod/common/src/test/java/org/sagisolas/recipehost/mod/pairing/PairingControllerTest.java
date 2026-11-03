@@ -86,6 +86,18 @@ public class PairingControllerTest {
         assertTrue(factory.bound.get(0).closed);
     }
 
+    @Test
+    public void graceTimerAlreadyFiringDoesNotUnbindANewerPairing() throws Exception {
+        controller.open();
+        controller.screenClosed();
+        Runnable inFlight = scheduler.lastTask(); // timer thread already running: cancel() can't stop it
+
+        controller.open();
+        inFlight.run();
+
+        assertFalse(factory.bound.get(1).closed);
+    }
+
     // --- fakes -------------------------------------------------------------
 
     private static ByteString token(int seed) {
@@ -128,6 +140,10 @@ public class PairingControllerTest {
             boolean[] cancelled = {false};
             tasks.add(new Task(now.plus(delay), task, cancelled));
             return () -> cancelled[0] = true;
+        }
+
+        Runnable lastTask() {
+            return tasks.get(tasks.size() - 1).task;
         }
 
         void advance(Duration d) {

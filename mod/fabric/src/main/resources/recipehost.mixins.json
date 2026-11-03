@@ -4,6 +4,8 @@
   "package": "org.sagisolas.recipehost.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "InventoryScreenInitMixin",
+    "MinecraftClearLevelMixin",
     "MinecraftSetLevelMixin"
   ],
   "injectors": {

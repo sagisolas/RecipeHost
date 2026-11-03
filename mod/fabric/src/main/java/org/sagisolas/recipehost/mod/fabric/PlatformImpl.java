@@ -5,11 +5,14 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.sagisolas.recipehost.mod.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -47,5 +50,13 @@ public final class PlatformImpl {
 
     public static void onWorldJoin(Consumer<ClientLevel> callback) {
         WorldJoinDispatcher.register(callback);
+    }
+
+    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
+        InventoryInitDispatcher.register(callback);
+    }
+
+    public static void onWorldLeave(Runnable callback) {
+        WorldLeaveDispatcher.register(callback);
     }
 }

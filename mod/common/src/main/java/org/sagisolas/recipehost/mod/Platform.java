@@ -2,10 +2,13 @@ package org.sagisolas.recipehost.mod;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -46,6 +49,21 @@ public final class Platform {
 
     @ExpectPlatform
     public static void onWorldJoin(Consumer<ClientLevel> callback) {
+        throw new AssertionError("@ExpectPlatform not wired");
+    }
+
+    /**
+     * Fires after the survival {@link InventoryScreen} has initialised its widgets
+     * (on open and on resize). The second argument adds a widget to that screen.
+     */
+    @ExpectPlatform
+    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
+        throw new AssertionError("@ExpectPlatform not wired");
+    }
+
+    /** Fires when the player leaves the current world or server. */
+    @ExpectPlatform
+    public static void onWorldLeave(Runnable callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
 }

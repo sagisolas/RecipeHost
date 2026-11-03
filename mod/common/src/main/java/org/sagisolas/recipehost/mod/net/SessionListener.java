@@ -84,6 +84,14 @@ public final class SessionListener implements Closeable {
                 sendErrorAndClose(client, ErrorCode.BUSY);
                 continue;
             }
+            if (closed) {
+                // close() ran between accept() and the CAS above and saw no active session,
+                // or will see ours: either way the source must not be streamed from now.
+                sessionActive.set(false);
+                try { client.close(); } catch (IOException ignored) {}
+                terminateOnce();
+                return;
+            }
 
             Thread session = new Thread(() -> handleClient(client), "recipehost-session");
             session.setDaemon(true);
@@ -124,10 +132,13 @@ public final class SessionListener implements Closeable {
     @Override
     public void close() throws IOException {
         closed = true;
-        serverSocket.close();
-        Thread t = acceptThread;
-        if (t != null) t.interrupt();
-        if (!sessionActive.get()) terminateOnce();
+        try {
+            serverSocket.close();
+        } finally {
+            Thread t = acceptThread;
+            if (t != null) t.interrupt();
+            if (!sessionActive.get()) terminateOnce();
+        }
     }
 
     private void terminateOnce() {

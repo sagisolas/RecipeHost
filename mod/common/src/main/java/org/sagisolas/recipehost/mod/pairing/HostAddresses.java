@@ -1,5 +1,6 @@
 package org.sagisolas.recipehost.mod.pairing;
 
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -14,9 +15,13 @@ public final class HostAddresses {
 
     private HostAddresses() {}
 
-    public static List<InetAddress> all() throws SocketException {
-        return Collections.list(NetworkInterface.getNetworkInterfaces()).stream()
-                .flatMap(NetworkInterface::inetAddresses)
-                .toList();
+    public static List<InetAddress> all() {
+        try {
+            return Collections.list(NetworkInterface.getNetworkInterfaces()).stream()
+                    .flatMap(NetworkInterface::inetAddresses)
+                    .toList();
+        } catch (SocketException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

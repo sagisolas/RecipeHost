@@ -2,15 +2,21 @@ package org.sagisolas.recipehost.mod.neoforge;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import org.sagisolas.recipehost.mod.ModDescriptor;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -49,5 +55,17 @@ public final class PlatformImpl {
     // TODO: wire ClientPlayerNetworkEvent.LoggingIn (or LevelEvent.Load) when NeoForge dev work starts.
     public static void onWorldJoin(Consumer<ClientLevel> callback) {
         // No-op on NeoForge until the loader slice lands. Dev harness is Fabric-only for now.
+    }
+
+    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
+        NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post.class, event -> {
+            if (event.getScreen() instanceof InventoryScreen screen) {
+                callback.accept(screen, event::addListener);
+            }
+        });
+    }
+
+    public static void onWorldLeave(Runnable callback) {
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> callback.run());
     }
 }

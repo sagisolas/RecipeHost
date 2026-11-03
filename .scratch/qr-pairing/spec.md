@@ -34,29 +34,14 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
   - NeoForge: `ClientPlayerNetworkEvent.LoggingOut`.
 - `onWorldJoin` stays, but `RecipeHost.init` no longer uses it.
 
-### Common mixin (`:mod:common`)
-
-- `AbstractContainerScreenAccessor` provides `@Accessor` for `leftPos` and `topPos`.
-- It is declared in `recipehost-common.mixins.json`, which both `fabric.mod.json` and `neoforge.mods.toml` list.
-
 ### UI (`:mod:common/ui/`)
 
-- `PairingButton extends Button`:
+- `PairingButtonInstaller` (an instance, constructed with the `PairingController` by `RecipeHost.init`) finds the anchor, picks the slot and creates the button. `PairingButton extends Button` is a plain widget:
   - Size 20×18, label `Component.literal("QR")`, tooltip `Tooltip.create(Component.literal("Pair with RecipeHost app"))`.
-  - In `renderWidget`, every frame and before calling super:
-    - read `leftPos`/`topPos` through the accessor;
-    - collect the bounds of every `AbstractWidget` in `screen.children()` except itself;
-    - call `setX(ButtonRowLayout.slotX(...))` and `setY(topPos + 61)`.
-  - The check runs every frame, not once at init, for three reasons:
-    - Buttons that other mods add after our init hook (fabric-api `AFTER_INIT`, NeoForge event order) are still seen.
-    - The button follows the recipe-book toggle, which shifts `leftPos` without re-running `init`.
-    - It follows window resizes.
-  - The cost is a few dozen rectangle tests per frame.
-- `ButtonRowLayout` (pure): `static int slotX(int startX, int y, int w, int h, List<Rect> occupied)`.
-  - It starts at `leftPos + 126` and moves 22 px right until the candidate rectangle overlaps nothing.
-  - When the panel row is full, it keeps going past the panel's right edge (no wrapping).
-  - Its result is the same whatever order the widgets come in, so two mods using the same strategy settle within one frame.
-  - Known limit: mods that draw buttons without registering a widget can't be detected.
+  - **Anchor:** the first `ImageButton` in `screen.children()`, which is vanilla's recipe-book button (vanilla adds it first in `init`). If there's no anchor, the button isn't added.
+  - **Slot, chosen once when the inventory initialises:** using Minecraft's widget API (`screen.children()`, `AbstractWidget` rectangles), it picks the first slot `k ≥ 1` where the rectangle at `anchor.x + 22·k, anchor.y` overlaps no existing widget. There's no per-frame slot checking. Widgets added after our hook (fabric-api `AFTER_INIT` mods) aren't seen; those mods have to avoid us.
+  - **Following the recipe book:** in `renderWidget` it copies the anchor's current position plus the fixed offset (`setX(anchor.getX() + 22·k)`, `setY(anchor.getY())`). Vanilla moves the recipe-book button when the book is toggled, so ours moves with it. No `leftPos` accessor is needed.
+  - No unit tests; the in-game check covers it.
 - `PairingScreen extends Screen`:
   - Title `Component.literal("RecipeHost pairing")`. Takes `parent` and a `QrCode`.
   - The QR side length is `min(width, height) * 0.6`, snapped to whole pixels per module and centred.
@@ -69,6 +54,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 ### Pairing (`:mod:common/pairing/`)
 
+- Production collaborators are instances wired in `RecipeHost.init`: `MinecraftListenerFactory`, `ExecutorScheduler`, `SecureTokens`, `HostAddresses::all`.
 - `PairingController` owns the listener lifecycle. It has injected collaborators (listener factory, `ScheduledExecutorService`, token source, address source), so it can be unit-tested.
   - `open(ClientLevel) → PairingPayload`:
     - Cancels any pending grace unbind.
@@ -112,13 +98,6 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 ## Testing (TDD at pure seams)
 
 - `PairingPayloadTest`: checks `toUri` against hand-written URIs: single host, multiple hosts keep their order, token is base64url without padding, IPv6 and scope-id encoding.
-- `ButtonRowLayoutTest` covers:
-  - an empty row;
-  - the first slot taken;
-  - a gap between two taken slots;
-  - a partial overlap counting as taken;
-  - overflow past the panel edge;
-  - the same result when the occupied list is shuffled.
 - `PairingControllerTest` uses a fake scheduler and a fake listener factory. It checks that:
   - open binds with a fresh token;
   - close followed by 60 s unbinds;
@@ -138,5 +117,5 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 1. `PairingPayload` (pure) + `HostAddresses` adapter.
 2. `PairingController` + the `SessionListener` end callback; delete DevHarness; update the probe.
-3. `Platform.onInventoryInit`/`onWorldLeave` + mixins/events + `PairingButton` + `ButtonRowLayout`.
+3. `Platform.onInventoryInit`/`onWorldLeave` + mixins/events + `PairingButton`.
 4. `PairingScreen` + qrcodegen bundling.
