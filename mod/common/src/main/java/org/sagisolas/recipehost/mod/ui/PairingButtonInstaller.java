@@ -41,6 +41,7 @@ public final class PairingButtonInstaller {
     }
 
     public void install(InventoryScreen screen, Consumer<AbstractWidget> addWidget) {
+        // TODO check placement with JEI or EMI, check with other buttons present
         for (int slot = 0; slot < MAX_SLOTS; slot++) {
             int x = MARGIN + STEP * slot;
             boolean taken = screen.children().stream()
