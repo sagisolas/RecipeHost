@@ -63,11 +63,15 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
   - `screenClosed()`: schedules unbind after 60 s. An active session runs to completion, because closing the server socket leaves accepted sockets alone.
   - `snapshotDelivered()`: unbinds immediately. A mid-stream drop does not unbind, so the app can retry with the same QR within the grace period.
   - `worldLeft()`: unbinds immediately.
-- `HostAddresses` is a thin, untested adapter: every address of every interface from `NetworkInterface.getNetworkInterfaces()`, unfiltered and in enumeration order. **The mobile app filters**: it knows its own local IP and subnet, so it can pick the reachable host better than the mod can.
+- `HostAddresses` is a pure filter, `select(List<Candidate>)`, plus a thin, untested `NetworkInterface` adapter (`all()`):
+  - Drops loopback and IPv6 link-local addresses, and addresses on interfaces that are down, point-to-point or virtual (covers macOS `utun*` without name matching).
+  - Keeps IPv4 site-local/public and IPv6 global/unique-local addresses; IPv4 first, then IPv6, each in enumeration order.
+  - If nothing is left, falls back to the unfiltered list and logs a WARN, so `h=` is never empty.
+  - **The mobile app still chooses** among the remaining hosts: it knows its own local IP and subnet. The mod only drops addresses no phone can ever use.
 - `PairingPayload` (pure):
   - Format: `recipehost://pair?v=1&h=192.168.1.5,10.0.0.2&p=51234&t=<base64url-no-pad token>`.
   - Hosts keep their input order. IPv6 scope ids (`fe80::1%en0`) are percent-encoded (`%25`).
-  - Because nothing is filtered, the URI grows with the number of interfaces: roughly 15 chars per IPv4 host and up to ~40 per IPv6 host. A typical machine is still well within the QR's capacity, though the code gets denser.
+  - The URI grows with the number of usable addresses: roughly 15 chars per IPv4 host and up to ~40 per IPv6 host. A typical machine is still well within the QR's capacity, though the code gets denser.
   - It can also serve as a mobile deep link later.
 
 ### Net

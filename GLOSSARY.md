@@ -24,7 +24,7 @@ A 256-bit random value generated when the QR screen opens and embedded in the QR
 _Avoid_: Secret, key, password
 
 **Pairing payload**:
-The `recipehost://pair?v=1&h=<hosts>&p=<port>&t=<token>` URI encoded in the QR code. `h` lists every host address of the player's machine, unfiltered — the mobile app picks the reachable one. `t` is the `Token`, base64url without padding.
+The `recipehost://pair?v=1&h=<hosts>&p=<port>&t=<token>` URI encoded in the QR code. `h` lists the usable host addresses of the player's machine (loopback, link-local and tunnel interfaces excluded), IPv4 first — the mobile app picks the reachable one. `t` is the `Token`, base64url without padding.
 _Avoid_: QR data, connection string
 
 **Session**:

@@ -68,7 +68,7 @@ public final class PairingButtonInstaller {
         try {
             String uri = pairing.open();
             LOG.info("[recipehost] pairing open: {}", uri);
-            // Throws DataTooLongException if the unfiltered host list outgrows a QR code.
+            // Throws DataTooLongException if the host list outgrows a QR code.
             qr = QrCode.encodeText(uri, QrCode.Ecc.MEDIUM);
         } catch (IOException | RuntimeException e) {
             LOG.error("[recipehost] failed to open pairing", e);
