@@ -41,7 +41,7 @@ ADR 0011 needs these protocol changes:
   - `scan`: writes a `Snapshot` into the `Catalog`.
 - **`domain`**: use cases where they add something, for example the `Version selection` rules, resolving recipe variants across `Instance`s, and grid filtering. Thin pass-throughs are skipped.
 - **`presentation`**: one ViewModel per screen (`org.jetbrains.androidx.lifecycle`), exposing `StateFlow<UiState>`.
-- **`ui`**: screens, plus `ui/designsystem` for the components.
+- **`ui`**: screens, plus `ui/designsystem` for the generic components and `ui/item` for item rendering (`ItemIcon`).
 - **Wiring.** `AppGraph` is the composition root. The platform wrapper constructs it, passing a `SqlDriver` and a `QrScanner`. The CLAUDE.md rule applies here too: services are instances that receive their collaborators through the constructor, and nothing is static except pure functions and constants.
 - **Navigation.** The root screen has bottom navigation with two tabs in v1: **Items** and **Settings**. A **Craft tree** tab comes later, so the tab list must be easy to extend. Each tab keeps its own hand-written back stack (`List<Screen>`) inside one `Navigator` instance, wired to `BackHandler`. The bottom bar stays visible on screens pushed inside a tab.
   - Tapping an ItemStack inside a recipe pushes another item screen onto the current tab's stack, so the user can follow a chain of recipes as in JEI.
@@ -113,7 +113,8 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 - **Textures.** The user supplies the GUI textures as PNGs in `shared/src/commonMain/composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_` (for example `container_slot.png`, `widget_button.png`, `widget_button_highlighted.png`). Each component has a fixed aspect ratio taken from its texture and a fixed size in dp, like any mobile UI. The texture is the component's background `Painter`, and Compose scales it to fill. There is **no nine-slice in v1**. We'll check in practice whether this is enough and add nine-slice only if a component really needs to stretch.
 - **No GUI scale.** Components don't scale with the screen. Larger screens get different layouts, not bigger components.
 - **Font.** Monocraft (OFL), bundled in `composeResources/font`, with its licence file next to it. Text sizes are ordinary `sp`.
-- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `ItemIcon` (fixed size, nearest-neighbour, with a placeholder), `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`.
+- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`. The design system knows nothing about items or the Catalog.
+- **Item Icons** (`ui/item`, app code, not design system): `ItemIcon` draws an Icon in a `McSlot`'s content area with nearest-neighbour filtering and the skin's missing texture as placeholder; `ItemIconCache` decodes and caches Icons by item key and is an app-scoped instance owned by `AppGraph`.
 - No `material3`, so remove it from `shared/build.gradle.kts` and the version catalog. Use foundation, ui and runtime only.
 
 ### Platform wrappers

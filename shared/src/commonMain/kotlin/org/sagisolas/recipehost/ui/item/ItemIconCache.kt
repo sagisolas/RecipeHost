@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.ui.designsystem
+package org.sagisolas.recipehost.ui.item
 
 import androidx.compose.ui.graphics.ImageBitmap
 import org.jetbrains.compose.resources.decodeToImageBitmap

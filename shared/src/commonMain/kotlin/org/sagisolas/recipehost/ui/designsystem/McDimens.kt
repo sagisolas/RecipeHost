@@ -10,7 +10,7 @@ internal object McDimens {
     val SlotSize = 36.dp
     /** The slot's frame is 1/18 of its size on each side, so the content area is 16/18 of it. */
     val SlotInset = SlotSize / 18
-    val IconSize = SlotSize - SlotInset * 2
+    val SlotContentSize = SlotSize - SlotInset * 2
     val TabHeight = 40.dp
     val ProgressBarHeight = 6.dp
     val BottomBarHeight = 64.dp

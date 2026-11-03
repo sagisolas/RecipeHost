@@ -28,7 +28,8 @@ internal data class McSkin(
     val bottomBar: Painter,
     val bottomBarItemSelected: Painter,
     val bottomBarItem: McStatePainters,
-    val itemPlaceholder: Painter,
+    /** Shown where an image is missing or can't be decoded. */
+    val missingTexture: Painter,
 ) {
     companion object {
         fun flat(): McSkin {
@@ -65,7 +66,7 @@ internal data class McSkin(
                     pressed = ColorPainter(Color(0xFF3C3C3C)),
                     disabled = transparent,
                 ),
-                itemPlaceholder = ColorPainter(Color(0xFFB040B0)),
+                missingTexture = ColorPainter(Color(0xFFB040B0)),
             )
         }
     }

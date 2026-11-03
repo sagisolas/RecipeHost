@@ -1,11 +1,13 @@
 package org.sagisolas.recipehost.ui.designsystem
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -20,14 +22,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.io.encoding.Base64
 
 /** Every design-system component on one screen, for eyeballing looks and states. */
 @Composable
 internal fun McGallery(modifier: Modifier = Modifier) {
-    val iconCache = remember { ItemIconCache() }
     Column(Modifier.fillMaxSize().mcBackground(McTheme.skin.screen).then(modifier)) {
         Column(
             modifier = Modifier
@@ -59,12 +60,11 @@ internal fun McGallery(modifier: Modifier = Modifier) {
                 McTextField(rememberTextFieldState("Disabled"), Modifier.width(240.dp), enabled = false)
             }
 
-            Section("McSlot + ItemIcon") {
+            Section("McSlot") {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     McSlot()
-                    McSlot { ItemIcon("gallery:sample", SAMPLE_ICON_PNG, iconCache) }
-                    McSlot { ItemIcon("gallery:missing", null, iconCache) }
-                    McSlot { ItemIcon("gallery:broken", byteArrayOf(1, 2, 3), iconCache) }
+                    McSlot { SlotImage(ColorPainter(Color(0xFF3060C0))) }
+                    McSlot { SlotImage(McTheme.skin.missingTexture) }
                 }
             }
 
@@ -111,11 +111,10 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-/** A 16×16 framed blue square with an X, to show nearest-neighbour scaling. */
-private val SAMPLE_ICON_PNG: ByteArray = Base64.decode(
-    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mPQ0ND4TwlmABFRJ/7/l6s4QRIG6YEbABMgRTOIRjGAWEOQ" +
-        "1WAYQMgQdDmsBuAyBJsYTgPQNeByFV4DYBrxeYm2BlDkBYoCkaJopCghUZSUKc5MlGAAohE8i1zIsmoAAAAASUVORK5CYII=",
-)
+@Composable
+private fun SlotImage(painter: Painter) {
+    Image(painter, contentDescription = null, modifier = Modifier.size(McDimens.SlotContentSize))
+}
 
 @Preview
 @Composable

@@ -13,10 +13,10 @@ In `ui/designsystem`, using only Compose foundation, ui and runtime. Remove `mat
 - **Font**: Monocraft (OFL), stored as `composeResources/font/monocraft.ttf` with its `OFL.txt`. `McTypography` sizes are ordinary `sp`.
 - **Components**:
   - `McPanel`, `McButton`, `McTextField`, `McSlot` (a frame around a smaller content area);
-  - `ItemIcon(key, png: ByteArray?)`, which decodes with `decodeToImageBitmap()` and caches by item key, falling back to a placeholder;
   - `McDropdown`, `McTabs`, `McPager` (◀ ▶ and an "n / N" counter), `McProgressBar`, `McText`;
   - `McBottomBar`: the root tab bar, one item per tab with an icon and a label, and selected and unselected states.
 - A `@Preview` gallery screen showing every component.
+- **Item Icons** live outside the design system, in `ui/item`, because they are recipe-viewer code: `ItemIcon(key, png: ByteArray?, cache)`, which decodes with `decodeToImageBitmap()` through `ItemIconCache` (cached by item key) and falls back to the skin's missing texture.
 
 ## Acceptance
 
