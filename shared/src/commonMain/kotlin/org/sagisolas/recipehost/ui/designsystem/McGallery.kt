@@ -1,0 +1,124 @@
+package org.sagisolas.recipehost.ui.designsystem
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import kotlin.io.encoding.Base64
+
+/** Every design-system component on one screen, for eyeballing looks and states. */
+@Composable
+internal fun McGallery(modifier: Modifier = Modifier) {
+    val iconCache = remember { ItemIconCache() }
+    Column(Modifier.fillMaxSize().mcBackground(McTheme.skin.screen).then(modifier)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            McPanel(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    McText("McText title", style = McTheme.typography.title)
+                    McText("McText body: The quick brown fox jumps over the lazy dog")
+                    McText("McText small", style = McTheme.typography.small)
+                }
+            }
+
+            Section("McButton") {
+                var clicks by remember { mutableIntStateOf(0) }
+                McButton("Clicked $clicks times", onClick = { clicks++ }, Modifier.width(240.dp))
+                McButton("Disabled", onClick = {}, Modifier.width(240.dp), enabled = false)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    McSquareButton("✓", onClick = {})
+                    McSquareButton("✓", onClick = {}, enabled = false)
+                }
+            }
+
+            Section("McTextField") {
+                McTextField(rememberTextFieldState(), Modifier.width(240.dp), hint = "Search items")
+                McTextField(rememberTextFieldState("Disabled"), Modifier.width(240.dp), enabled = false)
+            }
+
+            Section("McSlot + ItemIcon") {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    McSlot()
+                    McSlot { ItemIcon("gallery:sample", SAMPLE_ICON_PNG, iconCache) }
+                    McSlot { ItemIcon("gallery:missing", null, iconCache) }
+                    McSlot { ItemIcon("gallery:broken", byteArrayOf(1, 2, 3), iconCache) }
+                }
+            }
+
+            Section("McDropdown") {
+                val releases = listOf("6.0.1 · MC 1.21.1", "5.4.0 · MC 1.20.1", "4.9.2 · MC 1.19.2")
+                var selected by remember { mutableStateOf(releases.first()) }
+                McDropdown(releases, selected, { selected = it }, { it }, Modifier.width(240.dp))
+            }
+
+            Section("McTabs") {
+                var tab by remember { mutableIntStateOf(0) }
+                McTabs(listOf("Recipes", "Uses"), tab, { tab = it })
+            }
+
+            Section("McPager") {
+                var page by remember { mutableIntStateOf(2) }
+                McPager(page, 12, onPrevious = { page-- }, onNext = { page++ })
+            }
+
+            Section("McProgressBar") {
+                var progress by remember { mutableFloatStateOf(0.4f) }
+                McProgressBar(progress)
+                McButton("+10%", onClick = { progress = (progress + 0.1f) % 1.1f }, Modifier.width(120.dp))
+            }
+        }
+
+        var tab by remember { mutableIntStateOf(0) }
+        McBottomBar(
+            items = listOf(
+                McBottomBarItem("Items", ColorPainter(Color(0xFF55FF55))),
+                McBottomBarItem("Settings", ColorPainter(Color(0xFFFFAA00))),
+            ),
+            selectedIndex = tab,
+            onSelect = { tab = it },
+        )
+    }
+}
+
+@Composable
+private fun Section(title: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        McText(title, color = McTheme.colors.textOnDark, style = McTheme.typography.small)
+        content()
+    }
+}
+
+/** A 16×16 framed blue square with an X, to show nearest-neighbour scaling. */
+private val SAMPLE_ICON_PNG: ByteArray = Base64.decode(
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mPQ0ND4TwlmABFRJ/7/l6s4QRIG6YEbABMgRTOIRjGAWEOQ" +
+        "1WAYQMgQdDmsBuAyBJsYTgPQNeByFV4DYBrxeYm2BlDkBYoCkaJopCghUZSUKc5MlGAAohE8i1zIsmoAAAAASUVORK5CYII=",
+)
+
+@Preview
+@Composable
+private fun McGalleryPreview() {
+    McTheme { McGallery() }
+}

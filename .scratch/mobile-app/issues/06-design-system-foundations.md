@@ -1,29 +1,34 @@
-# Design system foundations: GUI scale, textures, Monocraft, core components
+# Design system foundations: Monocraft, core components with flat-colour backgrounds
 
 Status: ready-for-agent
 Spec: ../spec.md
 
 ## What
 
-In `ui/designsystem`, using only Compose foundation, ui and runtime. Remove the commented-out `material3` line from `shared/build.gradle.kts`.
+In `ui/designsystem`, using only Compose foundation, ui and runtime. Remove `material3` from `shared/build.gradle.kts` and the version catalog.
 
-- **`LocalGuiScale`**: a whole number picked from the window width so that about 320 GUI pixels fit across. Make that target a single constant that's easy to tune. Add `Int.gpx` / `Float.gpx` helpers that turn GUI pixels into `Dp` so that each GUI pixel covers exactly `scale` physical pixels.
-- **Textures**:
-  - They come from `composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_`. The user supplies the files.
-  - They are drawn at native proportions × scale, with `FilterQuality.None`.
-  - No nine-slice: every component has a fixed size in GUI pixels.
-  - Until the real files arrive, use a placeholder texture set made of solid-colour PNGs of the right sizes, so the build works.
-- **Font**: Monocraft (OFL), stored as `composeResources/font/monocraft.ttf` with its `OFL.txt`. `McTextStyle` sizes are whole multiples of the GUI scale.
+- **No GUI scale.** Components have a fixed aspect ratio and a fixed size in dp, like any mobile UI. They don't scale with the screen. Larger screens get different layouts.
+- **Backgrounds**: each component draws its background from a `Painter` that Compose stretches to the component's bounds. For now every background is a flat colour (`ColorPainter`). The real textures and their sizes are issue 11.
+- **States**: `McButton` has separate looks for normal, pressed and disabled, driven by the Compose `Indication` / `IndicationNodeFactory` API reading the `InteractionSource`, not by `collectIsPressedAsState` recomposition.
+- **Font**: Monocraft (OFL), stored as `composeResources/font/monocraft.ttf` with its `OFL.txt`. `McTypography` sizes are ordinary `sp`.
 - **Components**:
-  - `McPanel`, `McButton` (normal, pressed and disabled states), `McTextField`, `McSlot` (an 18×18 frame around a 16×16 content area);
-  - `ItemIcon(png: ByteArray?)`, which decodes with `decodeToImageBitmap()` and caches by item key, falling back to a placeholder;
+  - `McPanel`, `McButton`, `McTextField`, `McSlot` (a frame around a smaller content area);
+  - `ItemIcon(key, png: ByteArray?)`, which decodes with `decodeToImageBitmap()` and caches by item key, falling back to a placeholder;
   - `McDropdown`, `McTabs`, `McPager` (◀ ▶ and an "n / N" counter), `McProgressBar`, `McText`;
   - `McBottomBar`: the root tab bar, one item per tab with an icon and a label, and selected and unselected states.
 - A `@Preview` gallery screen showing every component.
 
 ## Acceptance
 
-- Each component renders in the preview gallery at GUI scales 2, 3 and 4 with crisp pixels, meaning no blur from smoothing.
+- Each component renders in the preview gallery, with its Monocraft text.
+- Pressed and disabled buttons look different from normal ones.
 - `ItemIcon` shows the placeholder for `null` and for undecodable bytes.
 - The iOS framework still compiles.
 - Note in the Comments section any component where fixed proportions don't fit in practice. Those are the candidates for nine-slice.
+
+## Comments
+
+- Implemented with flat colours (`McSkin.flat()`) and placeholder sizes (`McDimens`); textures and real sizes are issue 11.
+- Nine-slice candidates (components that stretch with fixed proportions not fitting):
+  - `McPanel`, `McTabs`, `McBottomBar` and `McProgressBar` take their width from the layout (panel also its height from content), so their texture will stretch.
+  - `McButton`, `McDropdown` and `McTextField` keep Minecraft's 10:1 ratio, so their height follows their width: a 240dp-wide button is only 24dp tall, under the 48dp touch target. Either fix the dp height and let the texture stretch horizontally (nine-slice) or pick sizes in issue 11.

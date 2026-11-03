@@ -101,7 +101,7 @@ Queries:
 
 1. **Welcome** (full screen, no bottom bar). Shown when the Catalog is empty. It has a "Scan QR" button and a hint to open the pairing screen in-game.
 2. **Scan progress** (full screen, no bottom bar). Shows the steps connecting → receiving items (n/N) → receiving recipes (m/M), using the Handshake totals. Domain errors appear as messages, each with a "Scan again" button. When the commit finishes, the app moves to the bottom-navigation root with the Items tab selected.
-3. **Items tab: item grid** (the Items tab's first screen). The column count follows the screen width at the current GUI scale. The top bar has a search field, a **Mods** button that opens the mod list, and a Scan button. While a Scan's Icons are still arriving, a thin progress bar shows. Items whose Icon hasn't arrived yet show a placeholder.
+3. **Items tab: item grid** (the Items tab's first screen). The column count follows the screen width (fixed-size Slots, as many as fit). The top bar has a search field, a **Mods** button that opens the mod list, and a Scan button. While a Scan's Icons are still arriving, a thin progress bar shows. Items whose Icon hasn't arrived yet show a placeholder.
 4. **Mod list** (pushed onto the Items tab's stack by the Mods button). Mods with their names. Tapping a mod filters the grid and goes back to it. A dropdown per mod lists its Mod releases ("6.0.1 · MC 1.21.1"), and changing it updates the `Version selection`, which is saved.
 5. **Item** (pushed onto the Items tab's stack). Has **Recipes** and **Uses** tabs. Each tab is a vertical list with one section per recipe type. A section shows one recipe at a time, with ◀ ▶ and a counter like "3 / 12". When a recipe has several different bodies across Instances, the section shows a "From <instance name>" selector. How each recipe type looks is **deferred** (the user has a design). Until then, every type uses a generic layout: input Slots in a row, an arrow, then the results, with alternatives in a Slot cycling every second. Tapping an ItemStack opens that Item.
 6. **Settings tab.** "Clear Catalog", which asks for confirmation.
@@ -110,11 +110,11 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 
 ### Design system (`ui/designsystem`)
 
-- **Textures.** The user supplies the GUI textures as PNGs in `shared/src/commonMain/composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_` (for example `container_slot.png`, `widget_button.png`, `widget_button_highlighted.png`). They are drawn at their native proportions with `FilterQuality.None`. There is **no nine-slice in v1**: each component has a fixed size in GUI pixels. We'll check in practice whether this is enough and add nine-slice only if a component really needs to stretch.
-- **GUI scale.** `LocalGuiScale` is a whole number chosen from the screen width so that a target number of GUI pixels fits across. One GUI pixel equals `scale` physical pixels, so no texture pixel ever falls between screen pixels.
-- **Font.** Monocraft (OFL), bundled in `composeResources/font`, with its licence file next to it. Text sizes are whole multiples of the GUI scale.
-- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `ItemIcon` (16×16, nearest-neighbour, with a placeholder), `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`.
-- No `material3`, so remove the commented-out line from `shared/build.gradle.kts`. Use foundation, ui and runtime only.
+- **Textures.** The user supplies the GUI textures as PNGs in `shared/src/commonMain/composeResources/drawable/`, named after Minecraft's sprite paths with `/` replaced by `_` (for example `container_slot.png`, `widget_button.png`, `widget_button_highlighted.png`). Each component has a fixed aspect ratio taken from its texture and a fixed size in dp, like any mobile UI. The texture is the component's background `Painter`, and Compose scales it to fill. There is **no nine-slice in v1**. We'll check in practice whether this is enough and add nine-slice only if a component really needs to stretch.
+- **No GUI scale.** Components don't scale with the screen. Larger screens get different layouts, not bigger components.
+- **Font.** Monocraft (OFL), bundled in `composeResources/font`, with its licence file next to it. Text sizes are ordinary `sp`.
+- **Components:** `McPanel`, `McButton`, `McTextField`, `McSlot`, `ItemIcon` (fixed size, nearest-neighbour, with a placeholder), `McDropdown`, `McTabs`, `McPager` (◀ ▶ and the counter), `McProgressBar`, `McBottomBar` (the tab bar), and `McText`.
+- No `material3`, so remove it from `shared/build.gradle.kts` and the version catalog. Use foundation, ui and runtime only.
 
 ### Platform wrappers
 
@@ -170,7 +170,7 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
   - in-app scan, and a deep link from the system camera;
   - a large modpack: memory use and the time to commit;
   - turning Wi-Fi off during Icons;
-  - checking the textures at GUI scales 2, 3 and 4.
+  - checking the textures on phones of different densities.
 
 ## Issues
 
@@ -179,8 +179,9 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 3. `SessionClient` on ktor-network: hosts tried in turn, Auth, the retry and error rules.
 4. Catalog schema on SQLDelight, and `ScanIngest`, including the app-scoped scan scope.
 5. Catalog queries and domain logic: grid and search, mod list and `Version selection`, Recipes and Uses with Instance variants, ItemStack resolution.
-6. Design system foundations: GUI scale, texture loading, Monocraft, core components.
+6. Design system foundations: Monocraft, core components with flat-colour backgrounds.
 7. App shell: `AppGraph`, `Navigator` with bottom-navigation tabs, Android wrapper (`GmsQrScanner`, deep link, driver); iOS stub kept compiling.
 8. Screens: Welcome, Scan progress, Items tab (grid and mod list).
 9. Item screen: Recipes and Uses tabs, pager, "From <instance>" selector, generic recipe layout.
 10. Settings tab: Clear Catalog.
+11. Design system textures: the real GUI textures and component sizes replace the flat colours.

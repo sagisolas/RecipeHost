@@ -15,7 +15,7 @@ Each screen has a ViewModel in `presentation` exposing `StateFlow<UiState>` and 
   - A domain failure shows its message (unauthorized, busy, game error, version mismatch, invalid code) with a "Scan again" button.
   - A network failure that remains after the retry shows "Couldn't reach the game. Same Wi-Fi? Is the pairing screen open?"
 - **Items tab: grid** (the tab's first screen):
-  - A lazy grid of `McSlot` + `ItemIcon`, with the column count from the width and the GUI scale.
+  - A lazy grid of `McSlot` + `ItemIcon`, with the column count from the width (as many fixed-size Slots as fit).
   - The top bar has a search field, a **Mods** button that pushes `ModList` onto the Items tab's stack, and a Scan button. Settings is a bottom-bar tab.
   - While `ScanProgress` is Icons k/N, a thin `McProgressBar` is visible.
   - Tapping an item pushes `Item(itemId)` onto the Items tab's stack. A long press shows the item id.
