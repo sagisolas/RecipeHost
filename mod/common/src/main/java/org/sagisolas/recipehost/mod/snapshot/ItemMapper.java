@@ -15,7 +15,7 @@ import java.util.Set;
  * Walks {@code BuiltInRegistries.ITEM} once and produces the three parallel
  * views the snapshot stream needs: wire {@link org.sagisolas.recipehost.protocol.Item}s,
  * their ids (in the same order, for the icon stream), and the set of namespaces
- * that contributed at least one item (used to filter the mod list).
+ * that contributed at least one item (one input to the {@link ModInfos} list).
  */
 final class ItemMapper {
 

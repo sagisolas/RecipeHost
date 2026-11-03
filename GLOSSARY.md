@@ -35,7 +35,7 @@ _Avoid_: Connection (used only for the raw TCP layer)
 The top-level protobuf message exchanged over a `Session`. Wraps a `oneof payload` whose variants are `Handshake`, `ItemBatch`, `RecipeBatch`, `IconBatch`, `Done`, `Error`.
 
 **Handshake**:
-The first `Envelope` the companion mod sends after accepting a `Token`. Carries session-scoped context the mobile app needs before it can interpret the rest of the `Snapshot`: wire protocol version, Minecraft game version, the locale the mod used to render display names, the `ModInfo` list, and the total `Item`/`Recipe` counts used to drive progress indicators.
+The first `Envelope` the companion mod sends after accepting a `Token`. Carries session-scoped context the mobile app needs before it can interpret the rest of the `Snapshot`: wire protocol version, Minecraft game version, the locale the mod used to render display names, the `Instance` name, the `ModInfo` list, and the total `Item`/`Recipe` counts used to drive progress indicators.
 
 **Snapshot**:
 The full dataset the companion mod streams to the mobile app on connect: handshake, then every `Item`, every `Recipe`, every icon, terminated by `Done`. No deltas, no resumption — a mid-stream drop forces a new `Snapshot`.
@@ -50,7 +50,7 @@ One entry in the companion mod's enumeration of `BuiltInRegistries.ITEM`. Carrie
 Metadata about a namespace that owns at least one `Item` or `Recipe`. Listed in the `Handshake`. Mods that own neither (performance mods, API shims) are omitted. A namespace with no loaded mod behind it (a datapack) is listed under its namespace with version `datapack`.
 
 **Recipe**:
-The generic wire representation of any crafting operation — vanilla, modded, or datapack. Identified by `type_id`; type-specific metadata lives in a free-form `extras` map rather than per-type schemas. In the `Catalog` a recipe belongs to the `Mod release` of its id's namespace, and is kept per `Instance` it was seen in.
+The generic wire representation of any crafting operation — vanilla, modded, or datapack. Carries its recipe `id` (e.g. `minecraft:oak_planks`) and its `type_id`; type-specific metadata lives in a free-form `extras` map rather than per-type schemas. In the `Catalog` a recipe belongs to the `Mod release` of its id's namespace, and is kept per `Instance` it was seen in.
 
 **Slot**:
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.

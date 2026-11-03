@@ -63,6 +63,7 @@ fun main(args: Array<String>) {
                 println("protocol_version = ${h.protocol_version}")
                 println("minecraft_version = ${h.minecraft_version}")
                 println("locale = ${h.locale}")
+                println("instance_name = ${h.instance_name}")
                 println("total_items (reported) = ${h.total_items}")
                 println("total_recipes (reported) = ${h.total_recipes}")
                 println("mods (${h.mods.size}):")
@@ -70,7 +71,13 @@ fun main(args: Array<String>) {
                 handshakePrinted = true
             }
             envelope.item_batch?.let { itemCount += it.items.size }
-            envelope.recipe_batch?.let { recipeCount += it.recipes.size }
+            envelope.recipe_batch?.let { batch ->
+                if (recipeCount == 0) {
+                    println("first recipes:")
+                    for (r in batch.recipes.take(5)) println("  - ${r.id}  (${r.type_id})")
+                }
+                recipeCount += batch.recipes.size
+            }
 
             // Stop before draining icons; mobile-side would keep going, but the probe
             // only verifies metadata + batch counts.

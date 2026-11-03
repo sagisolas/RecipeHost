@@ -32,8 +32,11 @@ message Handshake {
   repeated ModInfo mods = 4;
   uint32 total_items = 5;
   uint32 total_recipes = 6;
+  string instance_name = 7;        // game-directory folder name, see Instance in GLOSSARY.md
 }
 
+// Sent for every namespace that owns at least one Item or Recipe. A namespace
+// with no loaded mod behind it (a datapack) carries version "datapack".
 message ModInfo {
   string id = 1;
   string name = 2;
@@ -58,6 +61,7 @@ message Recipe {
   repeated Slot inputs = 2;
   repeated ItemStack results = 3;
   map<string, string> extras = 4;  // type-specific metadata, see ADR 0002
+  string id = 5;                   // recipe id, e.g. "minecraft:oak_planks"; its namespace owns the recipe (ADR 0011)
 }
 
 message Slot {

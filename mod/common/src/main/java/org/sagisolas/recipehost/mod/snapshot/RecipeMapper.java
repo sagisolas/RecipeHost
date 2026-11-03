@@ -31,17 +31,18 @@ final class RecipeMapper {
 
     static org.sagisolas.recipehost.protocol.Recipe toWire(RecipeHolder<?> holder, RegistryAccess registryAccess) {
         Recipe<?> recipe = holder.value();
+        String id = holder.id().toString();
         String typeId = typeIdOf(recipe);
 
         if (recipe instanceof ShapedRecipe shaped) {
             Map<String, String> extras = new LinkedHashMap<>();
             extras.put("width", String.valueOf(shaped.getWidth()));
             extras.put("height", String.valueOf(shaped.getHeight()));
-            return wire(typeId, slotsOf(shaped.getIngredients()), shaped.getResultItem(registryAccess), extras);
+            return wire(id, typeId, slotsOf(shaped.getIngredients()), shaped.getResultItem(registryAccess), extras);
         }
 
         if (recipe instanceof ShapelessRecipe shapeless) {
-            return wire(typeId, slotsOf(shapeless.getIngredients()), shapeless.getResultItem(registryAccess), Map.of());
+            return wire(id, typeId, slotsOf(shapeless.getIngredients()), shapeless.getResultItem(registryAccess), Map.of());
         }
 
         if (recipe instanceof AbstractCookingRecipe cooking) {
@@ -49,22 +50,22 @@ final class RecipeMapper {
             Map<String, String> extras = new LinkedHashMap<>();
             extras.put("cook_time", String.valueOf(cooking.getCookingTime()));
             extras.put("xp", String.valueOf(cooking.getExperience()));
-            return wire(typeId, slotsOf(cooking.getIngredients()), cooking.getResultItem(registryAccess), extras);
+            return wire(id, typeId, slotsOf(cooking.getIngredients()), cooking.getResultItem(registryAccess), extras);
         }
 
         if (recipe instanceof SmithingTransformRecipe smithing) {
             // template/base/addition fields are package-private in 1.21.1; getIngredients()
             // is the override that returns them in that documented order.
-            return wire(typeId, slotsOf(smithing.getIngredients()), smithing.getResultItem(registryAccess), Map.of());
+            return wire(id, typeId, slotsOf(smithing.getIngredients()), smithing.getResultItem(registryAccess), Map.of());
         }
 
         if (recipe instanceof StonecutterRecipe stonecutter) {
             // Same accessor-visibility caveat as AbstractCookingRecipe.
-            return wire(typeId, slotsOf(stonecutter.getIngredients()), stonecutter.getResultItem(registryAccess), Map.of());
+            return wire(id, typeId, slotsOf(stonecutter.getIngredients()), stonecutter.getResultItem(registryAccess), Map.of());
         }
 
         // Shell for unknown types.
-        return wire(typeId, List.of(), recipe.getResultItem(registryAccess), Map.of());
+        return wire(id, typeId, List.of(), recipe.getResultItem(registryAccess), Map.of());
     }
 
     private static String typeIdOf(Recipe<?> recipe) {
@@ -84,11 +85,13 @@ final class RecipeMapper {
     }
 
     private static org.sagisolas.recipehost.protocol.Recipe wire(
+            String id,
             String typeId,
             List<Slot> inputs,
             net.minecraft.world.item.ItemStack result,
             Map<String, String> extras) {
         return new org.sagisolas.recipehost.protocol.Recipe.Builder()
+                .id(id)
                 .type_id(typeId)
                 .inputs(inputs)
                 .results(List.of(new ItemStack.Builder()

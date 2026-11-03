@@ -9,7 +9,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import okio.ByteString;
-import org.sagisolas.recipehost.mod.ModDescriptor;
 import org.sagisolas.recipehost.mod.Platform;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
 import org.sagisolas.recipehost.mod.net.WireProtocol;
@@ -20,11 +19,14 @@ import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -55,6 +57,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private List<org.sagisolas.recipehost.protocol.Recipe> recipes;
     private List<ModInfo> mods;
     private String locale;
+    private String instanceName;
 
     private volatile IconRenderer iconRenderer;
 
@@ -71,6 +74,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
                 .minecraft_version(Platform.minecraftVersion())
                 .locale(locale)
                 .mods(mods)
+                .instance_name(instanceName)
                 .total_items(items.size())
                 .total_recipes(recipes.size())
                 .build();
@@ -100,29 +104,22 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         if (snapshotMaterialized) return;
 
         locale = minecraft.options.languageCode;
+        instanceName = InstanceName.of(minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists);
 
         ItemMapper.Result mapped = ItemMapper.map();
         this.items = mapped.wireItems();
         this.itemIds = mapped.ids();
 
-        List<ModInfo> wireMods = new ArrayList<>();
-        for (ModDescriptor m : Platform.listMods()) {
-            if (mapped.namespacesWithItems().contains(m.id())) {
-                wireMods.add(new ModInfo.Builder()
-                        .id(m.id())
-                        .name(m.name())
-                        .version(m.version())
-                        .build());
-            }
-        }
-        this.mods = Collections.unmodifiableList(wireMods);
-
         RegistryAccess registryAccess = level.registryAccess();
         List<org.sagisolas.recipehost.protocol.Recipe> wireRecipes = new ArrayList<>();
+        Set<String> ownerNamespaces = new HashSet<>(mapped.namespacesWithItems());
         for (RecipeHolder<?> holder : level.getRecipeManager().getRecipes()) {
             wireRecipes.add(RecipeMapper.toWire(holder, registryAccess));
+            ownerNamespaces.add(holder.id().getNamespace());
         }
         this.recipes = Collections.unmodifiableList(wireRecipes);
+
+        this.mods = Collections.unmodifiableList(ModInfos.assemble(Platform.listMods(), ownerNamespaces));
 
         this.snapshotMaterialized = true;
     }
