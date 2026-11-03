@@ -1,6 +1,6 @@
 # Wire schema: Recipe.id, Handshake.instance_name, ModInfo for namespaces that only own recipes
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What

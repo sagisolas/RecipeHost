@@ -6,6 +6,10 @@ import java.util.function.Predicate;
 /**
  * Derives the {@code Instance} name sent in the {@code Handshake} from the game
  * directory (see GLOSSARY.md, ADR 0011).
+ *
+ * <p>TODO: verify the names on real CurseForge, Modrinth App, Prism and vanilla
+ * installs with tools/probe (issue mobile-app/01). So far only the Loom dev
+ * client has been checked, which reports "run".
  */
 final class InstanceName {
 
