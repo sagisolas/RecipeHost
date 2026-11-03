@@ -32,6 +32,7 @@ dependencies {
     mappings(loom.officialMojangMappings())
 
     modImplementation("net.fabricmc:fabric-loader:${providers.gradleProperty("mod_loader_version").get()}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("mod_fabric_api_version").get()}")
 
     common(project(path = ":mod:common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionFabric"))

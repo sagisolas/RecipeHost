@@ -4,7 +4,7 @@ Kotlin Multiplatform project (Android + iOS + shared).
 
 ## Rules
 - Implementation must be flexible when working with mod loader, to easily support other modloaders later.
-- Use at least dependencies as possible. Do not use farbic-api if there are builtin methods.
+- Keep dependencies minimal. On Fabric, fabric-api is the accepted base dependency: prefer its modules over custom Mixins (ADR 0009). Keep fabric-api out of `:mod:common`; common code reaches loader features only through `Platform`.
 - Commit messages follow Conventional Commits (`<type>(<scope>): <description>`).
 - No static-only classes for objects that another class owns or uses: widgets, controllers, factories, schedulers, services. Make them instances that receive their collaborators through the constructor. The owner creates them, and `RecipeHost.init` is the composition root that wires them together. (Example: `PairingButtonInstaller` holds the `PairingController` that `RecipeHost.init` passes in; `PairingButton` has no static `attach`/`onClick`.) Static is fine only for:
   - pure, stateless functions (`PairingPayload.toUri`, `HostAddresses.all`);

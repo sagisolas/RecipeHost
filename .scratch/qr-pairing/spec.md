@@ -8,17 +8,17 @@ Pairing today goes through `DevHarness`: a fixed port (25566) and an all-zero to
 
 ## Solution
 
-- Add a 20×18 vanilla `Button` labelled `QR` to the survival `InventoryScreen`, in the row to the right of the recipe-book button.
+- Add a 20×20 vanilla `ImageButton` (icon only, no button background) with the pairing icon to the survival `InventoryScreen`, in the top-left corner of the screen.
 - Clicking it opens `PairingScreen` and binds the `SessionListener`. The listener gets a fresh token and an ephemeral port.
 - `PairingScreen` renders the QR code with the caption `Scan this code with "Recipehost" app` below it.
 - The listener lifecycle follows ADR 0001.
-- Everything is built from standard vanilla GUI elements. The mod ships **no asset files**: no lang JSON and no textures. On Fabric, mod assets only load with fabric-api's resource loader, which CLAUDE.md rules out.
+- Everything is built from standard vanilla GUI elements. Strings are English literals for v1. The button icon is a GUI-atlas sprite in the conventional `assets/` directory; Fabric loads it through fabric-api (ADR 0009).
 
 ## Background: inventory buttons in other mods
 
 Vanilla has no API for this. Mods hook screen init and position their widgets against `leftPos`/`topPos` themselves. The "row" is a convention: mods share the strip at `topPos + 61`, to the right of the recipe-book button at `leftPos + 104`.
 
-- Fabric API `ScreenEvents.AFTER_INIT`: rejected, because CLAUDE.md forbids fabric-api where builtins work.
+- Fabric API `ScreenEvents.AFTER_INIT`: the standard Fabric hook. fabric-api is now allowed (ADR 0009), but the existing `InventoryScreen#init` mixin stays until `.scratch/fabric-api-adoption` replaces the mixins.
 - "Inventory Button Bar" library: rejected, because it must be installed on both client and server, and this mod is client-only (ADR 0001).
 - Instead, Fabric uses a mixin on `InventoryScreen#init()` and NeoForge uses its built-in `ScreenEvent.Init.Post`.
 
@@ -36,12 +36,10 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 ### UI (`:mod:common/ui/`)
 
-- `PairingButtonInstaller` (an instance, constructed with the `PairingController` by `RecipeHost.init`) finds the anchor, picks the slot and creates the button. `PairingButton extends Button` is a plain widget:
-  - Size 20×18, label `Component.literal("QR")`, tooltip `Tooltip.create(Component.literal("Pair with RecipeHost app"))`.
-  - **Anchor:** the first `ImageButton` in `screen.children()`, which is vanilla's recipe-book button (vanilla adds it first in `init`). If there's no anchor, the button isn't added.
-  - **Slot, chosen once when the inventory initialises:** using Minecraft's widget API (`screen.children()`, `AbstractWidget` rectangles), it picks the first slot `k ≥ 1` where the rectangle at `anchor.x + 22·k, anchor.y` overlaps no existing widget. There's no per-frame slot checking. Widgets added after our hook (fabric-api `AFTER_INIT` mods) aren't seen; those mods have to avoid us.
-  - **Following the recipe book:** in `renderWidget` it copies the anchor's current position plus the fixed offset (`setX(anchor.getX() + 22·k)`, `setY(anchor.getY())`). Vanilla moves the recipe-book button when the book is toggled, so ours moves with it. No `leftPos` accessor is needed.
-  - No unit tests; the in-game check covers it.
+- `PairingButtonInstaller` (an instance, constructed with the `PairingController` by `RecipeHost.init`) places the button in the **top-left corner of the whole screen**, at (4, 4), not inside the inventory window.
+  - If an existing widget overlaps that spot, it steps right 22 px to the first free slot. This uses Minecraft's widget API (`screen.children()`) and runs once, at init. Resizing re-runs init.
+- The button is a vanilla `ImageButton` (20×20). It draws only the sprite, with no button background; the icon's own transparent background shows the screen behind it. Its sprite is `recipehost:pairing_button`, from `common/src/main/resources/assets/recipehost/textures/gui/sprites/pairing_button.png`. The label `Pair with RecipeHost app` is used for narration and the tooltip.
+- No unit tests; the in-game check covers it.
 - `PairingScreen extends Screen`:
   - Title `Component.literal("RecipeHost pairing")`. Takes `parent` and a `QrCode`.
   - The QR side length is `min(width, height) * 0.6`, snapped to whole pixels per module and centred.
@@ -84,7 +82,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 ### Removals and updates
 
-- Delete `DevHarness`. `RecipeHost.init` now registers `onInventoryInit` (which adds a `PairingButton`) and `onWorldLeave` (which calls `PairingController.worldLeft`).
+- Delete `DevHarness`. `RecipeHost.init` now registers `onInventoryInit` (which adds the pairing button via `PairingButtonInstaller`) and `onWorldLeave` (which calls `PairingController.worldLeft`).
 - `tools/probe` drops the dev port and token. It takes a pairing URI as its only argument (copied from the game log).
 - GLOSSARY: add **Pairing payload** (the `recipehost://pair` URI encoded in the QR).
 
@@ -107,7 +105,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 - `SessionListenerTest`: new cases checking that `onSnapshotDelivered` fires after `Done` and not after UNAUTHORIZED, BUSY or a mid-stream source failure.
 - In-game smoke test, on both loaders:
   - The button appears.
-  - It follows the recipe-book toggle.
+  - It sits in the screen's top-left corner and shows the icon.
   - It steps aside for another mod's button.
   - The QR scans to the logged URI.
   - The probe pulls a snapshot.
@@ -117,5 +115,5 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 1. `PairingPayload` (pure) + `HostAddresses` adapter.
 2. `PairingController` + the `SessionListener` end callback; delete DevHarness; update the probe.
-3. `Platform.onInventoryInit`/`onWorldLeave` + mixins/events + `PairingButton`.
+3. `Platform.onInventoryInit`/`onWorldLeave` + mixins/events + pairing button.
 4. `PairingScreen` + qrcodegen bundling.

@@ -3,7 +3,12 @@ package org.sagisolas.recipehost.mod.ui;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import org.sagisolas.recipehost.mod.RecipeHost;
 import org.sagisolas.recipehost.mod.pairing.PairingController;
 import org.slf4j.Logger;
 
@@ -11,15 +16,21 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 /**
- * Adds a {@link PairingButton} to each survival inventory screen, in the first free
- * slot right of vanilla's recipe-book button. The slot is chosen once, at init, from
- * the screen's existing widgets.
+ * Adds a pairing {@link ImageButton} (icon only, no button background) to each
+ * survival inventory screen, in the
+ * top-left corner of the whole screen. If another widget is already there, the button
+ * steps right to the first free slot. The slot is chosen once, at init.
  */
 public final class PairingButtonInstaller {
 
     private static final Logger LOG = LogUtils.getLogger();
-    private static final int STEP = 22;
+    private static final int SIZE = 20;
+    private static final int MARGIN = 4;
+    private static final int STEP = SIZE + 2;
     private static final int MAX_SLOTS = 16;
+    /** {@code assets/recipehost/textures/gui/sprites/pairing_button.png} in the GUI atlas. */
+    private static final ResourceLocation SPRITE = ResourceLocation.fromNamespaceAndPath(RecipeHost.MOD_ID, "pairing_button");
+    private static final Component LABEL = Component.literal("Pair with RecipeHost app");
 
     private final PairingController pairing;
 
@@ -28,30 +39,26 @@ public final class PairingButtonInstaller {
     }
 
     public void install(InventoryScreen screen, Consumer<AbstractWidget> addWidget) {
-        // Vanilla adds the recipe-book button first in InventoryScreen#init.
-        AbstractWidget anchor = screen.children().stream()
-                .filter(ImageButton.class::isInstance)
-                .map(AbstractWidget.class::cast)
-                .findFirst()
-                .orElse(null);
-        if (anchor == null) {
-            LOG.warn("[recipehost] no recipe-book button on inventory screen; pairing button not added");
-            return;
-        }
-
-        for (int slot = 1; slot <= MAX_SLOTS; slot++) {
-            int x = anchor.getX() + STEP * slot;
-            int y = anchor.getY();
+        for (int slot = 0; slot < MAX_SLOTS; slot++) {
+            int x = MARGIN + STEP * slot;
             boolean taken = screen.children().stream()
                     .filter(AbstractWidget.class::isInstance)
                     .map(AbstractWidget.class::cast)
-                    .anyMatch(w -> overlaps(w, x, y));
+                    .anyMatch(w -> overlaps(w, x, MARGIN));
             if (!taken) {
-                addWidget.accept(new PairingButton(anchor, STEP * slot, button -> openPairing()));
+                addWidget.accept(createButton(x, MARGIN));
                 return;
             }
         }
-        LOG.warn("[recipehost] recipe-book row full; pairing button not added");
+        LOG.warn("[recipehost] top-left row full; pairing button not added");
+    }
+
+    private ImageButton createButton(int x, int y) {
+        // ImageButton draws only its sprite. LABEL is used for narration and the tooltip.
+        ImageButton button = new ImageButton(x, y, SIZE, SIZE, new WidgetSprites(SPRITE, SPRITE),
+                b -> openPairing(), LABEL);
+        button.setTooltip(Tooltip.create(LABEL));
+        return button;
     }
 
     private void openPairing() {
@@ -65,7 +72,7 @@ public final class PairingButtonInstaller {
     }
 
     private static boolean overlaps(AbstractWidget w, int x, int y) {
-        return w.getX() < x + PairingButton.WIDTH && x < w.getX() + w.getWidth()
-                && w.getY() < y + PairingButton.HEIGHT && y < w.getY() + w.getHeight();
+        return w.getX() < x + SIZE && x < w.getX() + w.getWidth()
+                && w.getY() < y + SIZE && y < w.getY() + w.getHeight();
     }
 }

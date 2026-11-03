@@ -13,7 +13,7 @@ Spec: ../spec.md
   - A `CommonComponents.GUI_DONE` button.
   - `isPauseScreen` returns `false`.
   - `onClose` calls `controller.screenClosed()` and returns to `parent`.
-- `PairingButton` opens it via `PairingController.open`.
+- The pairing button (`PairingButtonInstaller`) opens it via `PairingController.open`.
 
 ## Acceptance
 
