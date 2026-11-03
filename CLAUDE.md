@@ -11,6 +11,7 @@ Kotlin Multiplatform project (Android + iOS + shared).
   - `@ExpectPlatform` methods on `Platform`;
   - loader entrypoints and the static sinks a mixin needs (`*Dispatcher`), because mixins can't receive injected instances;
   - constants.
+- The same rule applies to the mobile app (`:shared`): services, repositories, use cases and ViewModels receive collaborators through the constructor, and `AppGraph` (built by the Android/iOS wrapper) is the composition root.
 
 ## Agent skills
 

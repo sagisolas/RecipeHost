@@ -14,3 +14,7 @@ The vanilla-dispatch mapper emits exactly these keys; additions require an ADR a
 - `minecraft:smelting` / `minecraft:blasting` / `minecraft:smoking` / `minecraft:campfire_cooking` → `cook_time` (ticks, int), `xp` (float).
 - All other baseline types (shapeless, smithing, stonecutter) → no `extras`.
 - Shell entries for unknown types → no `extras`; `type_id` and `results` only.
+
+## Amendment: recipe id
+
+`Recipe` also carries `id`, the namespaced id of the recipe (`RecipeHolder.id()` for vanilla dispatch). The mobile app uses it to attribute each recipe to a `Mod release` (ADR 0011).

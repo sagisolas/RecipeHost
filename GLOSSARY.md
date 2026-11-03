@@ -47,10 +47,10 @@ _Avoid_: Sync, dump, export
 One entry in the companion mod's enumeration of `BuiltInRegistries.ITEM`. Carries namespaced id and localized display name; mod attribution is derived from the id's namespace.
 
 **ModInfo**:
-Metadata about a mod that owns at least one `Item`. Listed in the `Handshake`. Mods that register no items (performance mods, API shims) are omitted.
+Metadata about a namespace that owns at least one `Item` or `Recipe`. Listed in the `Handshake`. Mods that own neither (performance mods, API shims) are omitted. A namespace with no loaded mod behind it (a datapack) is listed under its namespace with version `datapack`.
 
 **Recipe**:
-The generic wire representation of any crafting operation — vanilla, modded, or datapack. Identified by `type_id`; type-specific metadata lives in a free-form `extras` map rather than per-type schemas.
+The generic wire representation of any crafting operation — vanilla, modded, or datapack. Identified by `type_id`; type-specific metadata lives in a free-form `extras` map rather than per-type schemas. In the `Catalog` a recipe belongs to the `Mod release` of its id's namespace, and is kept per `Instance` it was seen in.
 
 **Slot**:
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.
@@ -61,6 +61,27 @@ _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 
 **Icon**:
 A 16×16 PNG of an `Item`, produced on the render thread via `GuiGraphics.renderItem` into an offscreen framebuffer. One icon per `Item` — enchantment/potion/NBT variants are out of scope for v1.
+
+### Catalog (mobile app)
+
+**Catalog**:
+The mobile app's offline store of everything it has ever received. Grows with every `Scan`; nothing a `Scan` brings replaces data from a different `Mod release`.
+_Avoid_: Database, library
+
+**Scan**:
+One QR pairing plus the `Snapshot` received over it, merged additively into the `Catalog`. Scanning the same `Instance` again is still a `Scan` — it refreshes the `Mod release`s it carries and fills in missing `Icon`s.
+_Avoid_: Rescan, import, sync
+
+**Mod release**:
+One mod at one version for one Minecraft version, as reported by a `Handshake`'s `ModInfo`. The `minecraft` namespace's release is the Minecraft version itself. `Item`s in the `Catalog` belong to a `Mod release`.
+_Avoid_: Mod version (ambiguous without the Minecraft version)
+
+**Instance**:
+The launcher installation a `Scan` was taken from, identified and shown by its game-directory folder name (e.g. a CurseForge or Prism instance). Worlds and servers inside one `Instance` are not distinguished — a later `Scan` of the same `Instance` replaces its recipes. When the same recipe differs between `Instance`s (a pack override), the recipe view offers "From <instance name>" to choose between them.
+_Avoid_: World, modpack, profile
+
+**Version selection**:
+The one `Mod release` currently chosen for each mod; what the item grid and recipe views show. Set to the releases of the latest `Scan`, then changed by the user picking a version in the mod list. Mods absent from a `Scan` keep their previous choice.
 
 ### Mod internals
 
