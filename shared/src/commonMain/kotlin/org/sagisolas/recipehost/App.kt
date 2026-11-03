@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.painterResource
 
-import recipehost.shared.generated.resources.Res
-import recipehost.shared.generated.resources.compose_multiplatform
+import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
