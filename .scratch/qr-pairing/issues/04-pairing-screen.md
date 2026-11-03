@@ -1,6 +1,6 @@
 # PairingScreen + qrcodegen bundling
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 03
 Spec: ../spec.md
 
@@ -21,3 +21,10 @@ Spec: ../spec.md
   - the QR scans to the logged URI;
   - the probe pulls a snapshot;
   - the port is closed 60 s after leaving the screen.
+
+## Comments
+
+- Implemented. qrcodegen 1.8.0 is in `libs.versions.toml`: `implementation` in common, and `implementation` + `include` on both loaders, the same way as `:protocol`.
+- `PairingScreen` takes `(parent, QrCode, onRemoved)`. The grace timer starts from `removed()`, so every way of leaving the screen counts: Done, Esc, or disconnecting. `onClose` returns to the inventory.
+- If `open()` or the QR encoding fails (for example, too many host addresses for one code), the error is logged, `screenClosed()` releases any listener that was already bound, and no screen opens.
+- In-game check passed on Fabric (user confirmed).

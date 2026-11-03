@@ -1,6 +1,8 @@
 package org.sagisolas.recipehost.mod.pairing;
 
 import okio.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.util.function.Supplier;
 public final class PairingController {
 
     static final Duration GRACE = Duration.ofSeconds(60);
+    private static final Logger LOG = LoggerFactory.getLogger(PairingController.class);
 
     public interface Listener extends Closeable {
         int port();
@@ -53,10 +56,10 @@ public final class PairingController {
     }
 
     public synchronized String open() throws IOException {
-        unbind();
+        unbind("reopened");
         ByteString token = tokens.get();
         int gen = ++generation;
-        current = factory.bind(token, () -> unbindIfCurrent(gen));
+        current = factory.bind(token, () -> unbindIfCurrent(gen, "snapshot delivered"));
         return PairingPayload.toUri(hosts.get(), current.port(), token);
     }
 
@@ -64,21 +67,32 @@ public final class PairingController {
         cancelPendingUnbind();
         int gen = generation;
         // Guarded by generation: cancel() can't stop a timer that's already running.
-        pendingUnbind = scheduler.schedule(() -> unbindIfCurrent(gen), GRACE);
+        pendingUnbind = scheduler.schedule(() -> unbindIfCurrent(gen, "grace period expired"), GRACE);
+        if (current != null) {
+            LOG.info("[recipehost] QR screen closed; listener on port {} stops in {} s",
+                    current.port(), GRACE.toSeconds());
+        }
     }
 
     public synchronized void worldLeft() {
-        unbind();
+        unbind("world left");
     }
 
-    private synchronized void unbindIfCurrent(int gen) {
-        if (gen == generation) unbind();
+    private synchronized void unbindIfCurrent(int gen, String reason) {
+        if (gen == generation) unbind(reason);
     }
 
-    private synchronized void unbind() {
+    private synchronized void unbind(String reason) {
         cancelPendingUnbind();
         if (current == null) return;
-        try { current.close(); } catch (IOException ignored) {}
+        int port = current.port();
+        // Logged before close(): close() may release the source synchronously and log "terminated".
+        LOG.info("[recipehost] listener on port {} stopped: {}", port, reason);
+        try {
+            current.close();
+        } catch (IOException e) {
+            LOG.warn("[recipehost] error closing listener on port {}", port, e);
+        }
         current = null;
     }
 

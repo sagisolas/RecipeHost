@@ -1,6 +1,8 @@
 package org.sagisolas.recipehost.mod.ui;
 
 import com.mojang.logging.LogUtils;
+import io.nayuki.qrcodegen.QrCode;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -46,29 +48,34 @@ public final class PairingButtonInstaller {
                     .map(AbstractWidget.class::cast)
                     .anyMatch(w -> overlaps(w, x, MARGIN));
             if (!taken) {
-                addWidget.accept(createButton(x, MARGIN));
+                addWidget.accept(createButton(screen, x, MARGIN));
                 return;
             }
         }
         LOG.warn("[recipehost] top-left row full; pairing button not added");
     }
 
-    private ImageButton createButton(int x, int y) {
+    private ImageButton createButton(InventoryScreen screen, int x, int y) {
         // ImageButton draws only its sprite. LABEL is used for narration and the tooltip.
         ImageButton button = new ImageButton(x, y, SIZE, SIZE, new WidgetSprites(SPRITE, SPRITE),
-                b -> openPairing(), LABEL);
+                b -> openPairing(screen), LABEL);
         button.setTooltip(Tooltip.create(LABEL));
         return button;
     }
 
-    private void openPairing() {
-        // Until the QR screen lands (issue 04): bind, log the URI, and start the grace timer.
+    private void openPairing(InventoryScreen parent) {
+        QrCode qr;
         try {
-            LOG.info("[recipehost] pairing open: {}", pairing.open());
-            pairing.screenClosed();
-        } catch (IOException e) {
+            String uri = pairing.open();
+            LOG.info("[recipehost] pairing open: {}", uri);
+            // Throws DataTooLongException if the unfiltered host list outgrows a QR code.
+            qr = QrCode.encodeText(uri, QrCode.Ecc.MEDIUM);
+        } catch (IOException | RuntimeException e) {
             LOG.error("[recipehost] failed to open pairing", e);
+            pairing.screenClosed(); // releases a listener that may already be bound
+            return;
         }
+        Minecraft.getInstance().setScreen(new PairingScreen(parent, qr, pairing::screenClosed));
     }
 
     private static boolean overlaps(AbstractWidget w, int x, int y) {

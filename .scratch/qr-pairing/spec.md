@@ -30,7 +30,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
   - Fabric: a mixin on `InventoryScreen#init()` TAIL dispatches through a static sink, like `WorldJoinDispatcher`. The mixin class extends `AbstractContainerScreen` so it can call the protected `addRenderableWidget`.
   - NeoForge: `NeoForge.EVENT_BUS` `ScreenEvent.Init.Post`, filtered to `InventoryScreen`, using `event::addListener`.
 - `onWorldLeave(Runnable cb)`.
-  - Fabric: a mixin on `Minecraft#disconnect` HEAD. Verify the 1.21.1 signature.
+  - Fabric: fabric-api `ClientPlayConnectionEvents.DISCONNECT`. A mixin on `Minecraft#clearClientLevel` was tried first; in-game it did not fire on singleplayer exit.
   - NeoForge: `ClientPlayerNetworkEvent.LoggingOut`.
 - `onWorldJoin` stays, but `RecipeHost.init` no longer uses it.
 

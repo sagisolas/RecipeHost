@@ -45,6 +45,8 @@ dependencies {
 
     implementation(project(":protocol"))
     "include"(project(":protocol"))
+    implementation(libs.qrcodegen)
+    "include"(libs.qrcodegen)
 }
 
 java {

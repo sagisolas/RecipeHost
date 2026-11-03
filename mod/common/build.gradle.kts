@@ -15,6 +15,7 @@ dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
     mappings(loom.officialMojangMappings())
     implementation(project(":protocol"))
+    implementation(libs.qrcodegen)
 
     testImplementation(libs.junit)
 }

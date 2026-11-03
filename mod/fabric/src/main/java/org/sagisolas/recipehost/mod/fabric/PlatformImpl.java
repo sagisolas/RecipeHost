@@ -2,6 +2,7 @@ package org.sagisolas.recipehost.mod.fabric;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
@@ -57,6 +58,7 @@ public final class PlatformImpl {
     }
 
     public static void onWorldLeave(Runnable callback) {
-        WorldLeaveDispatcher.register(callback);
+        // Fires on every disconnect, singleplayer included. Minecraft#clearClientLevel did not.
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> callback.run());
     }
 }

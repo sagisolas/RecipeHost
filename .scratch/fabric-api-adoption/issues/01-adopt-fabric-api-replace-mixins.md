@@ -60,3 +60,4 @@ Remove the TODO comments that say "without fabric-api".
 ## Comments
 
 - Scope 1–2 done: `fabric-api` `0.116.18+1.21.1`, ADR 0009, and the CLAUDE.md rule. Mixin replacement (scope 3–4) is deferred on purpose. The mixins include the new `InventoryScreenInitMixin` and `MinecraftClearLevelMixin` from the qr-pairing work; `ScreenEvents.AFTER_INIT` and `ClientPlayConnectionEvents.DISCONNECT` are their likely replacements.
+- `MinecraftClearLevelMixin` is already gone: it didn't fire on singleplayer exit, so `onWorldLeave` now uses `ClientPlayConnectionEvents.DISCONNECT`. Remaining mixins: `InventoryScreenInitMixin`, `MinecraftSetLevelMixin`.
