@@ -3,11 +3,7 @@ package org.sagisolas.recipehost.ui.designsystem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontFamily
-import org.jetbrains.compose.resources.Font
-import org.sagisolas.recipehost.shared.generated.resources.Res
-import org.sagisolas.recipehost.shared.generated.resources.monocraft
 
 internal object McTheme {
     val colors: McColors
@@ -18,16 +14,20 @@ internal object McTheme {
         @Composable @ReadOnlyComposable get() = LocalMcTypography.current
 }
 
-/** Provides the Monocraft typography, the text colours and [skin] to [content]. */
+/**
+ * Provides [typography], [colors] and [skin] to [content]. The design system owns no fonts or
+ * textures: the app passes its own (e.g. a typography built from its bundled font). The
+ * defaults are neutral, for previews.
+ */
 @Composable
 internal fun McTheme(
-    skin: McSkin = remember { McSkin.flat() },
+    typography: McTypography = McTypography.of(FontFamily.Monospace),
+    colors: McColors = McColors(),
+    skin: McSkin = McSkin.flat(),
     content: @Composable () -> Unit,
 ) {
-    val monocraft = FontFamily(Font(Res.font.monocraft))
-    val typography = remember(monocraft) { McTypography.of(monocraft) }
     CompositionLocalProvider(
-        LocalMcColors provides McColors(),
+        LocalMcColors provides colors,
         LocalMcSkin provides skin,
         LocalMcTypography provides typography,
         content = content,

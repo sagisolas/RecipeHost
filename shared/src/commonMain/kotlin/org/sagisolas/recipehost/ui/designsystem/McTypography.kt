@@ -21,5 +21,5 @@ internal data class McTypography(
     }
 }
 
-/** Defaults to a system monospace font; [McTheme] provides Monocraft. */
+/** Defaults to a system monospace font; the app passes its own typography to [McTheme]. */
 internal val LocalMcTypography = staticCompositionLocalOf { McTypography.of(FontFamily.Monospace) }

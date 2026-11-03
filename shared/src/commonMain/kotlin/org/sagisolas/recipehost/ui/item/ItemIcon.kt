@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlin.io.encoding.Base64
+import org.sagisolas.recipehost.ui.AppTheme
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McTheme
@@ -39,7 +40,7 @@ internal fun ItemIcon(
 @Composable
 private fun ItemIconPreview() {
     val cache = remember { ItemIconCache() }
-    McTheme {
+    AppTheme {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             McSlot { ItemIcon("preview:sample", SAMPLE_ICON_PNG, cache) }
             McSlot { ItemIcon("preview:missing", null, cache) }
