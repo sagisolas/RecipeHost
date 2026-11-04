@@ -8,13 +8,35 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Lets Play services download the code scanner's UI module at install time. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
+        <!--
+            singleTask: a pairing link from the camera app reaches the running activity through
+            onNewIntent. configChanges: Compose handles them, so the AppGraph isn't rebuilt.
+        -->
         <activity
             android:exported="true"
-            android:name=".MainActivity">
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:configChanges="uiMode|screenSize|smallestScreenSize|screenLayout|orientation|density|keyboard|keyboardHidden|navigation|locale|layoutDirection|fontScale">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="recipehost"
+                    android:host="pair" />
             </intent-filter>
         </activity>
     </application>

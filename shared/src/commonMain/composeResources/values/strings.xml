@@ -1,0 +1,16 @@
+<resources>
+    <string name="tab_items">Items</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Placeholder screens until issues 08-10 replace them. -->
+    <string name="placeholder_welcome">Open the pairing screen in-game, then scan its QR code.</string>
+    <string name="placeholder_scan_qr">Scan QR</string>
+    <string name="placeholder_scan_progress">Scan: %1$s</string>
+    <string name="placeholder_continue">Continue</string>
+    <string name="placeholder_grid">Item grid</string>
+    <string name="placeholder_mod_list">Mod list</string>
+    <string name="placeholder_settings">Settings</string>
+    <string name="placeholder_item">Item %1$s</string>
+    <string name="placeholder_open_mods">Mods</string>
+    <string name="placeholder_open_item">Open %1$s</string>
+</resources>
