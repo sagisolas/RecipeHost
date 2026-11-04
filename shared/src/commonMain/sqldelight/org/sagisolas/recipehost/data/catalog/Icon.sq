@@ -11,3 +11,6 @@ INSERT OR REPLACE INTO icon(release_id, item_id, png) VALUES (:releaseId, :itemI
 
 pngOf:
 SELECT png FROM icon WHERE release_id = :releaseId AND item_id = :itemId;
+
+clear:
+DELETE FROM icon;

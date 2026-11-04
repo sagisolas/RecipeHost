@@ -5,7 +5,7 @@ CREATE TABLE mod_release (
     version TEXT NOT NULL,
     mc_version TEXT NOT NULL,
     name TEXT NOT NULL,
-    -- The mod's position in the Handshake of the last Scan that carried this release (grid order).
+    -- The mod's position in the Handshake of the last Scan that carried this release (the order ItemSearch lists Items in).
     scan_position INTEGER NOT NULL,
     last_scanned_at INTEGER NOT NULL,
     UNIQUE (mod_id, version, mc_version)
@@ -25,3 +25,17 @@ SELECT id FROM mod_release WHERE mod_id = :modId AND version = :version AND mc_v
 
 all:
 SELECT * FROM mod_release ORDER BY id;
+
+modOf:
+SELECT mod_id FROM mod_release WHERE id = :releaseId;
+
+-- Every release with its mod's selected release; a mod's releases come newest first.
+withSelection:
+SELECT mod_release.id, mod_release.mod_id, mod_release.version, mod_release.mc_version, mod_release.name,
+       version_selection.release_id AS selected_release_id
+FROM mod_release
+LEFT JOIN version_selection ON version_selection.mod_id = mod_release.mod_id
+ORDER BY mod_release.mod_id, mod_release.last_scanned_at DESC, mod_release.id DESC;
+
+clear:
+DELETE FROM mod_release;

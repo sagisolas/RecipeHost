@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
 import org.sagisolas.recipehost.protocol.Icon
@@ -162,9 +163,6 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
     }
 
     private companion object {
-        /** A namespaced id's namespace; Minecraft reads a bare id as `minecraft:`. */
-        fun namespaceOf(id: String): String = id.substringBefore(':', missingDelimiterValue = "minecraft")
-
         fun requireModInfo(modIds: Set<String>, id: String) {
             val namespace = namespaceOf(id)
             if (namespace !in modIds) throw UnknownNamespaceException(namespace, id)
