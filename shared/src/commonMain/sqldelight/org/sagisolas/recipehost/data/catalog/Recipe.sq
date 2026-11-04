@@ -67,3 +67,31 @@ SELECT item_id FROM recipe_output WHERE recipe_pk = :recipePk ORDER BY item_id;
 
 inputsOf:
 SELECT item_id FROM recipe_input WHERE recipe_pk = :recipePk ORDER BY item_id;
+
+-- The recipes of the selected releases with a result of :itemId, one row per Instance, grouped
+-- by type and recipe and, within one (release, recipe id), the most recently scanned Instance first.
+selectedProducing:
+SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name
+FROM recipe
+JOIN version_selection ON version_selection.release_id = recipe.release_id
+JOIN instance ON instance.id = recipe.instance_id
+WHERE recipe.id IN (SELECT recipe_pk FROM recipe_output WHERE item_id = :itemId)
+ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
+
+-- Like selectedProducing, for the recipes with :itemId among the alternatives of an input Slot.
+selectedConsuming:
+SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name
+FROM recipe
+JOIN version_selection ON version_selection.release_id = recipe.release_id
+JOIN instance ON instance.id = recipe.instance_id
+WHERE recipe.id IN (SELECT recipe_pk FROM recipe_input WHERE item_id = :itemId)
+ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
+
+clearOutputs:
+DELETE FROM recipe_output;
+
+clearInputs:
+DELETE FROM recipe_input;
+
+clear:
+DELETE FROM recipe;

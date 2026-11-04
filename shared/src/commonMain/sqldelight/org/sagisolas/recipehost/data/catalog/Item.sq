@@ -45,3 +45,28 @@ SELECT * FROM item WHERE release_id = :releaseId ORDER BY ordinal;
 searchNames:
 SELECT item.* FROM item_fts JOIN item ON item.id = item_fts.docid
 WHERE item_fts MATCH :query ORDER BY item.ordinal;
+
+-- The Items of the selected releases: minecraft first, then the mods' order in their latest Scan, then ordinal.
+-- Each filter is skipped when its parameter is NULL. modPrefix is compared with substr, not LIKE,
+-- because mod ids contain '_', a LIKE wildcard. nameMatch is an FTS4 MATCH expression.
+selected:
+SELECT item.release_id, item.item_id, item.display_name, icon.png
+FROM item
+JOIN version_selection ON version_selection.release_id = item.release_id
+JOIN mod_release ON mod_release.id = item.release_id
+LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item_id
+WHERE (:modId IS NULL OR mod_release.mod_id = :modId)
+  AND (:modPrefix IS NULL OR :modPrefix = substr(mod_release.mod_id, 1, length(:modPrefix)))
+  AND (:nameMatch IS NULL OR item.id IN (SELECT docid FROM item_fts WHERE item_fts MATCH :nameMatch))
+ORDER BY mod_release.mod_id != 'minecraft', mod_release.scan_position, mod_release.mod_id, item.ordinal;
+
+-- The Item :itemId in the selected release of :modId, if that release has it.
+selectedOf:
+SELECT item.release_id, item.item_id, item.display_name, icon.png
+FROM version_selection
+JOIN item ON item.release_id = version_selection.release_id
+LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item_id
+WHERE version_selection.mod_id = :modId AND item.item_id = :itemId;
+
+clear:
+DELETE FROM item;

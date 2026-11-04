@@ -13,3 +13,6 @@ UPDATE instance SET last_scanned_at = :lastScannedAt WHERE name = :name;
 
 idOf:
 SELECT id FROM instance WHERE name = :name;
+
+clear:
+DELETE FROM instance;

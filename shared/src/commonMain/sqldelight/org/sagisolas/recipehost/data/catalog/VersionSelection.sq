@@ -9,3 +9,6 @@ INSERT OR REPLACE INTO version_selection(mod_id, release_id) VALUES (:modId, :re
 
 all:
 SELECT * FROM version_selection ORDER BY mod_id;
+
+clear:
+DELETE FROM version_selection;
