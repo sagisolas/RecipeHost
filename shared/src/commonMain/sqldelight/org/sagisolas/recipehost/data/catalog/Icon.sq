@@ -1,0 +1,13 @@
+-- One 16x16 PNG per (Mod release, item id). Separate from item so an IconBatch never rewrites item rows.
+CREATE TABLE icon (
+    release_id INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    png BLOB NOT NULL,
+    PRIMARY KEY (release_id, item_id)
+);
+
+upsert:
+INSERT OR REPLACE INTO icon(release_id, item_id, png) VALUES (:releaseId, :itemId, :png);
+
+pngOf:
+SELECT png FROM icon WHERE release_id = :releaseId AND item_id = :itemId;

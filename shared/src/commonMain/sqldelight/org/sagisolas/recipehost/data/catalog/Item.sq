@@ -1,0 +1,47 @@
+-- Items are keyed by (Mod release, item id). ordinal is the registry position in the last Scan.
+-- id is an explicit rowid alias: item_fts points at it, and an implicit rowid may change on VACUUM.
+CREATE TABLE item (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    release_id INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    UNIQUE (release_id, item_id)
+);
+
+-- Full-text search over display names, kept in sync with item by the triggers below.
+-- FTS4 rather than FTS5: older Android SQLite builds don't ship FTS5.
+CREATE VIRTUAL TABLE item_fts USING fts4(content="item", display_name);
+
+CREATE TRIGGER item_fts_after_insert AFTER INSERT ON item BEGIN
+    INSERT INTO item_fts(docid, display_name) VALUES (new.id, new.display_name);
+END;
+
+CREATE TRIGGER item_fts_before_update BEFORE UPDATE ON item BEGIN
+    DELETE FROM item_fts WHERE docid = old.id;
+END;
+
+CREATE TRIGGER item_fts_after_update AFTER UPDATE ON item BEGIN
+    INSERT INTO item_fts(docid, display_name) VALUES (new.id, new.display_name);
+END;
+
+CREATE TRIGGER item_fts_before_delete BEFORE DELETE ON item BEGIN
+    DELETE FROM item_fts WHERE docid = old.id;
+END;
+
+-- Skips unchanged rows, so a Scan that brings the same names doesn't churn item_fts.
+update:
+UPDATE item SET display_name = :displayName, ordinal = :ordinal
+WHERE release_id = :releaseId AND item_id = :itemId
+  AND (display_name != :displayName OR ordinal != :ordinal);
+
+insertIfAbsent:
+INSERT OR IGNORE INTO item(release_id, item_id, display_name, ordinal)
+VALUES (:releaseId, :itemId, :displayName, :ordinal);
+
+ofRelease:
+SELECT * FROM item WHERE release_id = :releaseId ORDER BY ordinal;
+
+searchNames:
+SELECT item.* FROM item_fts JOIN item ON item.id = item_fts.docid
+WHERE item_fts MATCH :query ORDER BY item.ordinal;

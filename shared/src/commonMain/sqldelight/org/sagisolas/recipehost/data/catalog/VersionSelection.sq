@@ -1,0 +1,11 @@
+-- The Mod release browsed for each mod (ADR 0010).
+CREATE TABLE version_selection (
+    mod_id TEXT NOT NULL PRIMARY KEY,
+    release_id INTEGER NOT NULL
+);
+
+choose:
+INSERT OR REPLACE INTO version_selection(mod_id, release_id) VALUES (:modId, :releaseId);
+
+all:
+SELECT * FROM version_selection ORDER BY mod_id;

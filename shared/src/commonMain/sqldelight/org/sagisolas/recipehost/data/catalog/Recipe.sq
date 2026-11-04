@@ -1,0 +1,69 @@
+-- A Recipe belongs to the Mod release of its id's namespace and is kept per Instance (ADR 0011).
+-- body is the encoded wire Recipe; body_hash (SHA-256 of body) merges identical variants across Instances.
+CREATE TABLE recipe (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    release_id INTEGER NOT NULL,
+    recipe_id TEXT NOT NULL,
+    instance_id INTEGER NOT NULL,
+    type_id TEXT NOT NULL,
+    body BLOB NOT NULL,
+    body_hash BLOB NOT NULL,
+    UNIQUE (release_id, recipe_id, instance_id)
+);
+
+CREATE INDEX recipe_by_instance_release ON recipe(instance_id, release_id);
+
+-- Every result item of a recipe.
+CREATE TABLE recipe_output (
+    recipe_pk INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    PRIMARY KEY (recipe_pk, item_id)
+);
+
+CREATE INDEX recipe_output_by_item ON recipe_output(item_id);
+
+-- Every alternative in every Slot of a recipe.
+CREATE TABLE recipe_input (
+    recipe_pk INTEGER NOT NULL,
+    item_id TEXT NOT NULL,
+    PRIMARY KEY (recipe_pk, item_id)
+);
+
+CREATE INDEX recipe_input_by_item ON recipe_input(item_id);
+
+-- Child rows are deleted explicitly: foreign-key cascades need a per-connection pragma.
+deleteOutputsOf:
+DELETE FROM recipe_output WHERE recipe_pk IN (
+    SELECT id FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId
+);
+
+deleteInputsOf:
+DELETE FROM recipe_input WHERE recipe_pk IN (
+    SELECT id FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId
+);
+
+deleteOf:
+DELETE FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId;
+
+insert:
+INSERT INTO recipe(release_id, recipe_id, instance_id, type_id, body, body_hash)
+VALUES (:releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
+
+lastInsertedId:
+SELECT last_insert_rowid();
+
+insertOutput:
+INSERT OR IGNORE INTO recipe_output(recipe_pk, item_id) VALUES (:recipePk, :itemId);
+
+insertInput:
+INSERT OR IGNORE INTO recipe_input(recipe_pk, item_id) VALUES (:recipePk, :itemId);
+
+ofInstance:
+SELECT recipe.* FROM recipe JOIN instance ON instance.id = recipe.instance_id
+WHERE instance.name = :instanceName ORDER BY recipe.recipe_id;
+
+outputsOf:
+SELECT item_id FROM recipe_output WHERE recipe_pk = :recipePk ORDER BY item_id;
+
+inputsOf:
+SELECT item_id FROM recipe_input WHERE recipe_pk = :recipePk ORDER BY item_id;

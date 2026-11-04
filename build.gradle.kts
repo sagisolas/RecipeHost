@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.architecturyLoom) apply false
     alias(libs.plugins.architecturyPlugin)
     alias(libs.plugins.wire) apply false
+    alias(libs.plugins.sqldelight) apply false
 }
 
 architectury {

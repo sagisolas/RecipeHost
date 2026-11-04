@@ -84,7 +84,8 @@ The scan runs in an app-scoped `CoroutineScope` owned by `AppGraph`, not in a sc
 This is a sketch; the implementer finalises it.
 
 - `mod_release(id PK, mod_id, version, mc_version, name, last_scanned_at, UNIQUE(mod_id, version, mc_version))`
-- `item(release_id, item_id, display_name, ordinal, icon BLOB NULL, PK(release_id, item_id))`, plus an FTS table over `display_name`.
+- `item(id PK, release_id, item_id, display_name, ordinal, UNIQUE(release_id, item_id))`, plus an FTS table over `display_name`.
+- `icon(release_id, item_id, png BLOB, PK(release_id, item_id))`: Icons are kept apart from `item` (ADR 0012).
 - `instance(id PK, name UNIQUE, last_scanned_at)`
 - `recipe(id PK, release_id, recipe_id, instance_id, type_id, body BLOB, body_hash, UNIQUE(release_id, recipe_id, instance_id))`. `body` is the encoded wire `Recipe`, and `body_hash` is used to merge identical variants.
 - `recipe_output(recipe_pk, item_id)` and `recipe_input(recipe_pk, item_id)`, each indexed on `item_id`. Inputs cover every alternative in every Slot.

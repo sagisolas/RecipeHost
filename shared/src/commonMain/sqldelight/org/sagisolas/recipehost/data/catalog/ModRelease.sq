@@ -1,0 +1,27 @@
+-- One mod at one version for one Minecraft version (ADR 0010).
+CREATE TABLE mod_release (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mod_id TEXT NOT NULL,
+    version TEXT NOT NULL,
+    mc_version TEXT NOT NULL,
+    name TEXT NOT NULL,
+    -- The mod's position in the Handshake of the last Scan that carried this release (grid order).
+    scan_position INTEGER NOT NULL,
+    last_scanned_at INTEGER NOT NULL,
+    UNIQUE (mod_id, version, mc_version)
+);
+
+-- Upserts are UPDATE + INSERT OR IGNORE: minSdk 24 ships SQLite 3.9, which has no ON CONFLICT DO UPDATE.
+insertIfAbsent:
+INSERT OR IGNORE INTO mod_release(mod_id, version, mc_version, name, scan_position, last_scanned_at)
+VALUES (:modId, :version, :mcVersion, :name, :scanPosition, :lastScannedAt);
+
+markScanned:
+UPDATE mod_release SET name = :name, scan_position = :scanPosition, last_scanned_at = :lastScannedAt
+WHERE mod_id = :modId AND version = :version AND mc_version = :mcVersion;
+
+idOf:
+SELECT id FROM mod_release WHERE mod_id = :modId AND version = :version AND mc_version = :mcVersion;
+
+all:
+SELECT * FROM mod_release ORDER BY id;

@@ -1,6 +1,6 @@
 # Catalog schema (SQLDelight) and ScanIngest with an app-scoped scan
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 03
 Spec: ../spec.md
 

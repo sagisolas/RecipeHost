@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.wire)
+    alias(libs.plugins.sqldelight)
 }
 
 wire {
@@ -14,6 +15,14 @@ wire {
     }
     kotlin {
         android = false
+    }
+}
+
+sqldelight {
+    databases {
+        create("CatalogDatabase") {
+            packageName.set("org.sagisolas.recipehost.data.catalog")
+        }
     }
 }
 
@@ -48,6 +57,7 @@ kotlin {
     }
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.sqldelight.androidDriver)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
         }
@@ -56,6 +66,8 @@ kotlin {
             implementation(libs.ktor.http)
             implementation(libs.ktor.network)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
@@ -67,6 +79,12 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+        }
+        iosMain.dependencies {
+            implementation(libs.sqldelight.nativeDriver)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.sqliteDriver)
         }
         getByName("androidDeviceTest").dependencies {
             implementation(libs.androidx.testRunner)

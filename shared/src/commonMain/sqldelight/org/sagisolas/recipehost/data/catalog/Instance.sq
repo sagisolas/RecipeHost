@@ -1,0 +1,15 @@
+-- The launcher installation a Scan came from, by its game-directory folder name (ADR 0011).
+CREATE TABLE instance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    last_scanned_at INTEGER NOT NULL
+);
+
+insertIfAbsent:
+INSERT OR IGNORE INTO instance(name, last_scanned_at) VALUES (:name, :lastScannedAt);
+
+markScanned:
+UPDATE instance SET last_scanned_at = :lastScannedAt WHERE name = :name;
+
+idOf:
+SELECT id FROM instance WHERE name = :name;
