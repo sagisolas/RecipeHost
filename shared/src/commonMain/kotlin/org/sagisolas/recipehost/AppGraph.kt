@@ -11,6 +11,12 @@ import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.transport.KtorSocketConnector
 import org.sagisolas.recipehost.data.transport.RetryingSessionClient
 import org.sagisolas.recipehost.data.transport.SessionClient
+import org.sagisolas.recipehost.domain.catalog.ClearCatalog
+import org.sagisolas.recipehost.domain.catalog.ItemSearch
+import org.sagisolas.recipehost.domain.catalog.ModList
+import org.sagisolas.recipehost.domain.catalog.ResolveStack
+import org.sagisolas.recipehost.domain.recipes.RecipesFor
+import org.sagisolas.recipehost.domain.recipes.UsesOf
 import org.sagisolas.recipehost.platform.QrScanner
 import org.sagisolas.recipehost.presentation.PairingEntry
 import org.sagisolas.recipehost.presentation.navigation.CatalogEmptiness
@@ -39,8 +45,15 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
         ingest = ScanIngest(catalog, Clock.System),
     )
 
-    // TODO(issue 05): replace with the domain query, e.g. ItemSearch or the mod list being empty.
-    private val catalogEmptiness = CatalogEmptiness { catalog.modReleaseQueries.all().executeAsList().isEmpty() }
+    internal val itemSearch = ItemSearch(catalog, Dispatchers.IO)
+    internal val modList = ModList(catalog, Dispatchers.IO)
+    internal val recipesFor = RecipesFor(catalog, Dispatchers.IO)
+    internal val usesOf = UsesOf(catalog, Dispatchers.IO)
+    internal val resolveStack = ResolveStack(catalog, Dispatchers.IO)
+    internal val clearCatalog = ClearCatalog(catalog, Dispatchers.IO)
+
+    /** Read once, on the main thread at startup: a count over one table. */
+    private val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
 
     internal val navigator = Navigator(catalogEmptiness)
 
@@ -49,8 +62,6 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
 
     internal val itemIcons = ItemIconCache()
 
-    // TODO(issue 05): the domain queries (ItemSearch, ModList, RecipesFor, UsesOf, ResolveStack,
-    //  ClearCatalog), built from `catalog`.
-    // TODO(issues 08-10): the ViewModel factories, built from the queries above, `scans`,
-    //  `pairing` and `navigator`.
+    // TODO(issues 08-10): the ViewModel factories, built from the domain queries above, `scans`,
+    //  `pairing`, `navigator` and `itemIcons`.
 }

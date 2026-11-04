@@ -70,3 +70,7 @@ WHERE version_selection.mod_id = :modId AND item.item_id = :itemId;
 
 clear:
 DELETE FROM item;
+
+-- Whether the Catalog holds anything; an empty one starts the app at Welcome.
+count:
+SELECT COUNT(*) FROM item;
