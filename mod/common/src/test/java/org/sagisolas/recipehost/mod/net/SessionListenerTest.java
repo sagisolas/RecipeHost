@@ -1,6 +1,9 @@
 package org.sagisolas.recipehost.mod.net;
 
+import okio.BufferedSink;
+import okio.BufferedSource;
 import okio.ByteString;
+import okio.Okio;
 import org.junit.After;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Auth;
@@ -46,9 +49,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
-            s.getOutputStream().flush();
 
             List<Envelope> frames = readAll(s);
             assertEquals(handshake, frames.get(0).handshake);
@@ -68,9 +70,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(wrong)).build()).build());
-            s.getOutputStream().flush();
 
             List<Envelope> frames = readAll(s);
             assertEquals("only an Error frame expected", 1, frames.size());
@@ -92,9 +93,8 @@ public class SessionListenerTest {
 
         // First connection — authenticates, blocks inside the source so the session stays open.
         Socket first = new Socket(InetAddress.getLoopbackAddress(), listener.port());
-        EnvelopeFraming.writeFrame(first.getOutputStream(),
+        writeFrame(first,
                 new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
-        first.getOutputStream().flush();
         assertTrue("first session must reach the source", source.entered.await(2, TimeUnit.SECONDS));
 
         // Second connection — should be refused with an Error, not hang.
@@ -120,9 +120,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
-            s.getOutputStream().flush();
             readAll(s);
         }
 
@@ -138,9 +137,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(tokenOf(7))).build()).build());
-            s.getOutputStream().flush();
             readAll(s); // EOF ⇒ server's handleClient has finished
         }
 
@@ -159,9 +157,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
-            s.getOutputStream().flush();
             List<Envelope> frames = readAll(s);
             assertNotNull("stream must end with Error", frames.get(frames.size() - 1).error);
         }
@@ -193,9 +190,8 @@ public class SessionListenerTest {
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            EnvelopeFraming.writeFrame(s.getOutputStream(),
+            writeFrame(s,
                     new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
-            s.getOutputStream().flush();
             assertTrue(source.entered.await(2, TimeUnit.SECONDS));
 
             listener.close();
@@ -214,11 +210,18 @@ public class SessionListenerTest {
         return b;
     }
 
+    private static void writeFrame(Socket s, Envelope envelope) throws IOException {
+        BufferedSink out = Okio.buffer(Okio.sink(s.getOutputStream()));
+        EnvelopeFraming.writeFrame(out, envelope);
+        out.flush();
+    }
+
     private static List<Envelope> readAll(Socket s) throws IOException {
         List<Envelope> frames = new ArrayList<>();
         Envelope e;
         try {
-            while ((e = EnvelopeFraming.readFrame(s.getInputStream())) != null) {
+            BufferedSource in = Okio.buffer(Okio.source(s.getInputStream()));
+            while ((e = EnvelopeFraming.readFrame(in)) != null) {
                 frames.add(e);
             }
         } catch (IOException ignored) {

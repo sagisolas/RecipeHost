@@ -1,5 +1,6 @@
 package org.sagisolas.recipehost.mod.net;
 
+import okio.Buffer;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
@@ -12,8 +13,6 @@ import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,7 +57,7 @@ public class SnapshotSenderTest {
                 Collections.singletonList(recipes),
                 Collections.singletonList(icons));
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Buffer out = new Buffer();
         SnapshotSender.send(out, source);
 
         List<Envelope> frames = drain(out);
@@ -79,7 +78,7 @@ public class SnapshotSenderTest {
                 Collections.<RecipeBatch>emptyList(),
                 Collections.<IconBatch>emptyList());
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Buffer out = new Buffer();
         SnapshotSender.send(out, source);
 
         List<Envelope> frames = drain(out);
@@ -103,7 +102,7 @@ public class SnapshotSenderTest {
             @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
         };
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Buffer out = new Buffer();
         try {
             SnapshotSender.send(out, exploding);
         } catch (IOException expected) {
@@ -118,11 +117,10 @@ public class SnapshotSenderTest {
         assertNull("no Done when erroring", last.done);
     }
 
-    private static List<Envelope> drain(ByteArrayOutputStream out) throws IOException {
-        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+    private static List<Envelope> drain(Buffer out) throws IOException {
         List<Envelope> frames = new ArrayList<>();
         Envelope e;
-        while ((e = EnvelopeFraming.readFrame(in)) != null) {
+        while ((e = EnvelopeFraming.readFrame(out)) != null) {
             frames.add(e);
         }
         return frames;

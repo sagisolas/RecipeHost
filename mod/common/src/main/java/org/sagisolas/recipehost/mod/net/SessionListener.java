@@ -1,6 +1,8 @@
 package org.sagisolas.recipehost.mod.net;
 
+import okio.BufferedSink;
 import okio.ByteString;
+import okio.Okio;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.Error;
@@ -8,7 +10,6 @@ import org.sagisolas.recipehost.protocol.ErrorCode;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -101,12 +102,13 @@ public final class SessionListener implements Closeable {
 
     private void handleClient(Socket client) {
         try {
-            Envelope first = EnvelopeFraming.readFrame(client.getInputStream());
+            Envelope first = EnvelopeFraming.readFrame(Okio.buffer(Okio.source(client.getInputStream())));
+            BufferedSink out = Okio.buffer(Okio.sink(client.getOutputStream()));
             if (first == null || first.auth == null || !expectedToken.equals(first.auth.token)) {
-                writeError(client.getOutputStream(), ErrorCode.UNAUTHORIZED);
+                writeError(out, ErrorCode.UNAUTHORIZED);
                 return;
             }
-            SnapshotSender.send(client.getOutputStream(), source);
+            SnapshotSender.send(out, source);
             onSnapshotDelivered.run();
         } catch (IOException ignored) {
             // Client disconnected or socket error — nothing to recover.
@@ -119,11 +121,11 @@ public final class SessionListener implements Closeable {
 
     private static void sendErrorAndClose(Socket client, ErrorCode code) {
         try (Socket s = client) {
-            writeError(s.getOutputStream(), code);
+            writeError(Okio.buffer(Okio.sink(s.getOutputStream())), code);
         } catch (IOException ignored) {}
     }
 
-    private static void writeError(OutputStream out, ErrorCode code) throws IOException {
+    private static void writeError(BufferedSink out, ErrorCode code) throws IOException {
         Error err = new Error.Builder().code(code).build();
         EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(err).build());
         out.flush();

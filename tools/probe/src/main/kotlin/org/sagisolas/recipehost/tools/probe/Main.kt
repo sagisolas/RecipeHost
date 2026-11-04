@@ -2,6 +2,9 @@ package org.sagisolas.recipehost.tools.probe
 
 import okio.ByteString
 import okio.ByteString.Companion.decodeBase64
+import okio.buffer
+import okio.sink
+import okio.source
 import org.sagisolas.recipehost.protocol.Auth
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.EnvelopeFraming
@@ -39,8 +42,8 @@ fun main(args: Array<String>) {
     }
 
     socket.use { socket ->
-        val out = socket.getOutputStream()
-        val input = socket.getInputStream()
+        val out = socket.getOutputStream().sink().buffer()
+        val input = socket.getInputStream().source().buffer()
 
         EnvelopeFraming.writeFrame(
             out,
