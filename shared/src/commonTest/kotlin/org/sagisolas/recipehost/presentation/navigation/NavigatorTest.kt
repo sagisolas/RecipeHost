@@ -1,27 +1,35 @@
 package org.sagisolas.recipehost.presentation.navigation
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertNotEquals
 
 class NavigatorTest {
 
-    private fun navigator(catalogEmpty: Boolean = false) = Navigator(CatalogEmptiness { catalogEmpty })
+    /** Built the way `rememberNavigator` builds it, minus the saving, which Navigation 3 owns. */
+    private fun navigator(start: Route = Route.Root) = Navigator(
+        route = mutableStateOf(start),
+        selectedTab = mutableStateOf(Tab.Items),
+        stacks = Tab.entries.associateWith { NavBackStack<NavKey>(StackEntry(it.root)) },
+    )
 
-    private val Navigator.screen get() = state.value.currentScreen
+    /** What `NavDisplay` is given: Items' stack, then the selected tab's. */
+    private val Navigator.displayed get() = tabsInUse.flatMap { tab -> stacks.getValue(tab).map { (it as StackEntry).screen } }
 
     @Test
     fun pushAndPopWithinTheCurrentTab() {
         val navigator = navigator()
         navigator.push(Screen.ModList)
         navigator.push(Screen.Item("minecraft:stone"))
-        assertEquals(Screen.Item("minecraft:stone"), navigator.screen)
+        assertEquals(Screen.Item("minecraft:stone"), navigator.currentScreen)
 
         navigator.pop()
-        assertEquals(Screen.ModList, navigator.screen)
+        assertEquals(Screen.ModList, navigator.currentScreen)
         navigator.pop()
-        assertEquals(Screen.Grid, navigator.screen)
+        assertEquals(Screen.Grid, navigator.currentScreen)
     }
 
     @Test
@@ -30,13 +38,13 @@ class NavigatorTest {
         navigator.push(Screen.Item("minecraft:stone"))
 
         navigator.selectTab(Tab.Settings)
-        assertEquals(Screen.Settings, navigator.screen)
+        assertEquals(Screen.Settings, navigator.currentScreen)
         navigator.push(Screen.Item("create:cogwheel"))
 
         navigator.selectTab(Tab.Items)
-        assertEquals(Screen.Item("minecraft:stone"), navigator.screen)
+        assertEquals(Screen.Item("minecraft:stone"), navigator.currentScreen)
         navigator.selectTab(Tab.Settings)
-        assertEquals(Screen.Item("create:cogwheel"), navigator.screen)
+        assertEquals(Screen.Item("create:cogwheel"), navigator.currentScreen)
     }
 
     @Test
@@ -45,21 +53,24 @@ class NavigatorTest {
         navigator.push(Screen.ModList)
         navigator.selectTab(Tab.Settings)
         navigator.push(Screen.Item("minecraft:stone"))
+        assertEquals(
+            listOf(Screen.Grid, Screen.ModList, Screen.Settings, Screen.Item("minecraft:stone")),
+            navigator.displayed,
+        )
 
-        assertTrue(navigator.state.value.canGoBack)
-        assertTrue(navigator.back())
-        assertEquals(Screen.Settings, navigator.screen)
+        navigator.pop()
+        assertEquals(Screen.Settings, navigator.currentScreen)
 
-        assertTrue(navigator.back())
-        assertEquals(Tab.Items, navigator.state.value.selectedTab)
-        assertEquals(Screen.ModList, navigator.screen)
+        navigator.pop()
+        assertEquals(Tab.Items, navigator.selectedTab)
+        assertEquals(Screen.ModList, navigator.currentScreen)
 
-        assertTrue(navigator.back())
-        assertEquals(Screen.Grid, navigator.screen)
-
-        assertFalse(navigator.state.value.canGoBack)
-        assertFalse(navigator.back(), "back at the Items root leaves the app")
-        assertEquals(Screen.Grid, navigator.screen)
+        navigator.pop()
+        assertEquals(
+            listOf(Screen.Grid),
+            navigator.displayed,
+            "one entry left, so NavDisplay leaves back to the system and the app exits",
+        )
     }
 
     @Test
@@ -69,32 +80,33 @@ class NavigatorTest {
         navigator.push(Screen.Item("minecraft:stone"))
 
         navigator.selectTab(Tab.Items)
-        assertEquals(Screen.Grid, navigator.screen)
-        assertEquals(listOf(Screen.Grid), navigator.state.value.stacks.getValue(Tab.Items))
-    }
-
-    @Test
-    fun startsAtWelcomeWhenTheCatalogIsEmpty() {
-        assertEquals(Route.Welcome, navigator(catalogEmpty = true).state.value.route)
-    }
-
-    @Test
-    fun startsAtTheItemsTabWhenTheCatalogHasItems() {
-        val state = navigator(catalogEmpty = false).state.value
-        assertEquals(Route.Root, state.route)
-        assertEquals(Tab.Items, state.selectedTab)
+        assertEquals(listOf(Screen.Grid), navigator.stacks.getValue(Tab.Items).map { (it as StackEntry).screen })
     }
 
     @Test
     fun showRootLeavesAFullScreenRouteForTheGivenTab() {
-        val navigator = navigator(catalogEmpty = true)
+        val navigator = navigator(start = Route.Welcome)
         navigator.showScanProgress()
-        assertEquals(Route.ScanProgress, navigator.state.value.route)
-        assertFalse(navigator.state.value.canGoBack, "back on a full-screen route is left to the system")
+        assertEquals(Route.ScanProgress, navigator.route)
 
         navigator.showRoot(Tab.Items)
-        assertEquals(Route.Root, navigator.state.value.route)
-        assertEquals(Tab.Items, navigator.state.value.selectedTab)
-        assertEquals(Screen.Grid, navigator.screen)
+        assertEquals(Route.Root, navigator.route)
+        assertEquals(Tab.Items, navigator.selectedTab)
+        assertEquals(Screen.Grid, navigator.currentScreen)
+    }
+
+    @Test
+    fun theSameScreenPushedTwiceIsTwoEntries() {
+        val navigator = navigator()
+        navigator.push(Screen.Item("minecraft:stone"))
+        navigator.push(Screen.Item("minecraft:stick"))
+        navigator.push(Screen.Item("minecraft:stone"))
+        navigator.selectTab(Tab.Settings)
+        navigator.push(Screen.Item("minecraft:stone"))
+
+        val ids = navigator.stacks.values.flatten().map { (it as StackEntry).id }
+        assertEquals(ids.size, ids.toSet().size, "every entry, in every tab, has its own id")
+        val stones = navigator.stacks.getValue(Tab.Items).filter { (it as StackEntry).screen == Screen.Item("minecraft:stone") }
+        assertNotEquals(stones[0], stones[1])
     }
 }

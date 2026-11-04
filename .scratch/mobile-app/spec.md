@@ -43,7 +43,7 @@ ADR 0011 needs these protocol changes:
 - **`presentation`**: one ViewModel per screen (`org.jetbrains.androidx.lifecycle`), exposing `StateFlow<UiState>`.
 - **`ui`**: screens, plus `ui/designsystem` for the generic components and `ui/item` for item rendering (`ItemIcon`).
 - **Wiring.** `AppGraph` is the composition root. The platform wrapper constructs it, passing a `SqlDriver` and a `QrScanner`. The CLAUDE.md rule applies here too: services are instances that receive their collaborators through the constructor, and nothing is static except pure functions and constants.
-- **Navigation.** The root screen has bottom navigation with two tabs in v1: **Items** and **Settings**. A **Craft tree** tab comes later, so the tab list must be easy to extend. Each tab keeps its own hand-written back stack (`List<Screen>`) inside one `Navigator` instance, wired to `BackHandler`. The bottom bar stays visible on screens pushed inside a tab.
+- **Navigation.** The root screen has bottom navigation with two tabs in v1: **Items** and **Settings**. A **Craft tree** tab comes later, so the tab list must be easy to extend. Navigation uses **Navigation 3** (ADR 0013): each tab keeps its own back stack (`List<Screen>`) in one `Navigator` state holder, following the Nav3 multiple-back-stacks recipe, and `NavDisplay` renders it and handles back. Navigation 3 saves the stacks itself (`rememberNavBackStack`), so they survive activity recreation and process death. Each pushed entry is a distinct instance, so the same Item twice in a stack keeps separate state. Non-UI code asks for navigation through events (e.g. `PairingEntry.progressRequests`) instead of holding the `Navigator`. The bottom bar stays visible on screens pushed inside a tab.
   - Tapping an ItemStack inside a recipe pushes another item screen onto the current tab's stack, so the user can follow a chain of recipes as in JEI.
   - Back pops the current tab's stack. At a tab's root, back switches to Items, and at the Items root it exits the app.
   - Reselecting the active tab pops it to its root.
@@ -129,6 +129,7 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 ### New dependencies
 
 - `kotlinx-coroutines-core`
+- Navigation 3 (`navigation3-ui`), `lifecycle-viewmodel-navigation3` and the kotlinx-serialization plugin (ADR 0013)
 - `ktor-network`
 - SQLDelight: the plugin, runtime and coroutines extensions; `android-driver` for Android and `native-driver` for iOS later.
 - `play-services-code-scanner`, in `androidApp` only.

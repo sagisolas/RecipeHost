@@ -4,18 +4,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.navigation.Navigator
 import org.sagisolas.recipehost.presentation.navigation.Route
+import org.sagisolas.recipehost.presentation.navigation.rememberNavigator
 import org.sagisolas.recipehost.presentation.navigation.Screen
 import org.sagisolas.recipehost.presentation.navigation.Tab
 import org.sagisolas.recipehost.shared.generated.resources.Res
@@ -40,23 +41,27 @@ import org.sagisolas.recipehost.ui.designsystem.mcBackground
 @Composable
 fun App(graph: AppGraph) {
     AppTheme {
-        val navigator = graph.navigator
-        val nav by navigator.state.collectAsState()
-        // Disabled where Navigator doesn't handle back, so the system's back leaves the app.
-        NavigationBackHandler(
-            state = rememberNavigationEventState(NavigationEventInfo.None),
-            isBackEnabled = nav.canGoBack,
-            onBackCompleted = { navigator.back() },
-        )
-
+        val navigator = rememberNavigator {
+            if (graph.catalogEmptiness.isEmpty()) Route.Welcome else Route.Root
+        }
+        LaunchedEffect(navigator) {
+            graph.pairing.progressRequests.collect { navigator.showScanProgress() }
+        }
         Box(Modifier.fillMaxSize().mcBackground(McTheme.skin.screen).safeDrawingPadding()) {
-            when (nav.route) {
-                Route.Welcome -> WelcomePlaceholder(graph)
-                Route.ScanProgress -> ScanProgressPlaceholder(graph)
-                Route.Root -> RootScaffold(nav, onSelectTab = navigator::selectTab) { screen ->
-                    ScreenPlaceholder(screen, navigator)
-                }
-            }
+            // One entry: full-screen routes replace each other, and back on them is the system's.
+            NavDisplay(
+                backStack = listOf(navigator.route),
+                onBack = {},
+                entryProvider = { route ->
+                    NavEntry(route) {
+                        when (it) {
+                            Route.Welcome -> WelcomePlaceholder(graph)
+                            Route.ScanProgress -> ScanProgressPlaceholder(graph, navigator)
+                            Route.Root -> RootScaffold(navigator) { screen -> ScreenPlaceholder(screen, navigator) }
+                        }
+                    }
+                },
+            )
         }
     }
 }
@@ -85,13 +90,13 @@ private fun WelcomePlaceholder(graph: AppGraph) {
 
 // TODO(issue 08): the Scan progress screen, which moves to the root by itself once committed.
 @Composable
-private fun ScanProgressPlaceholder(graph: AppGraph) {
+private fun ScanProgressPlaceholder(graph: AppGraph, navigator: Navigator) {
     val progress by graph.scans.progress.collectAsState()
     val failure by graph.pairing.failure.collectAsState()
     PlaceholderScreen(
         stringResource(Res.string.placeholder_scan_progress, (failure ?: progress).toString()),
         actions = listOf(
-            PlaceholderAction(stringResource(Res.string.placeholder_continue)) { graph.navigator.showRoot(Tab.Items) },
+            PlaceholderAction(stringResource(Res.string.placeholder_continue)) { navigator.showRoot(Tab.Items) },
         ),
     )
 }

@@ -20,7 +20,6 @@ import org.sagisolas.recipehost.domain.recipes.UsesOf
 import org.sagisolas.recipehost.platform.QrScanner
 import org.sagisolas.recipehost.presentation.PairingEntry
 import org.sagisolas.recipehost.presentation.navigation.CatalogEmptiness
-import org.sagisolas.recipehost.presentation.navigation.Navigator
 import org.sagisolas.recipehost.ui.item.ItemIconCache
 import kotlin.time.Clock
 
@@ -52,16 +51,14 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal val resolveStack = ResolveStack(catalog, Dispatchers.IO)
     internal val clearCatalog = ClearCatalog(catalog, Dispatchers.IO)
 
-    /** Read once, on the main thread at startup: a count over one table. */
-    private val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
-
-    internal val navigator = Navigator(catalogEmptiness)
+    /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
+    internal val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
 
     /** Where the wrapper sends `recipehost://pair` deep links. */
-    val pairing = PairingEntry(scans, navigator, qrScanner)
+    val pairing = PairingEntry(scans, qrScanner)
 
     internal val itemIcons = ItemIconCache()
 
     // TODO(issues 08-10): the ViewModel factories, built from the domain queries above, `scans`,
-    //  `pairing`, `navigator` and `itemIcons`.
+    //  `pairing` and `itemIcons`. Navigation state is the UI's: `App` builds the `Navigator`.
 }

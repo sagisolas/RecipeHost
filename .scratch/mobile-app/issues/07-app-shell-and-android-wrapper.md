@@ -11,18 +11,17 @@ Spec: ../spec.md
   - `SessionClient`;
   - `ScanIngest` and `ScanController`, in an app-scoped `CoroutineScope`;
   - the domain queries;
-  - `Navigator`;
   - the ViewModel factories.
   
   Nothing in it is static except pure functions and constants (CLAUDE.md).
 - **`QrScanner`** interface: `suspend fun scan(): String?`, returning the raw text, or `null` if the user cancels.
 - **`Navigator`**: holds either a full-screen route (`Welcome`, `ScanProgress`) or the **bottom-navigation root**, which has two tabs in v1: `Items` and `Settings`. A `CraftTree` tab comes later, so adding a tab must be just a new enum entry, its first screen and a bar item.
   - Each tab has its own back stack of `Screen` (a sealed type: `Grid`, `ModList`, `Settings`, `Item(itemId)`). It supports `push` (onto the current tab), `pop`, `selectTab(tab)` and `showRoot(tab)` (leave the full-screen route).
-  - Wired to `BackHandler`: back pops the current tab's stack. At a tab's root, back switches to Items, and at the Items root it exits the app.
+  - Rendered by Navigation 3's `NavDisplay` (ADR 0013), which handles back: back pops the current tab's stack. At a tab's root, back switches to Items, and at the Items root it exits the app.
   - Reselecting the active tab pops it to its root.
   - The start route is Welcome when the Catalog is empty, and the root with Items otherwise.
 - **`RootScaffold`**: the tab's current screen above an `McBottomBar` (from issue 06). The bar stays visible on pushed screens.
-- **`PairingEntry.start(uri)`** parses the URI with `PairingPayload.parse` and runs `ScanController.start`, then navigates to ScanProgress. A parse failure shows a domain error.
+- **`PairingEntry.start(uri)`** parses the URI with `PairingPayload.parse` and runs `ScanController.start`, then asks the UI to show ScanProgress (`progressRequests`). The `Navigator` lives in the UI (ADR 0013). A parse failure shows a domain error.
 - **androidApp**:
   - `MainActivity` builds `AppGraph(AndroidSqliteDriver(...), GmsQrScanner(this))`. `GmsQrScanner` uses `play-services-code-scanner` with QR format only.
   - The manifest declares an intent filter for `recipehost` / `pair` (`VIEW`, `BROWSABLE`, `DEFAULT`). `onCreate` and `onNewIntent` route `intent.data` to `PairingEntry`.
