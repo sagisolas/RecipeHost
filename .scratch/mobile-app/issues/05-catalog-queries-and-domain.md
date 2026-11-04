@@ -8,7 +8,7 @@ Spec: ../spec.md
 
 Expose everything as `Flow`s so the UI updates live while Icons arrive.
 
-- **`domain/catalog/ItemGridQuery`**:
+- **`domain/catalog/ItemSearch` (domain names carry no UI words such as "grid")**:
   - Returns the Items of the selected releases.
   - Optional mod filter. The search text is parsed so that `@modid` tokens filter by mod and the rest matches names through FTS.
   - Order: `minecraft` first, then the mods' order in their latest Scan, then `ordinal`.
