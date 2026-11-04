@@ -13,6 +13,7 @@ androidx-testRunner = "1.7.0"
 composeMultiplatform = "1.12.2"
 junit = "4.13.2"
 kotlin = "2.4.21"
+ktor = "3.6.1"
 architecturyLoom = "1.9-SNAPSHOT"
 architecturyPlugin = "3.4-SNAPSHOT"
 wire = "7.1.2"
@@ -37,6 +38,7 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
+ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
 qrcodegen = { module = "io.nayuki:qrcodegen", version.ref = "qrcodegen" }
 
 [plugins]

@@ -1,6 +1,6 @@
 # Kotlin EnvelopeFraming with shared golden vectors; PairingPayload.parse
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What

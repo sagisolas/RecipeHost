@@ -53,6 +53,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(libs.wire.runtime)
+            implementation(libs.ktor.http)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
