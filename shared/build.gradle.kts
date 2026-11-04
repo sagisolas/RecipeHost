@@ -54,6 +54,8 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.wire.runtime)
             implementation(libs.ktor.http)
+            implementation(libs.ktor.network)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.ui)
@@ -64,6 +66,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
         getByName("androidDeviceTest").dependencies {
             implementation(libs.androidx.testRunner)

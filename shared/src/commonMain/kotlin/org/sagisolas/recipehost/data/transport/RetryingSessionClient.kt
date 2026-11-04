@@ -1,0 +1,22 @@
+package org.sagisolas.recipehost.data.transport
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.retryWhen
+import org.sagisolas.recipehost.data.pairing.PairingPayload
+import org.sagisolas.recipehost.protocol.Envelope
+
+/**
+ * Wraps a [SessionSource] with the retry rule: a [ScanFailure.Network] reopens the whole
+ * `Session` once with the same payload (the listener stays up after a drop, ADR 0001), and a
+ * [ScanFailure.Domain] fails straight away.
+ *
+ * Envelopes from the failed attempt have already been emitted. A retry starts over with a new
+ * `Handshake`, so a consumer drops whatever it has staged whenever a `Handshake` arrives. The
+ * failed attempt never completes, so its frames never reach the consumer as a complete
+ * `Snapshot`.
+ */
+internal class RetryingSessionClient(private val source: SessionSource) : SessionSource {
+
+    override fun open(payload: PairingPayload): Flow<Envelope> =
+        source.open(payload).retryWhen { cause, attempt -> cause is ScanFailure.Network && attempt == 0L }
+}

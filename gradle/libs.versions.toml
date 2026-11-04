@@ -14,6 +14,7 @@ composeMultiplatform = "1.12.2"
 junit = "4.13.2"
 kotlin = "2.4.21"
 ktor = "3.6.1"
+kotlinx-coroutines = "1.11.0"
 architecturyLoom = "1.9-SNAPSHOT"
 architecturyPlugin = "3.4-SNAPSHOT"
 wire = "7.1.2"
@@ -39,6 +40,9 @@ compose-components-resources = { module = "org.jetbrains.compose.components:comp
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
+ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 qrcodegen = { module = "io.nayuki:qrcodegen", version.ref = "qrcodegen" }
 
 [plugins]

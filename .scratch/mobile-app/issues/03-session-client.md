@@ -1,6 +1,6 @@
 # SessionClient on ktor-network: hosts tried in turn, Auth, retry and error rules
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Spec: ../spec.md
 
@@ -27,3 +27,11 @@ Spec: ../spec.md
 - one retry happens after a mid-stream drop, a second drop surfaces a `Network` failure, and frames from the failed attempt never reach the consumer as a complete stream;
 - there are no retries on UNAUTHORIZED, BUSY or SOURCE_FAILURE;
 - a version mismatch is reported as a domain failure.
+
+## Comments
+
+- Beyond the ticket:
+  - A 15 s idle read timeout (`SessionClient.idleTimeout`). A half-open connection counts as a `Network` drop and gets the one retry.
+  - A connect that completes as its 1.5 s timeout fires is used, not dropped unclosed. The mod claims the Session on accept, so a dropped socket would leave every later attempt with `BUSY`.
+- On a retry the flow restarts with a fresh `Handshake`. `ScanIngest` (04) must clear anything it has staged when a `Handshake` arrives.
+- Not verified yet: `KtorSocketConnector` against the real mod. Check that killing the mod mid-stream surfaces as `Network.Dropped` (and not as a ktor cancellation that would skip the retry).

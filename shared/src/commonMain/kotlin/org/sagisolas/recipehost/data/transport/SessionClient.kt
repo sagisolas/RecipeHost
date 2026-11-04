@@ -1,0 +1,88 @@
+package org.sagisolas.recipehost.data.transport
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withTimeoutOrNull
+import okio.IOException
+import org.sagisolas.recipehost.data.pairing.PairingPayload
+import org.sagisolas.recipehost.protocol.Auth
+import org.sagisolas.recipehost.protocol.Envelope
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
+/** Something that opens a `Session` for a [PairingPayload] and streams its `Snapshot`. */
+internal fun interface SessionSource {
+    /**
+     * Emits the mod's envelopes, `Handshake` first, and completes after `Done` (which isn't
+     * emitted). Fails with a [ScanFailure].
+     */
+    fun open(payload: PairingPayload): Flow<Envelope>
+}
+
+/** Opens one `Session` over a [SocketConnector], with no retry (see [RetryingSessionClient]). */
+internal class SessionClient(
+    private val connector: SocketConnector,
+    private val connectTimeout: Duration = 1_500.milliseconds,
+    /** How long the connection may stay silent before it counts as dropped (a half-open socket). */
+    private val idleTimeout: Duration = 15.seconds,
+) : SessionSource {
+
+    override fun open(payload: PairingPayload): Flow<Envelope> = flow {
+        val connection = connectFirstReachable(payload)
+        try {
+            droppedOnIoError { connection.send(Envelope(auth = Auth(token = payload.token))) }
+            while (true) {
+                val envelope = receiveWithinIdleTimeout(connection)
+                if (envelope.done != null) break
+                envelope.error?.let { throw ScanFailure.Domain.ModError(it.code) }
+                envelope.handshake?.let {
+                    if (it.protocol_version != PROTOCOL_VERSION) {
+                        throw ScanFailure.Domain.UnsupportedProtocolVersion(it.protocol_version)
+                    }
+                }
+                emit(envelope)
+            }
+        } finally {
+            connection.close()
+        }
+    }
+
+    /**
+     * Tries the hosts one at a time, in payload order, never in parallel. The mod's
+     * `SessionListener` claims the one `Session` as soon as it accepts a TCP connection, before
+     * `Auth` arrives, so a losing parallel attempt could take the session and leave the
+     * winning one with its own `BUSY`.
+     */
+    private suspend fun connectFirstReachable(payload: PairingPayload): EnvelopeConnection {
+        for (host in payload.hosts) {
+            // Assigned inside the timeout block rather than returned from it: a connect that
+            // completes just as the timeout fires is still a claimed Session, so use it rather
+            // than drop it unclosed.
+            var connection: EnvelopeConnection? = null
+            try {
+                withTimeoutOrNull(connectTimeout) { connection = connector.connect(host, payload.port) }
+            } catch (_: IOException) {
+                // Refused or unreachable: try the next host.
+            }
+            connection?.let { return it }
+        }
+        throw ScanFailure.Network.Unreachable(payload.hosts)
+    }
+
+    /** The next envelope; a clean EOF, an I/O error or [idleTimeout] of silence is a drop. */
+    private suspend fun receiveWithinIdleTimeout(connection: EnvelopeConnection): Envelope =
+        withTimeoutOrNull(idleTimeout) {
+            droppedOnIoError { connection.receive() } ?: throw ScanFailure.Network.Dropped()
+        } ?: throw ScanFailure.Network.Dropped(IOException("no envelope for $idleTimeout"))
+
+    private inline fun <T> droppedOnIoError(block: () -> T): T = try {
+        block()
+    } catch (e: IOException) {
+        throw ScanFailure.Network.Dropped(e)
+    }
+
+    private companion object {
+        const val PROTOCOL_VERSION = 1
+    }
+}
