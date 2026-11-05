@@ -2,12 +2,16 @@ package org.sagisolas.recipehost.mod.snapshot;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 
 import java.io.IOException;
 
@@ -24,6 +28,11 @@ import java.io.IOException;
 final class IconRenderer implements AutoCloseable {
 
     private static final int SIZE = 16;
+    // Same depth range and view offset GameRenderer uses for the GUI pass, so
+    // renderItem's z offsets (+150 and up) land inside the clip volume.
+    private static final float NEAR = 1000f;
+    private static final float FAR = 21000f;
+    private static final float GUI_DEPTH_OFFSET = -11000f;
 
     private final Minecraft minecraft;
     private final RenderTarget target;
@@ -36,15 +45,33 @@ final class IconRenderer implements AutoCloseable {
 
     byte[] renderToPng(ItemStack stack) throws IOException {
         RenderTarget main = minecraft.getMainRenderTarget();
-        target.bindWrite(true);
+        // clear() ends with unbindWrite() (back to the window's framebuffer), so
+        // bind after clearing or the item is drawn into the window, not the icon.
         target.clear(Minecraft.ON_OSX);
+        target.bindWrite(true);
 
-        MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        GuiGraphics guiGraphics = new GuiGraphics(minecraft, buffers);
-        guiGraphics.pose().pushPose();
-        guiGraphics.renderItem(stack, 0, 0);
-        guiGraphics.pose().popPose();
-        guiGraphics.flush();
+        // We run from Minecraft#execute, outside the frame's GUI pass, so the
+        // projection/model-view left over from the last frame are the screen's
+        // (ortho over the scaled window, identity view). Under those the item
+        // covers < 1 px and is depth-clipped, giving fully transparent icons.
+        RenderSystem.backupProjectionMatrix();
+        RenderSystem.setProjectionMatrix(
+                new Matrix4f().setOrtho(0f, SIZE, SIZE, 0f, NEAR, FAR), VertexSorting.ORTHOGRAPHIC_Z);
+        Matrix4fStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix();
+        modelView.translation(0f, 0f, GUI_DEPTH_OFFSET);
+        RenderSystem.applyModelViewMatrix();
+        Lighting.setupFor3DItems();
+        try {
+            MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
+            GuiGraphics guiGraphics = new GuiGraphics(minecraft, buffers);
+            guiGraphics.renderItem(stack, 0, 0);
+            guiGraphics.flush();
+        } finally {
+            modelView.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+            RenderSystem.restoreProjectionMatrix();
+        }
 
         try (NativeImage image = new NativeImage(SIZE, SIZE, false)) {
             RenderSystem.bindTexture(target.getColorTextureId());
