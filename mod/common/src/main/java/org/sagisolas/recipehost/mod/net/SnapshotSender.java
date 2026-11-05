@@ -9,6 +9,7 @@ import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ import java.util.Iterator;
 
 /**
  * Streams a Snapshot to a byte sink: Handshake, item batches, recipe batches,
- * icon batches, Done. On any failure pulling from the source, writes and flushes
+ * icon batches, layout batches, Done. On any failure pulling from the source, writes and flushes
  * a trailing Error frame and rethrows as {@link IOException}.
  */
 public final class SnapshotSender {
@@ -31,6 +32,7 @@ public final class SnapshotSender {
             drainItems(out, source.itemBatches());
             drainRecipes(out, source.recipeBatches());
             drainIcons(out, source.iconBatches());
+            drainLayouts(out, source.layoutBatches());
         } catch (RuntimeException | IOException ex) {
             Error error = new Error.Builder().code(ErrorCode.SOURCE_FAILURE).build();
             EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(error).build());
@@ -58,6 +60,12 @@ public final class SnapshotSender {
     private static void drainIcons(BufferedSink out, Iterator<IconBatch> it) throws IOException {
         while (it.hasNext()) {
             EnvelopeFraming.writeFrame(out, new Envelope.Builder().icon_batch(it.next()).build());
+        }
+    }
+
+    private static void drainLayouts(BufferedSink out, Iterator<LayoutBatch> it) throws IOException {
+        while (it.hasNext()) {
+            EnvelopeFraming.writeFrame(out, new Envelope.Builder().layout_batch(it.next()).build());
         }
     }
 }

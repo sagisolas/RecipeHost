@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.net;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.util.Iterator;
@@ -17,4 +18,5 @@ public interface SnapshotSource {
     Iterator<ItemBatch> itemBatches();
     Iterator<RecipeBatch> recipeBatches();
     Iterator<IconBatch> iconBatches();
+    Iterator<LayoutBatch> layoutBatches();
 }

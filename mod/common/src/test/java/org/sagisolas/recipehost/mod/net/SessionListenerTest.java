@@ -13,6 +13,7 @@ import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.io.IOException;
@@ -243,6 +244,7 @@ public class SessionListenerTest {
         @Override public Iterator<ItemBatch> itemBatches() { return Collections.<ItemBatch>emptyIterator(); }
         @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
         @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
+        @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
     }
 
     private static final class BlockingSource implements SnapshotSource {
@@ -258,5 +260,6 @@ public class SessionListenerTest {
         @Override public Iterator<ItemBatch> itemBatches() { return Collections.<ItemBatch>emptyIterator(); }
         @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
         @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
+        @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
     }
 }

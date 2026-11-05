@@ -14,6 +14,7 @@ import org.sagisolas.recipehost.mod.net.WireProtocol;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
@@ -99,6 +100,12 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     public synchronized Iterator<IconBatch> iconBatches() {
         materializeSnapshot();
         return new IconBatchIterator(new ArrayList<>(itemIds), new PngEncoder());
+    }
+
+    @Override
+    public Iterator<LayoutBatch> layoutBatches() {
+        // TODO(recipe-layouts issue 02): stream the LayoutRenderer's batches.
+        return Collections.emptyIterator();
     }
 
     private void materializeSnapshot() {

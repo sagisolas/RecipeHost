@@ -15,6 +15,7 @@ message Envelope {
     Done done = 5;
     Error error = 6;
     Auth auth = 7;
+    LayoutBatch layout_batch = 8;
   }
 }
 
@@ -62,6 +63,9 @@ message Recipe {
   repeated ItemStack results = 3;
   map<string, string> extras = 4;  // type-specific metadata, see ADR 0002
   string id = 5;                   // recipe id, e.g. "minecraft:oak_planks"; its namespace owns the recipe (ADR 0011)
+  // One entry per RecipeSlot of the recipe's layout, in slot order; empty when the
+  // recipe has no layout. Display only: `inputs` and `results` stay the semantic truth.
+  repeated Slot layout_stacks = 6;
 }
 
 message Slot {
@@ -82,6 +86,38 @@ message IconBatch {
   uint32 cell_size = 3;            // px, 16
   uint32 columns = 4;
   repeated string item_ids = 5;
+}
+
+// Recipe layouts, sent after every RecipeBatch, interleaved with or after the
+// IconBatches. Each key is sent once per Snapshot with its png; a later entry
+// for an already-sent key has an empty png and only adds recipe_ids.
+message LayoutBatch {
+  repeated RecipeLayout layouts = 1;
+}
+
+// An image of a recipe's GUI as the game draws it, minus the Items inside its
+// slots, plus those slots' rectangles (see Recipe layout in GLOSSARY.md).
+message RecipeLayout {
+  string key = 1;
+  bytes png = 2;
+  uint32 width = 3;                // GUI px
+  uint32 height = 4;               // GUI px
+  repeated RecipeSlot slots = 5;   // order is significant: Recipe.layout_stacks fills them by index
+  repeated string recipe_ids = 6;  // recipes in this Snapshot that use the layout; each at most once per Snapshot
+}
+
+// A slot rectangle inside a RecipeLayout, in GUI px from its top-left corner.
+message RecipeSlot {
+  enum Role {
+    INPUT = 0;
+    OUTPUT = 1;
+    CATALYST = 2;
+  }
+  uint32 x = 1;
+  uint32 y = 2;
+  uint32 width = 3;
+  uint32 height = 4;
+  Role role = 5;
 }
 
 message Done {}

@@ -21,7 +21,8 @@ import kotlin.time.Clock
  * Items and Recipes are staged in memory and committed in one transaction after the last
  * RecipeBatch, so a stream that fails before then writes nothing. Icons are upserted batch by
  * batch after that commit, one `Icon atlas` per IconBatch, so a drop during Icons keeps what
- * was committed.
+ * was committed. LayoutBatches are ignored until the Catalog stores `Recipe layout`s
+ * (recipe-layouts issue 06).
  */
 internal class ScanIngest(private val catalog: CatalogDatabase, private val clock: Clock) {
 

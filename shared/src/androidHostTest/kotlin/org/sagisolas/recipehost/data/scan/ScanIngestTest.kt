@@ -18,9 +18,11 @@ import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ItemBatch
 import org.sagisolas.recipehost.protocol.ItemStack
+import org.sagisolas.recipehost.protocol.LayoutBatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
+import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -201,6 +203,46 @@ class ScanIngestTest {
         )
         assertEquals(stickAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
         assertEquals(cogAtlas to 0L, iconOf(create6, "create:cogwheel"))
+    }
+
+    @Test
+    fun layoutBatchesAreIgnoredAndTheScanStillCompletes() = runTest {
+        val layouts = Envelope(
+            layout_batch = LayoutBatch(
+                layouts = listOf(
+                    RecipeLayout(
+                        key = "minecraft:crafting_shaped/3x3",
+                        png = "layout".encodeUtf8(),
+                        width = 116,
+                        height = 54,
+                        recipe_ids = listOf("minecraft:stick"),
+                    ),
+                ),
+            ),
+        )
+        val progress = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 1, recipes = 1),
+                items("minecraft:stick" to "Stick"),
+                recipes(shaped("minecraft:stick", result = "minecraft:stick", "minecraft:oak_planks")),
+                iconAtlas(stickAtlas, "minecraft:stick"),
+                layouts,
+            ),
+        ).toList()
+
+        assertEquals(
+            listOf(
+                ScanProgress.Connecting,
+                ScanProgress.Items(received = 1, total = 1),
+                ScanProgress.Recipes(received = 1, total = 1),
+                ScanProgress.Committed,
+                ScanProgress.Icons(received = 1, total = 1),
+                ScanProgress.Done,
+            ),
+            progress,
+        )
+        assertEquals(listOf("minecraft:stick"), recipeIdsOf("ATM9"))
+        assertEquals(stickAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
     }
 
     @Test

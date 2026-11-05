@@ -16,14 +16,14 @@ There are two sources:
 
 Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md` (`Recipe layout`, `Recipe slot`).
 
-## Wire changes (protocol version 3)
+## Wire changes (amend protocol version 2)
 
 - New `RecipeLayout { string key; bytes png; uint32 width; uint32 height; repeated RecipeSlot slots; repeated string recipe_ids; }`. `width` and `height` are in GUI pixels. `recipe_ids` lists the recipes in this `Snapshot` that use the layout. A recipe id appears under at most one layout per `Snapshot`.
 - `RecipeSlot { uint32 x; uint32 y; uint32 width; uint32 height; Role role; }`, where `Role` is `INPUT`, `OUTPUT` or `CATALYST`. The order is significant: recipes fill the slots by index.
 - `Recipe.layout_stacks = 6` is a `repeated Slot`, one entry per slot of the recipe's layout, in order. It reuses the wire `Slot` (a list of alternatives) and is empty when the recipe will have no layout. `inputs` and `results` stay as they are and remain the semantic truth.
 - The recipe doesn't name its layout: an EMI layout's key is only known once it has been rendered, and that happens after the recipes are committed. The layout names its recipes instead.
-- New `LayoutBatch { repeated RecipeLayout layouts; }` as `Envelope.layout_batch = 8`. It is sent after all `RecipeBatch`es, interleaved with or after the `IconBatch`es, and each key is sent once per `Snapshot`.
-- `WireProtocol.PROTOCOL_VERSION` goes from 2 to 3. The app accepts only 3.
+- New `LayoutBatch { repeated RecipeLayout layouts; }` as `Envelope.layout_batch = 8`. It is sent after all `RecipeBatch`es, interleaved with or after the `IconBatch`es, and each key's `png` is sent once per `Snapshot` (a later entry for that key carries only more `recipe_ids`).
+- `WireProtocol.PROTOCOL_VERSION` stays at 2. Neither the mod nor the app has been published, so these changes amend v2 instead of bumping the version.
 - `SnapshotSource` gains `Iterator<LayoutBatch> layoutBatches()`, and `SnapshotSender` streams it after icons.
 
 ## Implementation decisions
@@ -111,7 +111,7 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
 
 ## Issues
 
-1. Wire: `RecipeLayout`, `RecipeSlot`, `LayoutBatch`, the new `Recipe` fields, protocol 3 on both sides.
+1. Wire: `RecipeLayout`, `RecipeSlot`, `LayoutBatch`, the new `Recipe` fields (amending protocol 2).
 2. Mod: `LayoutRenderer` pipeline (sheet packing, readback, PNG, keys, render budget after Icons) and streaming `LayoutBatch`.
 3. Mod: vanilla layouts when EMI is absent.
 4. Mod: EMI as recipe source (soft dependency, readiness chat message, id fallback).

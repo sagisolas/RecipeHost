@@ -9,8 +9,10 @@ import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.Item;
 import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
+import org.sagisolas.recipehost.protocol.RecipeLayout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,7 +28,7 @@ import static org.junit.Assert.assertNull;
 public class SnapshotSenderTest {
 
     @Test
-    public void streamsHandshakeThenBatchesThenDone() throws Exception {
+    public void streamsHandshakeThenBatchesThenLayoutsThenDone() throws Exception {
         Handshake handshake = new Handshake.Builder()
                 .protocol_version(1)
                 .minecraft_version("1.21.1")
@@ -51,22 +53,31 @@ public class SnapshotSenderTest {
                 .item_ids(Collections.singletonList("minecraft:stick"))
                 .build();
 
+        LayoutBatch layouts = new LayoutBatch.Builder()
+                .layouts(Collections.singletonList(new RecipeLayout.Builder()
+                        .key("minecraft:crafting_shaped/3x3")
+                        .recipe_ids(Collections.singletonList("minecraft:stick"))
+                        .build()))
+                .build();
+
         FakeSource source = new FakeSource(
                 handshake,
                 Collections.singletonList(items),
                 Collections.singletonList(recipes),
-                Collections.singletonList(icons));
+                Collections.singletonList(icons),
+                Collections.singletonList(layouts));
 
         Buffer out = new Buffer();
         SnapshotSender.send(out, source);
 
         List<Envelope> frames = drain(out);
-        assertEquals(5, frames.size());
+        assertEquals(6, frames.size());
         assertEquals(handshake, frames.get(0).handshake);
         assertEquals(items, frames.get(1).item_batch);
         assertEquals(recipes, frames.get(2).recipe_batch);
         assertEquals(icons, frames.get(3).icon_batch);
-        assertNotNull("final frame must be Done", frames.get(4).done);
+        assertEquals(layouts, frames.get(4).layout_batch);
+        assertNotNull("final frame must be Done", frames.get(5).done);
     }
 
     @Test
@@ -76,7 +87,8 @@ public class SnapshotSenderTest {
                 handshake,
                 Collections.<ItemBatch>emptyList(),
                 Collections.<RecipeBatch>emptyList(),
-                Collections.<IconBatch>emptyList());
+                Collections.<IconBatch>emptyList(),
+                Collections.<LayoutBatch>emptyList());
 
         Buffer out = new Buffer();
         SnapshotSender.send(out, source);
@@ -100,6 +112,7 @@ public class SnapshotSenderTest {
             }
             @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
             @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
+            @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
         };
 
         Buffer out = new Buffer();
@@ -131,16 +144,19 @@ public class SnapshotSenderTest {
         private final List<ItemBatch> items;
         private final List<RecipeBatch> recipes;
         private final List<IconBatch> icons;
+        private final List<LayoutBatch> layouts;
 
-        FakeSource(Handshake h, List<ItemBatch> i, List<RecipeBatch> r, List<IconBatch> ic) {
+        FakeSource(Handshake h, List<ItemBatch> i, List<RecipeBatch> r, List<IconBatch> ic, List<LayoutBatch> l) {
             this.handshake = h;
             this.items = new ArrayList<>(i);
             this.recipes = new ArrayList<>(r);
             this.icons = new ArrayList<>(ic);
+            this.layouts = new ArrayList<>(l);
         }
         @Override public Handshake handshake() { return handshake; }
         @Override public Iterator<ItemBatch> itemBatches() { return items.iterator(); }
         @Override public Iterator<RecipeBatch> recipeBatches() { return recipes.iterator(); }
         @Override public Iterator<IconBatch> iconBatches() { return icons.iterator(); }
+        @Override public Iterator<LayoutBatch> layoutBatches() { return layouts.iterator(); }
     }
 }

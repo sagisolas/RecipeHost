@@ -110,6 +110,59 @@ public class EnvelopeFramingTest {
     }
 
     @Test
+    public void layoutBatchRoundTrips() throws Exception {
+        RecipeLayout layout = new RecipeLayout.Builder()
+                .key("minecraft:smelting/200/0.1")
+                .png(ByteString.of((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G'))
+                .width(82)
+                .height(54)
+                .slots(List.of(
+                        slot(0, 0, RecipeSlot.Role.INPUT),
+                        slot(0, 36, RecipeSlot.Role.CATALYST),
+                        slot(60, 18, RecipeSlot.Role.OUTPUT)))
+                .recipe_ids(List.of("minecraft:iron_ingot_from_smelting_raw_iron", "minecraft:glass"))
+                .build();
+        Envelope envelope = new Envelope.Builder()
+                .layout_batch(new LayoutBatch.Builder().layouts(List.of(layout)).build())
+                .build();
+
+        assertEquals(envelope, roundTrip(envelope));
+    }
+
+    @Test
+    public void recipeLayoutStacksRoundTrip() throws Exception {
+        Recipe recipe = new Recipe.Builder()
+                .id("minecraft:glass")
+                .type_id("minecraft:smelting")
+                .layout_stacks(List.of(
+                        new Slot.Builder().stacks(List.of(stack("minecraft:sand"), stack("minecraft:red_sand"))).build(),
+                        new Slot.Builder().build(),
+                        new Slot.Builder().stacks(List.of(stack("minecraft:glass"))).build()))
+                .build();
+        Envelope envelope = new Envelope.Builder()
+                .recipe_batch(new RecipeBatch.Builder().recipes(List.of(recipe)).build())
+                .build();
+
+        assertEquals(envelope, roundTrip(envelope));
+    }
+
+    private static Envelope roundTrip(Envelope envelope) throws IOException {
+        Buffer buf = new Buffer();
+        EnvelopeFraming.writeFrame(buf, envelope);
+        Envelope read = EnvelopeFraming.readFrame(buf);
+        assertNull("frame must consume exactly its bytes", EnvelopeFraming.readFrame(buf));
+        return read;
+    }
+
+    private static RecipeSlot slot(int x, int y, RecipeSlot.Role role) {
+        return new RecipeSlot.Builder().x(x).y(y).width(18).height(18).role(role).build();
+    }
+
+    private static ItemStack stack(String itemId) {
+        return new ItemStack.Builder().item_id(itemId).count(1).build();
+    }
+
+    @Test
     public void goldenDone() throws Exception {
         assertGolden(doneEnvelope(), DONE_HEX);
     }
