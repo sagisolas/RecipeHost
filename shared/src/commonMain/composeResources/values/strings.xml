@@ -2,15 +2,33 @@
     <string name="tab_items">Items</string>
     <string name="tab_settings">Settings</string>
 
-    <!-- Placeholder screens until issues 08-10 replace them. -->
-    <string name="placeholder_welcome">Open the pairing screen in-game, then scan its QR code.</string>
-    <string name="placeholder_scan_qr">Scan QR</string>
-    <string name="placeholder_scan_progress">Scan: %1$s</string>
-    <string name="placeholder_continue">Continue</string>
-    <string name="placeholder_grid">Item grid</string>
-    <string name="placeholder_mod_list">Mod list</string>
+    <string name="scan_qr">Scan QR</string>
+    <string name="welcome_hint">Open the pairing screen from your inventory in Minecraft</string>
+    <string name="welcome_no_scanner">This device has no QR scanner. Scan the code with your camera app instead.</string>
+
+    <string name="scan_step_connecting">Connecting</string>
+    <string name="scan_step_items">Items</string>
+    <string name="scan_step_items_count">Items %1$d/%2$d</string>
+    <string name="scan_step_recipes">Recipes</string>
+    <string name="scan_step_recipes_count">Recipes %1$d/%2$d</string>
+    <string name="scan_again">Scan again</string>
+    <string name="scan_error_unauthorized">The game didn\'t accept this code. Open the pairing screen again and scan the new one.</string>
+    <string name="scan_error_busy">The game is already sending to another device. Try again in a moment.</string>
+    <string name="scan_error_game">The game ran into an error while sending its items and recipes.</string>
+    <string name="scan_error_version_mismatch">This app and the companion mod are on different versions. Update both.</string>
+    <string name="scan_error_invalid_code">That isn\'t a RecipeHost pairing code.</string>
+    <string name="scan_error_network">Couldn\'t reach the game. Same Wi-Fi? Is the pairing screen open?</string>
+    <string name="scan_error_interrupted">The scan stopped before it finished.</string>
+
+    <string name="grid_mods">Mods</string>
+    <string name="grid_scan">Scan</string>
+    <string name="grid_search_hint">Search, @mod</string>
+
+    <string name="mod_list_title">Filter items by mod</string>
+    <string name="mod_release">%1$s · MC %2$s</string>
+
+    <!-- Placeholder screens until issues 09-10 replace them. -->
     <string name="placeholder_settings">Settings</string>
     <string name="placeholder_item">Item %1$s</string>
-    <string name="placeholder_open_mods">Mods</string>
     <string name="placeholder_open_item">Open %1$s</string>
 </resources>

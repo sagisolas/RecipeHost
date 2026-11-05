@@ -84,4 +84,18 @@ class ScanControllerTest {
         runCurrent()
         assertEquals(2, source.opened)
     }
+
+    @Test
+    fun aNewScanReportsConnectingBeforeItRunsNotTheLastScansEnd() = runTest {
+        val source = GatedSource()
+        val controller = controller(source)
+        source.finish.complete(Unit)
+        controller.start(payload)
+        runCurrent()
+        assertEquals(ScanProgress.Done, controller.progress.value)
+
+        controller.start(payload)
+
+        assertEquals(ScanProgress.Connecting, controller.progress.value, "before the Scan's coroutine runs")
+    }
 }

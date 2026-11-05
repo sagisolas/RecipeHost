@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,8 @@ internal fun <T> McDropdown(
     enabled: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // Small and start-aligned: release labels are long next to a mod name.
+    val textStyle = McTheme.typography.small.copy(textAlign = TextAlign.Start)
     var anchorSize by remember { mutableStateOf(IntSize.Zero) }
     Box(modifier.onSizeChanged { anchorSize = it }) {
         McPressable(
@@ -51,8 +54,8 @@ internal fun <T> McDropdown(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = McDimens.WidgetPadding),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                McText(label(selected), Modifier.weight(1f), color = color, maxLines = 1)
-                McText("▼", color = color)
+                McText(label(selected), Modifier.weight(1f), color = color, style = textStyle, maxLines = 1)
+                McText(if (expanded) "▲" else "▼", color = color, style = textStyle)
             }
         }
         if (expanded) {
@@ -62,7 +65,10 @@ internal fun <T> McDropdown(
                 properties = PopupProperties(focusable = true),
             ) {
                 val width = with(LocalDensity.current) { anchorSize.width.toDp() }
-                McPanel(Modifier.width(width), contentPadding = PaddingValues(4.dp)) {
+                McPanel(
+                    Modifier.width(width),
+                    contentPadding = PaddingValues(4.dp),
+                ) {
                     Column {
                         options.forEach { option ->
                             McPressable(
@@ -78,6 +84,7 @@ internal fun <T> McDropdown(
                                 McText(
                                     text = label(option),
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                                    style = textStyle,
                                     maxLines = 1,
                                 )
                             }

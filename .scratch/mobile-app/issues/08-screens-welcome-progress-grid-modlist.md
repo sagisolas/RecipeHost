@@ -1,6 +1,6 @@
 # Screens: Welcome, Scan progress, Items tab (grid and mod list)
 
-Status: ready-for-agent
+Status: done
 Blocked by: 05, 06, 07
 Spec: ../spec.md
 
@@ -34,3 +34,8 @@ Each screen has a ViewModel in `presentation` exposing `StateFlow<UiState>` and 
   - a dropdown change updating the grid's state;
   - the Mods button pushing the mod list, and tapping a mod setting the filter and popping back to the grid.
 - Manual check on a device against a real game, including turning Wi-Fi off during Icons: the grid stays usable, and the missing Icons fill in on the next Scan.
+
+## Comments
+
+- 2026-11-10: Done with the user's corrections: Welcome text centred with the button below; Scan progress opens the Items tab as soon as Items and Recipes are committed; grid cells are bare Icons on a tiled dirt background (`McSkin.listBackground`), top bar Mods / search / Scan; no mod filter chip (choosing a mod rewrites the search text's `@mod` token via `ModFilterRequests`); the mod list has a title and fixed-width release dropdowns, and Minecraft's own release shows no MC version. Navigation stays in the screens; ViewModels expose immutable state only.
+- Icons arrive fully transparent: the mod's `IconRenderer` draws with the last frame's GUI projection and model-view, so the item is clipped. Agreed to fix in a later task; the manual "missing Icons fill in on the next Scan" check waits for it.

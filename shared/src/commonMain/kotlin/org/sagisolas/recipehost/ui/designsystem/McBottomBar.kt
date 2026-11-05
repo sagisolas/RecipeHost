@@ -3,6 +3,9 @@ package org.sagisolas.recipehost.ui.designsystem
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,20 +25,25 @@ internal data class McBottomBarItem(
     val icon: Painter,
 )
 
-/** The root tab bar: one item per tab, icon over label. */
+/**
+ * The root tab bar: one item per tab, icon over label. Its background also fills [windowInsets]
+ * (the system navigation bar by default), which the items stay clear of.
+ */
 @Composable
 internal fun McBottomBar(
     items: List<McBottomBarItem>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    windowInsets: WindowInsets = WindowInsets.navigationBars,
 ) {
     val skin = McTheme.skin
     Row(
         modifier
             .fillMaxWidth()
-            .height(McDimens.BottomBarHeight)
-            .mcBackground(skin.bottomBar),
+            .mcBackground(skin.bottomBar)
+            .windowInsetsPadding(windowInsets)
+            .height(McDimens.BottomBarHeight),
     ) {
         items.forEachIndexed { index, item ->
             val selected = index == selectedIndex

@@ -23,7 +23,7 @@ internal fun PlaceholderScreen(
     actions: List<PlaceholderAction> = emptyList(),
 ) {
     Column(
-        modifier.fillMaxSize().padding(16.dp),
+        modifier.fillMaxSize().tabScreenInsetsPadding().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

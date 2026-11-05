@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.presentation.navigation
+package org.sagisolas.recipehost.ui.navigation
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.navigation3.runtime.NavBackStack

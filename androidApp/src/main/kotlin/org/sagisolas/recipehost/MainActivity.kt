@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowInsetsControllerCompat
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 
@@ -18,6 +19,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = false
+
         super.onCreate(savedInstanceState)
 
         graph = AppGraph(

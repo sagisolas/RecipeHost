@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.MINECRAFT
 import org.sagisolas.recipehost.data.catalog.WithSelection
 import kotlin.coroutines.CoroutineContext
 
@@ -32,19 +33,15 @@ internal class ModList(
         require(owner == modId) { "release $releaseId is not a release of $modId" }
         catalog.versionSelectionQueries.choose(modId, releaseId)
     }
-
-    private fun List<WithSelection>.toMod(modId: String) = CatalogMod(
-        modId = modId,
-        // The rows come newest first, so a renamed mod shows its newest name.
-        name = first().name,
-        releases = map { ModRelease(it.id, it.version, it.mc_version) },
-        selectedReleaseId = first().selected_release_id,
-    )
-
-    private companion object {
-        const val MINECRAFT = "minecraft"
-    }
 }
+
+private fun List<WithSelection>.toMod(modId: String) = CatalogMod(
+    modId = modId,
+    // The rows come newest first, so a renamed mod shows its newest name.
+    name = first().name,
+    releases = map { ModRelease(it.id, it.version, it.mc_version) },
+    selectedReleaseId = first().selected_release_id,
+)
 
 /** A mod in the `Catalog`: its [releases] newest first, and the one in the `Version selection`. */
 internal data class CatalogMod(

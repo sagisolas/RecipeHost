@@ -13,6 +13,7 @@ import org.sagisolas.recipehost.shared.generated.resources.boss_bar_green_progre
 import org.sagisolas.recipehost.shared.generated.resources.container_slot
 import org.sagisolas.recipehost.shared.generated.resources.menu_background
 import org.sagisolas.recipehost.shared.generated.resources.missing_texture
+import org.sagisolas.recipehost.shared.generated.resources.options_background
 import org.sagisolas.recipehost.shared.generated.resources.popup_background
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_pressed
@@ -46,6 +47,8 @@ internal data class McSkin(
     val bottomBar: McTexture,
     val bottomBarItemSelected: McTexture,
     val bottomBarItem: McStateTextures,
+    /** Drawn tiled (not sliced) behind lists such as an item grid, with [mcTiledBackground]. */
+    val listBackground: ImageBitmap,
     /** Shown, unsliced and nearest-neighbour, where an image is missing or can't be decoded. */
     val missingTexture: ImageBitmap,
 )
@@ -94,6 +97,7 @@ internal fun rememberMcSkin(): McSkin {
             pressed = texture(Res.drawable.recipehost_bottom_bar_item_pressed, border = 0),
             disabled = null,
         ),
+        listBackground = imageResource(Res.drawable.options_background),
         missingTexture = imageResource(Res.drawable.missing_texture),
     )
 }

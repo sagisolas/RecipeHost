@@ -25,7 +25,7 @@ internal class ItemSearch(
      * other word must start a word of the display name, in any order and case.
      */
     fun items(text: String, modId: String? = null): Flow<List<CatalogItem>> {
-        val search = SearchText.parse(text)
+        val search = parseSearchText(text)
         return catalog.itemQueries.selected(modId, search.modPrefix, search.nameMatch) { releaseId, itemId, displayName, png ->
             CatalogItem(releaseId, itemId, displayName, png?.toByteString())
         }.asFlow().mapToList(context)
@@ -33,34 +33,19 @@ internal class ItemSearch(
 }
 
 /** Search text split into its `@modid` filter and an FTS4 MATCH expression over names. */
-private class SearchText(val modPrefix: String?, val nameMatch: String?) {
-    companion object {
-        fun parse(text: String): SearchText {
-            val (modTokens, nameTokens) = text.split(' ', '\t').filter { it.isNotEmpty() }.partition { it.startsWith('@') }
-            val modPrefix = modTokens.lastOrNull()?.removePrefix("@")?.lowercase()?.takeIf { it.isNotEmpty() }
-            // FTS4's simple tokenizer splits on anything but letters and digits; doing the same here
-            // keeps quotes, '*', '-' and parentheses out of the MATCH syntax. Each word is quoted
-            // and lowercased so AND, OR and NOT are never read as operators.
-            val words = nameTokens
-                .flatMap { it.split { c -> !c.isLetterOrDigit() } }
-                .filter { it.isNotEmpty() }
-            val nameMatch = words.takeIf { it.isNotEmpty() }?.joinToString(" ") { "\"${it.lowercase()}*\"" }
-            return SearchText(modPrefix, nameMatch)
-        }
+private data class SearchText(val modPrefix: String?, val nameMatch: String?)
 
-        private fun String.split(isSeparator: (Char) -> Boolean): List<String> {
-            val parts = mutableListOf<String>()
-            val current = StringBuilder()
-            for (c in this) {
-                if (isSeparator(c)) {
-                    parts += current.toString()
-                    current.clear()
-                } else {
-                    current.append(c)
-                }
-            }
-            parts += current.toString()
-            return parts
-        }
-    }
+private fun parseSearchText(text: String): SearchText {
+    val (modTokens, nameTokens) = text.split(' ', '\t').filter { it.isNotEmpty() }.partition { it.startsWith('@') }
+    val modPrefix = modTokens.lastOrNull()?.removePrefix("@")?.lowercase()?.takeIf { it.isNotEmpty() }
+    // FTS4's simple tokenizer splits on anything but letters and digits; doing the same here
+    // keeps quotes, '*', '-' and parentheses out of the MATCH syntax. Each word is quoted
+    // and lowercased so AND, OR and NOT are never read as operators.
+    val words = nameTokens.flatMap(::ftsWords)
+    val nameMatch = words.takeIf { it.isNotEmpty() }?.joinToString(" ") { "\"${it.lowercase()}*\"" }
+    return SearchText(modPrefix, nameMatch)
 }
+
+/** [token]'s runs of letters and digits. */
+private fun ftsWords(token: String): List<String> =
+    token.map { if (it.isLetterOrDigit()) it else ' ' }.joinToString("").split(' ').filter { it.isNotEmpty() }

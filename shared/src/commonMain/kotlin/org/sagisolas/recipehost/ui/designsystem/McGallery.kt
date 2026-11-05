@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,8 +58,9 @@ internal fun McGallery(modifier: Modifier = Modifier) {
             }
 
             Section("McTextField") {
-                McTextField(rememberTextFieldState(), Modifier.width(240.dp), hint = "Search items")
-                McTextField(rememberTextFieldState("Disabled"), Modifier.width(240.dp), enabled = false)
+                var text by remember { mutableStateOf("") }
+                McTextField(text, { text = it }, Modifier.width(240.dp), hint = "Search items")
+                McTextField("Disabled", {}, Modifier.width(240.dp), enabled = false)
             }
 
             Section("McSlot") {

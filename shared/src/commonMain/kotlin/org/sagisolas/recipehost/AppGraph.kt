@@ -18,8 +18,14 @@ import org.sagisolas.recipehost.domain.catalog.ResolveStack
 import org.sagisolas.recipehost.domain.recipes.RecipesFor
 import org.sagisolas.recipehost.domain.recipes.UsesOf
 import org.sagisolas.recipehost.platform.QrScanner
+import org.sagisolas.recipehost.presentation.ItemGridViewModel
+import org.sagisolas.recipehost.presentation.ModFilterRequests
+import org.sagisolas.recipehost.presentation.ModListViewModel
 import org.sagisolas.recipehost.presentation.PairingEntry
-import org.sagisolas.recipehost.presentation.navigation.CatalogEmptiness
+import org.sagisolas.recipehost.presentation.QrPairing
+import org.sagisolas.recipehost.presentation.ScanProgressViewModel
+import org.sagisolas.recipehost.presentation.WelcomeViewModel
+import org.sagisolas.recipehost.ui.navigation.CatalogEmptiness
 import org.sagisolas.recipehost.ui.item.ItemIconCache
 import kotlin.time.Clock
 
@@ -59,6 +65,20 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
 
     internal val itemIcons = ItemIconCache()
 
-    // TODO(issues 08-10): the ViewModel factories, built from the domain queries above, `scans`,
-    //  `pairing` and `itemIcons`. Navigation state is the UI's: `App` builds the `Navigator`.
+    private val qrPairing = QrPairing { pairing.scanQr() }
+
+    /** From the mod list to the Items tab's grid, which owns the search text. */
+    private val modFilters = ModFilterRequests()
+
+    // The ViewModel factories, called by `viewModel { }` in each screen's entry. Navigation state
+    // is the UI's: `App` builds the `Navigator`, and the screens navigate after calling their ViewModel.
+    // TODO(issues 09-10): the Item and Settings ViewModels.
+
+    internal fun welcomeViewModel() = WelcomeViewModel(qrPairing)
+
+    internal fun scanProgressViewModel() = ScanProgressViewModel(scans.progress, pairing.failure, qrPairing)
+
+    internal fun itemGridViewModel() = ItemGridViewModel(itemSearch, modFilters, scans.progress, qrPairing)
+
+    internal fun modListViewModel() = ModListViewModel(modList, modFilters)
 }

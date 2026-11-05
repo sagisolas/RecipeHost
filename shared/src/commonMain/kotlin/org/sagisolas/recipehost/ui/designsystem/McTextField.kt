@@ -1,11 +1,10 @@
 package org.sagisolas.recipehost.ui.designsystem
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,10 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 
-/** A single-line text field [McDimens.WidgetHeight] tall. Give it a width. */
+/**
+ * A single-line text field [McDimens.WidgetHeight] tall, showing [value] and reporting edits
+ * through [onValueChange]. Give it a width.
+ */
 @Composable
 internal fun McTextField(
-    state: TextFieldState,
+    value: String,
+    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     hint: String = "",
     enabled: Boolean = true,
@@ -28,17 +31,19 @@ internal fun McTextField(
     val colors = McTheme.colors
     val skin = McTheme.skin
     BasicTextField(
-        state = state,
+        value = value,
+        onValueChange = onValueChange,
         modifier = modifier
             .height(McDimens.WidgetHeight)
             .onFocusChanged { focused = it.isFocused },
         enabled = enabled,
         textStyle = McTheme.typography.body.copy(color = colors.onDark(enabled)),
-        lineLimits = TextFieldLineLimits.SingleLine,
+        singleLine = true,
         cursorBrush = SolidColor(colors.textOnDark),
-        decorator = { innerTextField ->
+        decorationBox = { innerTextField ->
             Box(
                 modifier = Modifier
+                    .fillMaxSize()
                     .mcBackground(
                         when {
                             !enabled -> skin.textFieldDisabled
@@ -49,7 +54,7 @@ internal fun McTextField(
                     .padding(horizontal = McDimens.WidgetPadding),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                if (state.text.isEmpty() && hint.isNotEmpty()) {
+                if (value.isEmpty() && hint.isNotEmpty()) {
                     McText(hint, color = colors.textHint, maxLines = 1)
                 }
                 innerTextField()
