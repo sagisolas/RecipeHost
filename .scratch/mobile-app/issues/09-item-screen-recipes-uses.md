@@ -11,13 +11,13 @@ Spec: ../spec.md
 - `McTabs` switches between **Recipes** and **Uses**. Each tab is a vertical list with **one section per recipe type** (`type_id`), and each section:
   - shows one recipe at a time, with an `McPager` (◀ ▶ and "3 / 12") that counts recipes, not variants;
   - shows a `McDropdown` "From <instance name>" only when the current recipe has two or more variants, listing each variant's Instance names, with the newest variant as the default.
-- **Generic recipe layout** (a placeholder until the user's per-type design arrives):
+- **Generic recipe layout** (the fallback for recipes without a captured `Recipe layout`; captured layouts come in `.scratch/recipe-layouts/` issue 07, ADR 0015):
   - the input Slots in a wrapped row, then an arrow, then the result Slots;
   - a Slot with several alternatives cycles through them every 1 s, using one shared clock for the whole screen;
   - the `count` is drawn bottom-right when it's greater than 1;
   - an unresolved stack shows its id with a placeholder Icon.
 - Tapping any ItemStack pushes `Item(thatId)` onto the current tab's stack, normally Items. The bottom bar stays visible.
-- Keep the layout behind a `RecipeLayout` seam keyed by `type_id`, with a single generic implementation for now. The upcoming per-type designs and the planned craft tree build on this seam and on `RecipesFor`.
+- Keep the layout behind a `RecipeLayout` seam that is chosen per recipe, not per `type_id`. There is a single generic implementation for now. The captured-layout implementation (recipe-layouts issue 07) plugs in here whenever a recipe has a stored layout. The planned craft tree builds on `RecipesFor`.
 - An empty tab shows "No recipes".
 
 ## Acceptance

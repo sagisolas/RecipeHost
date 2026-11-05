@@ -10,4 +10,6 @@ A **generic `Recipe.getIngredients()`** accessor was not available: in 1.21.x th
 
 **Requiring JEI or EMI as a hard dependency** was rejected — the mod's install story is zero-fuss, and roughly half of modpacks will have neither in a configuration we can rely on. The baseline must stand on its own.
 
+**Amendment (ADR 0015):** the EMI layer also supplies each recipe's `Recipe layout` by capturing its widgets, and when EMI is loaded it is used for every recipe it knows, vanilla included, not only to fill `inputs` for unknown types.
+
 The trade-off: recipes that neither vanilla dispatch nor EMI covers ship as `{type_id, result}` shells. The mobile app can still surface "this recipe exists and produces X" for discovery, which is strictly better than dropping the entry, and the type is preserved so richer rendering can be added later without a snapshot schema change.

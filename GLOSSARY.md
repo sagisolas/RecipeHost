@@ -56,6 +56,14 @@ The generic wire representation of any crafting operation — vanilla, modded, o
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.
 _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 
+**Recipe layout**:
+How one `Recipe` looks: a background image drawn by the companion mod with the game's own GUI (EMI's display of the recipe when EMI is loaded, the companion mod's own vanilla layouts otherwise), with `Recipe slot`s placed on it. Everything the game draws is in the image, text and fluids included, except the `Item`s inside the `Recipe slot`s; the mobile app draws those. Optional — a `Recipe` without one is shown in a generic layout. Many `Recipe`s share one layout.
+_Avoid_: Screenshot, recipe GUI, recipe view (the app screen)
+
+**Recipe slot**:
+A rectangle on a `Recipe layout` with a role (input, output or catalyst): a position each `Recipe` using that layout fills with its own `ItemStack`s. Presentation only: what a `Recipe` consumes and produces is still its `Slot`s and results.
+_Avoid_: Placed slot, Slot (the semantic input)
+
 **ItemStack** (wire shape):
 `{ item_id, count }`. A `count` of 0 is interpreted as 1. Carries no NBT in v1.
 

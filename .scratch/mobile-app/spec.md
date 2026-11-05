@@ -104,7 +104,7 @@ Queries:
 2. **Scan progress** (full screen, no bottom bar). Shows the steps connecting → receiving items (n/N) → receiving recipes (m/M), using the Handshake totals. Domain errors appear as messages, each with a "Scan again" button. When the commit finishes, the app moves to the bottom-navigation root with the Items tab selected.
 3. **Items tab: item grid** (the Items tab's first screen). The column count follows the screen width (fixed-size Slots, as many as fit). The top bar has a search field, a **Mods** button that opens the mod list, and a Scan button. While a Scan's Icons are still arriving, a thin progress bar shows. Items whose Icon hasn't arrived yet show a placeholder.
 4. **Mod list** (pushed onto the Items tab's stack by the Mods button). Mods with their names. Tapping a mod filters the grid and goes back to it. A dropdown per mod lists its Mod releases ("6.0.1 · MC 1.21.1"), and changing it updates the `Version selection`, which is saved.
-5. **Item** (pushed onto the Items tab's stack). Has **Recipes** and **Uses** tabs. Each tab is a vertical list with one section per recipe type. A section shows one recipe at a time, with ◀ ▶ and a counter like "3 / 12". When a recipe has several different bodies across Instances, the section shows a "From <instance name>" selector. How each recipe type looks is **deferred** (the user has a design). Until then, every type uses a generic layout: input Slots in a row, an arrow, then the results, with alternatives in a Slot cycling every second. Tapping an ItemStack opens that Item.
+5. **Item** (pushed onto the Items tab's stack). Has **Recipes** and **Uses** tabs. Each tab is a vertical list with one section per recipe type. A section shows one recipe at a time, with ◀ ▶ and a counter like "3 / 12". When a recipe has several different bodies across Instances, the section shows a "From <instance name>" selector. How each recipe looks is decided in `.scratch/recipe-layouts/spec.md` (ADR 0015: layouts captured from the game). Until then, and for recipes without a layout, every type uses a generic layout: input Slots in a row, an arrow, then the results, with alternatives in a Slot cycling every second. Tapping an ItemStack opens that Item.
 6. **Settings tab.** "Clear Catalog", which asks for confirmation.
 
 The app is portrait-only on phones in v1. UI strings are English and go through Compose `stringResource` from the start, so translating them later is cheap.
@@ -138,7 +138,7 @@ The app is portrait-only on phones in v1. UI strings are English and go through 
 ## Out of scope (v1)
 
 - The iOS wrapper. It only has to keep compiling with the shared module.
-- Detailed rendering for each recipe type.
+- Captured recipe layouts (planned separately in `.scratch/recipe-layouts/`).
 - Craft trees down to raw materials. Later, these can be built on the Recipes(item) query against the `Version selection`.
 - Landscape and tablet layouts.
 - Deleting individual Mod releases or Instances.
