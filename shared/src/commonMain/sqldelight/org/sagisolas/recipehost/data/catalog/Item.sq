@@ -58,7 +58,7 @@ LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item
 WHERE (:modId IS NULL OR mod_release.mod_id = :modId)
   AND (:modPrefix IS NULL OR :modPrefix = substr(mod_release.mod_id, 1, length(:modPrefix)))
   AND (:nameMatch IS NULL OR item.id IN (SELECT docid FROM item_fts WHERE item_fts MATCH :nameMatch))
-ORDER BY mod_release.mod_id != 'minecraft', mod_release.scan_position, mod_release.mod_id, item.ordinal;
+ORDER BY mod_release.mod_id != 'minecraft', mod_release.scan_position, mod_release.mod_id, item.display_name;
 
 -- The Item :itemId in the selected release of :modId, if that release has it.
 selectedOf:
