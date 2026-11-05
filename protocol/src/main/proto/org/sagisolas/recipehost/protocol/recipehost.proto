@@ -73,13 +73,15 @@ message ItemStack {
   uint32 count = 2;                // 0 interpreted as 1
 }
 
+// One Icon atlas: a PNG sheet of square cells, `columns` per row, holding the
+// Icons of `item_ids` in row-major order (cell i is item_ids[i]). The sheet is
+// columns * cell_size wide and only as many rows tall as it needs.
 message IconBatch {
-  repeated Icon icons = 1;
-}
-
-message Icon {
-  string item_id = 1;
-  bytes png = 2;                   // 16x16 PNG
+  reserved 1;                      // was: repeated Icon icons (protocol v1)
+  bytes png = 2;
+  uint32 cell_size = 3;            // px, 16
+  uint32 columns = 4;
+  repeated string item_ids = 5;
 }
 
 message Done {}

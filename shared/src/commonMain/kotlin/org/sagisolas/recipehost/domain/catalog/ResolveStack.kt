@@ -4,7 +4,6 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.catalog.namespaceOf
 import kotlin.coroutines.CoroutineContext
@@ -20,11 +19,12 @@ internal class ResolveStack(
     private val context: CoroutineContext,
 ) {
     operator fun invoke(itemId: String): Flow<StackResolution> =
-        catalog.itemQueries.selectedOf(namespaceOf(itemId), itemId) { releaseId, id, displayName, png ->
-            CatalogItem(releaseId, id, displayName, png?.toByteString())
-        }.asFlow().mapToOneOrNull(context).map { item ->
-            if (item != null) StackResolution.Resolved(item) else StackResolution.Unresolved(itemId)
-        }
+        catalog.itemQueries.selectedOf(namespaceOf(itemId), itemId, ::catalogItemOf)
+            .asFlow()
+            .mapToOneOrNull(context)
+            .map { item ->
+                if (item != null) StackResolution.Resolved(item) else StackResolution.Unresolved(itemId)
+            }
 }
 
 internal sealed interface StackResolution {

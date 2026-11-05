@@ -23,15 +23,26 @@ public class IconSheetTest {
     }
 
     @Test
-    public void iconIsTheCellAtItsIndexInRowMajorOrder() {
+    public void imageKeepsEveryCellAtItsRowMajorPosition() {
         IconSheet sheet = new IconSheet(COLUMNS, CELL, 5, coordinatePixels());
 
-        BufferedImage icon = sheet.icon(4); // column 1, row 1
+        BufferedImage image = sheet.image();
 
-        assertEquals(CELL, icon.getWidth());
-        assertEquals(CELL, icon.getHeight());
-        assertEquals(0xFF000000 | (2 << 8) | 2, icon.getRGB(0, 0));
-        assertEquals(0xFF000000 | (3 << 8) | 3, icon.getRGB(1, 1));
+        assertEquals(WIDTH, image.getWidth());
+        assertEquals(ROWS * CELL, image.getHeight());
+        // Cell 4 is column 1, row 1.
+        assertEquals(0xFF000000 | (2 << 8) | 2, image.getRGB(2, 2));
+        assertEquals(0xFF000000 | (3 << 8) | 3, image.getRGB(3, 3));
+    }
+
+    @Test
+    public void imageIsCutAfterTheLastRowWithADrawnCell() {
+        IconSheet sheet = new IconSheet(COLUMNS, CELL, COLUMNS, coordinatePixels());
+
+        BufferedImage image = sheet.image();
+
+        assertEquals(WIDTH, image.getWidth());
+        assertEquals(CELL, image.getHeight());
     }
 
     @Test
@@ -39,21 +50,15 @@ public class IconSheetTest {
         int[] argb = coordinatePixels();
         argb[0] = 0x00000000;
         argb[1] = 0x80FF0000;
-        IconSheet sheet = new IconSheet(COLUMNS, CELL, 1, argb);
 
-        BufferedImage icon = sheet.icon(0);
+        BufferedImage image = new IconSheet(COLUMNS, CELL, 1, argb).image();
 
-        assertEquals(0, icon.getRGB(0, 0) >>> 24);
-        assertEquals(0x80FF0000, icon.getRGB(1, 0));
+        assertEquals(0, image.getRGB(0, 0) >>> 24);
+        assertEquals(0x80FF0000, image.getRGB(1, 0));
     }
 
     @Test
     public void countIsTheNumberOfItemsDrawnNotTheGridCapacity() {
         assertEquals(4, new IconSheet(COLUMNS, CELL, 4, coordinatePixels()).count());
-    }
-
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void indexPastTheDrawnItemsIsRejected() {
-        new IconSheet(COLUMNS, CELL, 4, coordinatePixels()).icon(4);
     }
 }

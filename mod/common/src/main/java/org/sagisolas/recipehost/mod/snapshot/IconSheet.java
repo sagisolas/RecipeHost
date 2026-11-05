@@ -4,8 +4,8 @@ import java.awt.image.BufferedImage;
 
 /**
  * One read-back of {@link IconRenderer}'s grid: square icons laid out row-major,
- * {@code columns} per row, as top-down ARGB pixels. Plain CPU data, so cropping
- * (and {@link PngEncoder} encoding) run off the render thread.
+ * {@code columns} per row, as top-down ARGB pixels. Plain CPU data, so building
+ * the atlas image (and {@link PngEncoder} encoding it) runs off the render thread.
  */
 final class IconSheet {
 
@@ -29,14 +29,23 @@ final class IconSheet {
         return count;
     }
 
-    /** The icon drawn at {@code index}. */
-    BufferedImage icon(int index) {
-        if (index < 0 || index >= count) throw new IndexOutOfBoundsException(index);
+    int columns() {
+        return columns;
+    }
+
+    int cell() {
+        return cell;
+    }
+
+    /**
+     * The sheet as an Icon atlas: full width, cut after the last row that holds a
+     * drawn cell, so a partly filled sheet doesn't carry empty rows.
+     */
+    BufferedImage image() {
         int width = columns * cell;
-        int x0 = (index % columns) * cell;
-        int y0 = (index / columns) * cell;
-        BufferedImage icon = new BufferedImage(cell, cell, BufferedImage.TYPE_INT_ARGB);
-        icon.setRGB(0, 0, cell, cell, argb, y0 * width + x0, width);
-        return icon;
+        int height = Math.max(1, (count + columns - 1) / columns) * cell;
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, width, height, argb, 0, width);
+        return image;
     }
 }

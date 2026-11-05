@@ -74,7 +74,7 @@ fun App(graph: AppGraph) {
 @Composable
 private fun TabScreen(screen: Screen, graph: AppGraph, navigator: Navigator) {
     when (screen) {
-        Screen.Grid -> ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.itemIcons)
+        Screen.Grid -> ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.iconAtlases)
         Screen.ModList -> ModListScreen(viewModel { graph.modListViewModel() }, navigator)
         // TODO(issues 09-10): the Item screen and Settings.
         Screen.Settings -> PlaceholderScreen(

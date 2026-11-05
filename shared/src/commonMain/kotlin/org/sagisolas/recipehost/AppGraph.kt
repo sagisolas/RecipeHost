@@ -12,6 +12,7 @@ import org.sagisolas.recipehost.data.transport.KtorSocketConnector
 import org.sagisolas.recipehost.data.transport.RetryingSessionClient
 import org.sagisolas.recipehost.data.transport.SessionClient
 import org.sagisolas.recipehost.domain.catalog.ClearCatalog
+import org.sagisolas.recipehost.domain.catalog.IconAtlases
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.domain.catalog.ResolveStack
@@ -26,7 +27,7 @@ import org.sagisolas.recipehost.presentation.QrPairing
 import org.sagisolas.recipehost.presentation.ScanProgressViewModel
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
 import org.sagisolas.recipehost.ui.navigation.CatalogEmptiness
-import org.sagisolas.recipehost.ui.item.ItemIconCache
+import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import kotlin.time.Clock
 
 /**
@@ -63,7 +64,8 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     /** Where the wrapper sends `recipehost://pair` deep links. */
     val pairing = PairingEntry(scans, qrScanner)
 
-    internal val itemIcons = ItemIconCache()
+    /** Decoded `Icon atlas`es for every screen that shows Icons; loads and decodes on I/O. */
+    internal val iconAtlases = IconAtlasCache(appScope, IconAtlases(catalog, Dispatchers.IO)::png)
 
     private val qrPairing = QrPairing { pairing.scanQr() }
 

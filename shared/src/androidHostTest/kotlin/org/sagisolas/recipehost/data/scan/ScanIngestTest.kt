@@ -7,14 +7,13 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
 import okio.IOException
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.domain.iconAtlas
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
-import org.sagisolas.recipehost.protocol.Icon
 import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ItemBatch
@@ -184,8 +183,8 @@ class ScanIngestTest {
             flowOf(
                 handshake("ATM9", minecraft, create6, items = 2, recipes = 0),
                 items("minecraft:stick" to "Stick", "create:cogwheel" to "Cogwheel"),
-                icons("minecraft:stick" to stickPng),
-                icons("create:cogwheel" to cogPng),
+                iconAtlas(stickAtlas, "minecraft:stick"),
+                iconAtlas(cogAtlas, "create:cogwheel"),
             ),
         ).toList()
 
@@ -200,8 +199,62 @@ class ScanIngestTest {
             ),
             progress,
         )
-        assertEquals(stickPng, iconOf(minecraft, "minecraft:stick"))
-        assertEquals(cogPng, iconOf(create6, "create:cogwheel"))
+        assertEquals(stickAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
+        assertEquals(cogAtlas to 0L, iconOf(create6, "create:cogwheel"))
+    }
+
+    @Test
+    fun anAtlasFilesEachItemUnderItsCellAndItsNamespacesRelease() = runTest {
+        val progress = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, create6, items = 2, recipes = 0),
+                items("minecraft:stick" to "Stick", "create:cogwheel" to "Cogwheel"),
+                iconAtlas(sharedAtlas, "minecraft:stick", "create:cogwheel"),
+            ),
+        ).toList()
+
+        assertEquals(ScanProgress.Icons(received = 2, total = 2), progress[progress.size - 2])
+        assertEquals(sharedAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
+        assertEquals(sharedAtlas to 1L, iconOf(create6, "create:cogwheel"))
+        assertEquals(1L, database.iconQueries.atlasCount().executeAsOne())
+    }
+
+    @Test
+    fun anAtlasIsDeletedOnceALaterScanReplacesAllItsCells() = runTest {
+        suspend fun scanIcons(vararg batches: Envelope) = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 2, recipes = 0),
+                items("minecraft:stick" to "Stick", "minecraft:torch" to "Torch"),
+                *batches,
+            ),
+        ).toList().also { assertEquals(ScanProgress.Done, it.last()) }
+
+        val firstStick = "first-stick-atlas".encodeUtf8()
+        val torch = "torch-atlas".encodeUtf8()
+        val secondStick = "second-stick-atlas".encodeUtf8()
+
+        scanIcons(iconAtlas(firstStick, "minecraft:stick"), iconAtlas(torch, "minecraft:torch"))
+        scanIcons(iconAtlas(secondStick, "minecraft:stick"))
+
+        // The first stick atlas lost its only cell; the torch atlas is still in use.
+        assertEquals(2L, database.iconQueries.atlasCount().executeAsOne())
+        assertEquals(secondStick to 0L, iconOf(minecraft, "minecraft:stick"))
+        assertEquals(torch to 0L, iconOf(minecraft, "minecraft:torch"))
+    }
+
+    @Test
+    fun anAtlasWithoutColumnsFailsTheScanAndWritesNoIcons() = runTest {
+        val progress = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 1, recipes = 0),
+                items("minecraft:stick" to "Stick"),
+                Envelope(icon_batch = IconBatch(png = stickAtlas, cell_size = 16, columns = 0, item_ids = listOf("minecraft:stick"))),
+            ),
+        ).toList()
+
+        assertIs<InvalidIconAtlasException>((progress.last() as ScanProgress.Failed).cause)
+        assertNull(iconOf(minecraft, "minecraft:stick"))
+        assertEquals(0L, database.iconQueries.atlasCount().executeAsOne())
     }
 
     @Test
@@ -211,14 +264,14 @@ class ScanIngestTest {
                 handshake("ATM9", minecraft, items = 2, recipes = 1),
                 items("minecraft:stick" to "Stick", "minecraft:torch" to "Torch"),
                 recipes(stickRecipe),
-                icons("minecraft:stick" to stickPng),
+                iconAtlas(stickAtlas, "minecraft:stick"),
             ).thenDrop(),
         ).toList()
 
         assertIs<ScanProgress.Failed>(progress.last())
         assertEquals(listOf("Stick" to 0L, "Torch" to 1L), itemsOf(minecraft))
         assertEquals(listOf("minecraft:stick"), recipeIdsOf("ATM9"))
-        assertEquals(stickPng, iconOf(minecraft, "minecraft:stick"))
+        assertEquals(stickAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
         assertNull(iconOf(minecraft, "minecraft:torch"))
     }
 
@@ -294,11 +347,9 @@ class ScanIngestTest {
 
     private fun recipes(vararg recipes: Recipe) = Envelope(recipe_batch = RecipeBatch(recipes = recipes.toList()))
 
-    private fun icons(vararg icons: Pair<String, ByteString>) =
-        Envelope(icon_batch = IconBatch(icons = icons.map { (id, png) -> Icon(item_id = id, png = png) }))
-
-    private val stickPng = "stick-png".encodeUtf8()
-    private val cogPng = "cog-png".encodeUtf8()
+    private val stickAtlas = "stick-atlas".encodeUtf8()
+    private val cogAtlas = "cog-atlas".encodeUtf8()
+    private val sharedAtlas = "stick-and-cog-atlas".encodeUtf8()
 
     private fun shaped(id: String, result: String, vararg inputs: String) = Recipe(
         id = id,
@@ -350,8 +401,11 @@ class ScanIngestTest {
     private fun bodiesOf(instance: String) =
         database.recipeQueries.ofInstance(instance).executeAsList().associate { it.recipe_id to it.body }
 
+    /** The atlas PNG and cell of [itemId]'s Icon in [mod]'s release. */
     private fun iconOf(mod: ModInfo, itemId: String) =
-        database.iconQueries.pngOf(releaseId(mod), itemId).executeAsOneOrNull()?.toByteString()
+        database.iconQueries.iconOf(releaseId(mod), itemId).executeAsOneOrNull()?.let { icon ->
+            database.iconQueries.atlasPng(icon.atlas_id).executeAsOne().toByteString() to icon.cell
+        }
 
     private fun searchNames(query: String) =
         database.itemQueries.searchNames(query).executeAsList().map { it.display_name }

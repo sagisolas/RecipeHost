@@ -1,16 +1,49 @@
--- One 16x16 PNG per (Mod release, item id). Separate from item so an IconBatch never rewrites item rows.
+-- Icon atlases as received: one PNG sheet of cell_size squares, columns per row (ADR 0014).
+-- AUTOINCREMENT so an id is never reused: the app caches decoded atlases by id.
+CREATE TABLE icon_atlas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    png BLOB NOT NULL,
+    columns INTEGER NOT NULL,
+    cell_size INTEGER NOT NULL
+);
+
+-- One Icon per (Mod release, item id): a cell of an atlas, row-major. Separate from item so an
+-- IconBatch never rewrites item rows.
 CREATE TABLE icon (
     release_id INTEGER NOT NULL,
     item_id TEXT NOT NULL,
-    png BLOB NOT NULL,
+    atlas_id INTEGER NOT NULL,
+    cell INTEGER NOT NULL,
     PRIMARY KEY (release_id, item_id)
 );
 
-upsert:
-INSERT OR REPLACE INTO icon(release_id, item_id, png) VALUES (:releaseId, :itemId, :png);
+CREATE INDEX icon_by_atlas ON icon(atlas_id);
 
-pngOf:
-SELECT png FROM icon WHERE release_id = :releaseId AND item_id = :itemId;
+insertAtlas:
+INSERT INTO icon_atlas(png, columns, cell_size) VALUES (:png, :columns, :cellSize);
+
+lastInsertedAtlasId:
+SELECT last_insert_rowid();
+
+upsert:
+INSERT OR REPLACE INTO icon(release_id, item_id, atlas_id, cell) VALUES (:releaseId, :itemId, :atlasId, :cell);
+
+-- Atlases whose every cell has been replaced by a later Scan.
+deleteUnreferencedAtlases:
+DELETE FROM icon_atlas WHERE id NOT IN (SELECT atlas_id FROM icon);
+
+atlasPng:
+SELECT png FROM icon_atlas WHERE id = :atlasId;
+
+atlasCount:
+SELECT COUNT(*) FROM icon_atlas;
+
+-- Where an Icon sits, without loading its atlas.
+iconOf:
+SELECT atlas_id, cell FROM icon WHERE release_id = :releaseId AND item_id = :itemId;
 
 clear:
 DELETE FROM icon;
+
+clearAtlases:
+DELETE FROM icon_atlas;

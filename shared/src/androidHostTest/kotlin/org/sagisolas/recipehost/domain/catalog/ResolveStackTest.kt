@@ -2,7 +2,6 @@ package org.sagisolas.recipehost.domain.catalog
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create5
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
@@ -23,10 +22,13 @@ class ResolveStackTest {
 
     @Test
     fun anItemOfASelectedReleaseResolvesToItsNameAndIcon() = runTest {
-        catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"), icons = listOf("minecraft:stick" to "png".encodeUtf8()))
+        catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"), icons = listOf("minecraft:stick"))
 
+        // The fresh Catalog's first atlas has id 1.
         assertEquals(
-            StackResolution.Resolved(CatalogItem(catalog.releaseId(minecraft), "minecraft:stick", "Stick", "png".encodeUtf8())),
+            StackResolution.Resolved(
+                CatalogItem(catalog.releaseId(minecraft), "minecraft:stick", "Stick", IconRegion(atlasId = 1, x = 0, y = 0, size = 16)),
+            ),
             resolve("minecraft:stick").first(),
         )
     }

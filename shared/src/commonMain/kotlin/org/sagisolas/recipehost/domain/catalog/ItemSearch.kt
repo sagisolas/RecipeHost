@@ -3,7 +3,6 @@ package org.sagisolas.recipehost.domain.catalog
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.flow.Flow
-import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import kotlin.coroutines.CoroutineContext
 
@@ -26,9 +25,9 @@ internal class ItemSearch(
      */
     fun items(text: String, modId: String? = null): Flow<List<CatalogItem>> {
         val search = parseSearchText(text)
-        return catalog.itemQueries.selected(modId, search.modPrefix, search.nameMatch) { releaseId, itemId, displayName, png ->
-            CatalogItem(releaseId, itemId, displayName, png?.toByteString())
-        }.asFlow().mapToList(context)
+        return catalog.itemQueries.selected(modId, search.modPrefix, search.nameMatch, ::catalogItemOf)
+            .asFlow()
+            .mapToList(context)
     }
 }
 

@@ -29,6 +29,13 @@ CREATE TRIGGER item_fts_before_delete BEFORE DELETE ON item BEGIN
     DELETE FROM item_fts WHERE docid = old.id;
 END;
 
+-- Each Item with where its Icon sits, if it has one; the icon columns are NULL until it arrives.
+CREATE VIEW item_with_icon AS
+SELECT item.*, icon.atlas_id, icon.cell, icon_atlas.columns, icon_atlas.cell_size
+FROM item
+LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item_id
+LEFT JOIN icon_atlas ON icon_atlas.id = icon.atlas_id;
+
 -- Skips unchanged rows, so a Scan that brings the same names doesn't churn item_fts.
 update:
 UPDATE item SET display_name = :displayName, ordinal = :ordinal
@@ -50,11 +57,10 @@ WHERE item_fts MATCH :query ORDER BY item.ordinal;
 -- Each filter is skipped when its parameter is NULL. modPrefix is compared with substr, not LIKE,
 -- because mod ids contain '_', a LIKE wildcard. nameMatch is an FTS4 MATCH expression.
 selected:
-SELECT item.release_id, item.item_id, item.display_name, icon.png
-FROM item
+SELECT item.release_id, item.item_id, item.display_name, item.atlas_id, item.cell, item.columns, item.cell_size
+FROM item_with_icon AS item
 JOIN version_selection ON version_selection.release_id = item.release_id
 JOIN mod_release ON mod_release.id = item.release_id
-LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item_id
 WHERE (:modId IS NULL OR mod_release.mod_id = :modId)
   AND (:modPrefix IS NULL OR :modPrefix = substr(mod_release.mod_id, 1, length(:modPrefix)))
   AND (:nameMatch IS NULL OR item.id IN (SELECT docid FROM item_fts WHERE item_fts MATCH :nameMatch))
@@ -62,10 +68,9 @@ ORDER BY mod_release.mod_id != 'minecraft', mod_release.scan_position, mod_relea
 
 -- The Item :itemId in the selected release of :modId, if that release has it.
 selectedOf:
-SELECT item.release_id, item.item_id, item.display_name, icon.png
+SELECT item.release_id, item.item_id, item.display_name, item.atlas_id, item.cell, item.columns, item.cell_size
 FROM version_selection
-JOIN item ON item.release_id = version_selection.release_id
-LEFT JOIN icon ON icon.release_id = item.release_id AND icon.item_id = item.item_id
+JOIN item_with_icon AS item ON item.release_id = version_selection.release_id
 WHERE version_selection.mod_id = :modId AND item.item_id = :itemId;
 
 clear:

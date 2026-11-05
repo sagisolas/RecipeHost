@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create5
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
@@ -99,10 +98,10 @@ class ItemSearchTest {
         val emissions = mutableListOf<List<CatalogItem>>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { search.items("").toList(emissions) }
 
-        catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"), icons = listOf("minecraft:stick" to "png".encodeUtf8()))
+        catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"), icons = listOf("minecraft:stick"))
 
         assertNull(emissions.first().single().icon)
-        assertEquals("png".encodeUtf8(), emissions.last().single().icon)
+        assertEquals(IconRegion(atlasId = 1, x = 0, y = 0, size = 16), emissions.last().single().icon)
     }
 
     private fun List<CatalogItem>.names() = map { it.displayName }

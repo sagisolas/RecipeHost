@@ -4,12 +4,12 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import okio.ByteString
+import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
-import org.sagisolas.recipehost.protocol.Icon
 import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ItemBatch
@@ -21,6 +21,10 @@ import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+/** An IconBatch carrying one Icon atlas of 16 px cells, 8 per row, holding [itemIds] in cell order. */
+internal fun iconAtlas(png: ByteString, vararg itemIds: String) =
+    Envelope(icon_batch = IconBatch(png = png, cell_size = 16, columns = 8, item_ids = itemIds.toList()))
 
 /** An in-memory `Catalog` seeded through [ScanIngest], for the domain query tests. */
 internal class CatalogFixture {
@@ -37,7 +41,8 @@ internal class CatalogFixture {
 
     /**
      * Runs a complete Scan of [instance] on Minecraft [mcVersion] carrying [mods]; each Scan is
-     * one second later than the previous one. Asserts it finished.
+     * one second later than the previous one. [icons] go out as one Icon atlas, in cell order.
+     * Asserts it finished.
      */
     suspend fun scan(
         instance: String,
@@ -45,7 +50,7 @@ internal class CatalogFixture {
         mcVersion: String = "1.21.1",
         items: List<Pair<String, String>> = emptyList(),
         recipes: List<Recipe> = emptyList(),
-        icons: List<Pair<String, ByteString>> = emptyList(),
+        icons: List<String> = emptyList(),
     ) {
         nowMillis += 1_000
         val envelopes = buildList {
@@ -66,7 +71,7 @@ internal class CatalogFixture {
             }
             if (recipes.isNotEmpty()) add(Envelope(recipe_batch = RecipeBatch(recipes = recipes)))
             if (icons.isNotEmpty()) {
-                add(Envelope(icon_batch = IconBatch(icons = icons.map { (id, png) -> Icon(item_id = id, png = png) })))
+                add(iconAtlas(ATLAS_PNG, *icons.toTypedArray()))
             }
         }
         val progress = ingest.ingest(envelopes.asFlow()).toList()
@@ -77,6 +82,9 @@ internal class CatalogFixture {
         database.modReleaseQueries.idOf(mod.id, mod.version, mcVersion).executeAsOne()
 
     companion object {
+        /** The PNG of the one Icon atlas a [scan] with icons sends; never decoded. */
+        val ATLAS_PNG = "atlas-png".encodeUtf8()
+
         val minecraft = ModInfo(id = "minecraft", name = "Minecraft", version = "1.21.1")
         val create6 = ModInfo(id = "create", name = "Create", version = "6.0.1")
         val create5 = ModInfo(id = "create", name = "Create", version = "5.1.0")

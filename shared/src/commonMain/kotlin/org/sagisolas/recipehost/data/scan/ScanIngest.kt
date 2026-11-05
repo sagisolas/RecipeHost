@@ -9,7 +9,7 @@ import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
-import org.sagisolas.recipehost.protocol.Icon
+import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
@@ -20,7 +20,8 @@ import kotlin.time.Clock
  *
  * Items and Recipes are staged in memory and committed in one transaction after the last
  * RecipeBatch, so a stream that fails before then writes nothing. Icons are upserted batch by
- * batch after that commit, so a drop during Icons keeps what was committed.
+ * batch after that commit, one `Icon atlas` per IconBatch, so a drop during Icons keeps what
+ * was committed.
  */
 internal class ScanIngest(private val catalog: CatalogDatabase, private val clock: Clock) {
 
@@ -63,8 +64,8 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
             envelope.icon_batch?.let { batch ->
                 val staged = scan ?: error("IconBatch before Handshake")
                 commitOnce(staged)
-                upsertIcons(staged.releaseIds!!, batch.icons)
-                staged.iconsReceived += batch.icons.size
+                storeAtlasAndPruneOrphans(staged.releaseIds!!, batch)
+                staged.iconsReceived += batch.item_ids.size
                 // The Handshake has no Icon total; the mod sends one Icon per Item.
                 emit(ScanProgress.Icons(staged.iconsReceived, staged.handshake.total_items))
             }
@@ -99,10 +100,23 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
         }
     }
 
-    /** One short transaction per IconBatch, so each committed batch survives a later drop. */
-    private fun upsertIcons(releaseIds: Map<String, Long>, icons: List<Icon>) = catalog.transaction {
-        icons.forEach { icon ->
-            catalog.iconQueries.upsert(releaseIds.releaseOf(icon.item_id), icon.item_id, icon.png.toByteArray())
+    /**
+     * Stores the IconBatch's `Icon atlas` and points each of its items' Icons at their cell, then
+     * deletes the atlases no Icon points at any more (ADR 0014). One short transaction per batch,
+     * so each committed batch survives a later drop.
+     */
+    private fun storeAtlasAndPruneOrphans(releaseIds: Map<String, Long>, batch: IconBatch) {
+        if (batch.item_ids.isEmpty()) return
+        if (batch.columns <= 0 || batch.cell_size <= 0) throw InvalidIconAtlasException(batch.columns, batch.cell_size)
+        // Checked before the transaction opens, so a broken batch writes nothing.
+        val releases = batch.item_ids.map { releaseIds.releaseOf(it) }
+        catalog.transaction {
+            with(catalog.iconQueries) {
+                insertAtlas(batch.png.toByteArray(), batch.columns.toLong(), batch.cell_size.toLong())
+                val atlasId = lastInsertedAtlasId().executeAsOne()
+                batch.item_ids.forEachIndexed { cell, itemId -> upsert(releases[cell], itemId, atlasId, cell.toLong()) }
+                deleteUnreferencedAtlases()
+            }
         }
     }
 
@@ -182,6 +196,10 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
  */
 internal class UnknownNamespaceException(val namespace: String, val id: String) :
     IllegalStateException("no ModInfo in the Handshake for namespace '$namespace' of $id")
+
+/** An IconBatch whose geometry can't locate its cells. */
+internal class InvalidIconAtlasException(val columns: Int, val cellSize: Int) :
+    IllegalStateException("IconBatch with $columns columns of $cellSize px cells")
 
 /** The mod sent more recipes than its `Handshake` announced, so the commit point can't be trusted. */
 internal class RecipeCountExceededException(val received: Int, val total: Int) :

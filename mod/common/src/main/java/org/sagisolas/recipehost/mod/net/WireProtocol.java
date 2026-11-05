@@ -6,7 +6,7 @@ package org.sagisolas.recipehost.mod.net;
  */
 public final class WireProtocol {
 
-    public static final int PROTOCOL_VERSION = 1;
+    public static final int PROTOCOL_VERSION = 2;
 
     private WireProtocol() {}
 }

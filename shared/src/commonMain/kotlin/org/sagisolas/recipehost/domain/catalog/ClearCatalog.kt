@@ -20,6 +20,7 @@ internal class ClearCatalog(
             catalog.recipeQueries.clearInputs()
             catalog.recipeQueries.clear()
             catalog.iconQueries.clear()
+            catalog.iconQueries.clearAtlases()
             // Deleting items fires the triggers that empty item_fts.
             catalog.itemQueries.clear()
             catalog.versionSelectionQueries.clear()

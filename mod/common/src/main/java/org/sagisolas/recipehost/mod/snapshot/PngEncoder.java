@@ -12,15 +12,15 @@ import java.io.UncheckedIOException;
 /**
  * Encodes icons to PNG with one reused {@link ImageWriter} and an in-memory
  * stream. {@code ImageIO.write} looks the writer up and goes through a
- * disk-backed cache stream on every call, which is about 8× slower for 16×16
- * icons. Not thread-safe: use one encoder per thread.
+ * disk-backed cache stream on every call, which is about 8× slower for small
+ * images like Icon atlases. Not thread-safe: use one encoder per thread.
  */
 final class PngEncoder {
 
     private final ImageWriter writer = ImageIO.getImageWritersByFormatName("png").next();
 
     byte[] encode(BufferedImage image) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(512);
+        ByteArrayOutputStream out = new ByteArrayOutputStream(8192);
         try (ImageOutputStream stream = new MemoryCacheImageOutputStream(out)) {
             writer.setOutput(stream);
             writer.write(image);

@@ -2,7 +2,7 @@ package org.sagisolas.recipehost.domain.catalog
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import okio.ByteString.Companion.encodeUtf8
+import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
@@ -13,6 +13,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class ClearCatalogTest {
 
@@ -32,7 +33,7 @@ class ClearCatalogTest {
         "ATM9", minecraft, create6,
         items = listOf("minecraft:stick" to "Stick", "create:cogwheel" to "Cogwheel"),
         recipes = listOf(shaped("create:cogwheel", result = "create:cogwheel", "minecraft:stick")),
-        icons = listOf("minecraft:stick" to "png".encodeUtf8()),
+        icons = listOf("create:cogwheel", "minecraft:stick"),
     )
 
     @Test
@@ -47,6 +48,7 @@ class ClearCatalogTest {
         assertEquals(StackResolution.Unresolved("minecraft:stick"), resolve("minecraft:stick").first())
         assertEquals(emptyList(), recipesFor("create:cogwheel").first())
         assertEquals(emptyList(), usesOf("minecraft:stick").first())
+        assertEquals(0L, catalog.database.iconQueries.atlasCount().executeAsOne())
     }
 
     @Test
@@ -57,7 +59,9 @@ class ClearCatalogTest {
         scanAtm9()
 
         assertEquals(listOf("Stick", "Cogwheel"), search.items("").first().map { it.displayName })
-        assertEquals("png".encodeUtf8(), search.items("stick").first().single().icon)
+        val icon = assertNotNull(search.items("stick").first().single().icon)
+        assertEquals(IconRegion(icon.atlasId, x = 16, y = 0, size = 16), icon)
+        assertEquals(CatalogFixture.ATLAS_PNG, IconAtlases(catalog.database, EmptyCoroutineContext).png(icon.atlasId)?.toByteString())
         assertEquals(listOf("create:cogwheel"), recipesFor("create:cogwheel").first().single().recipes.map { it.recipeId })
     }
 }

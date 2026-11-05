@@ -12,7 +12,6 @@ import org.sagisolas.recipehost.mod.Platform;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
 import org.sagisolas.recipehost.mod.net.WireProtocol;
 import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.Icon;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
@@ -37,7 +36,8 @@ import java.util.function.Function;
  * {@link net.minecraft.world.item.crafting.RecipeManager}. Icons are rendered
  * lazily on the render thread, one {@link IconRenderer} sheet per batch within
  * a time budget, sharing a single renderer held for the source's lifetime
- * (ADR 0003). PNG encoding runs on the calling (sender) thread.
+ * (ADR 0003). Each sheet goes out whole as one Icon atlas (ADR 0014); its PNG
+ * encoding runs on the calling (sender) thread.
  *
  * <p>GL resources are released by {@link #close()}, posted to the render thread.
  * The caller (Session lifecycle) owns the close.
@@ -185,15 +185,14 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
             });
 
             IconSheet sheet = await(future);
-            List<Icon> icons = new ArrayList<>(sheet.count());
-            for (int i = 0; i < sheet.count(); i++) {
-                icons.add(new Icon.Builder()
-                        .item_id(candidates.get(i))
-                        .png(ByteString.of(encoder.encode(sheet.icon(i))))
-                        .build());
-            }
+            List<String> drawn = new ArrayList<>(candidates.subList(0, sheet.count()));
             remaining.subList(0, sheet.count()).clear();
-            return new IconBatch.Builder().icons(icons).build();
+            return new IconBatch.Builder()
+                    .png(ByteString.of(encoder.encode(sheet.image())))
+                    .cell_size(sheet.cell())
+                    .columns(sheet.columns())
+                    .item_ids(drawn)
+                    .build();
         }
 
         private static <T> T await(CompletableFuture<T> future) {

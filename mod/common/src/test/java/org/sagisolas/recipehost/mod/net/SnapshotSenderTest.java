@@ -6,7 +6,6 @@ import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.Icon;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.Item;
 import org.sagisolas.recipehost.protocol.ItemBatch;
@@ -47,8 +46,9 @@ public class SnapshotSenderTest {
                 .build();
 
         IconBatch icons = new IconBatch.Builder()
-                .icons(Collections.singletonList(
-                        new Icon.Builder().item_id("minecraft:stick").build()))
+                .cell_size(16)
+                .columns(8)
+                .item_ids(Collections.singletonList("minecraft:stick"))
                 .build();
 
         FakeSource source = new FakeSource(

@@ -44,7 +44,7 @@ import org.sagisolas.recipehost.ui.designsystem.McTextField
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcTiledBackground
 import org.sagisolas.recipehost.ui.item.ItemIcon
-import org.sagisolas.recipehost.ui.item.ItemIconCache
+import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
@@ -56,7 +56,7 @@ import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 internal fun ItemGridScreen(
     viewModel: ItemGridViewModel,
     navigator: Navigator,
-    icons: ItemIconCache,
+    atlases: IconAtlasCache,
     modifier: Modifier = Modifier,
 ) {
     // Main.immediate: the field's value must follow each edit within the same frame, or a fast
@@ -86,7 +86,7 @@ internal fun ItemGridScreen(
             horizontalArrangement = Arrangement.Center,
         ) {
             items(state.items, key = { it.key }) { item ->
-                ItemCell(item, icons, onClick = { navigator.push(Screen.Item(item.itemId)) })
+                ItemCell(item, atlases, onClick = { navigator.push(Screen.Item(item.itemId)) })
             }
         }
     }
@@ -94,13 +94,13 @@ internal fun ItemGridScreen(
 
 /** One Item: tap opens it, a long press shows its id until dismissed. */
 @Composable
-private fun ItemCell(item: CatalogItem, icons: ItemIconCache, onClick: () -> Unit) {
+private fun ItemCell(item: CatalogItem, atlases: IconAtlasCache, onClick: () -> Unit) {
     var showId by remember { mutableStateOf(false) }
     Box(
         Modifier.size(McDimens.SlotSize).combinedClickable(onLongClick = { showId = true }, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        ItemIcon(item.key, item.icon?.toByteArray(), icons)
+        ItemIcon(item.icon, atlases)
         if (showId) {
             val below = with(LocalDensity.current) { McDimens.SlotSize.roundToPx() }
             Popup(offset = IntOffset(0, below), onDismissRequest = { showId = false }) {
