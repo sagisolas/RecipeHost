@@ -53,7 +53,7 @@ searchNames:
 SELECT item.* FROM item_fts JOIN item ON item.id = item_fts.docid
 WHERE item_fts MATCH :query ORDER BY item.ordinal;
 
--- The Items of the selected releases: minecraft first, then the mods' order in their latest Scan, then ordinal.
+-- The Items of the selected releases: minecraft first, then the mods' order in their latest Scan, then display name.
 -- Each filter is skipped when its parameter is NULL. modPrefix is compared with substr, not LIKE,
 -- because mod ids contain '_', a LIKE wildcard. nameMatch is an FTS4 MATCH expression.
 selected:

@@ -52,7 +52,7 @@ class ItemSearchTest {
             ),
         )
 
-        assertEquals(listOf("Cogwheel", "Large Cogwheel", "Iron Sheet", "Copper Wire"), search.items("@create").first().names())
+        assertEquals(listOf("Cogwheel", "Iron Sheet", "Large Cogwheel", "Copper Wire"), search.items("@create").first().names())
         assertEquals(listOf("Copper Wire"), search.items("@createa").first().names())
         assertEquals(listOf("Iron Ingot", "Iron Sheet"), search.items("iro").first().names())
         assertEquals(listOf("Iron Sheet"), search.items("@create iron").first().names())
@@ -76,20 +76,20 @@ class ItemSearchTest {
             items = listOf("minecraft:iron_ingot" to "Iron Ingot", "create:iron_sheet" to "Iron Sheet", "create:cogwheel" to "Cogwheel"),
         )
 
-        assertEquals(listOf("Iron Sheet", "Cogwheel"), search.items("", modId = "create").first().names())
+        assertEquals(listOf("Cogwheel", "Iron Sheet"), search.items("", modId = "create").first().names())
         assertEquals(listOf("Iron Sheet"), search.items("iron", modId = "create").first().names())
         assertEquals(emptyList(), search.items("@minecraft", modId = "create").first().names())
     }
 
     @Test
-    fun minecraftComesFirstThenTheModsInTheirLatestScanOrderThenRegistryOrder() = runTest {
+    fun minecraftComesFirstThenTheModsInTheirLatestScanOrderThenNames() = runTest {
         catalog.scan(
             "ATM9", create6, jei, minecraft,
             items = listOf("create:cogwheel" to "Cogwheel", "jei:bookmark" to "Bookmark", "minecraft:stone" to "Stone", "minecraft:dirt" to "Dirt"),
         )
         catalog.scan("Other", jei, create6, items = listOf("jei:bookmark" to "Bookmark", "create:cogwheel" to "Cogwheel"))
 
-        assertEquals(listOf("Stone", "Dirt", "Bookmark", "Cogwheel"), search.items("").first().names())
+        assertEquals(listOf("Dirt", "Stone", "Bookmark", "Cogwheel"), search.items("").first().names())
     }
 
     @Test

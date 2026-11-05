@@ -66,7 +66,7 @@ class ItemGridViewModelTest {
         runCurrent()
 
         assertEquals(
-            listOf("minecraft:stone", "minecraft:cobblestone", "create:cogwheel", "create:andesite_casing"),
+            listOf("minecraft:cobblestone", "minecraft:stone", "create:andesite_casing", "create:cogwheel"),
             viewModel.itemIds,
         )
     }
@@ -96,7 +96,7 @@ class ItemGridViewModelTest {
         runCurrent()
 
         assertEquals("@create c", viewModel.state.value.searchText)
-        assertEquals(listOf("create:cogwheel", "create:andesite_casing"), viewModel.itemIds)
+        assertEquals(listOf("create:andesite_casing", "create:cogwheel"), viewModel.itemIds)
     }
 
     @Test

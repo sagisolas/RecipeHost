@@ -8,7 +8,7 @@ import kotlin.coroutines.CoroutineContext
 
 /**
  * The `Item`s of the `Version selection`, searched by text and optionally limited to one mod.
- * Order: minecraft first, then the mods in their latest `Scan`'s order, then registry order.
+ * Order: minecraft first, then the mods in their latest `Scan`'s order, then display name.
  * The flows re-emit whenever the `Catalog` changes, so arriving `Icon`s show up live.
  *
  * [context] runs the queries; `AppGraph` passes an I/O dispatcher.
