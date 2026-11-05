@@ -4,14 +4,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +36,7 @@ import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McPanel
 import org.sagisolas.recipehost.ui.designsystem.McProgressBar
+import org.sagisolas.recipehost.ui.designsystem.McSlotGrid
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTextField
 import org.sagisolas.recipehost.ui.designsystem.McTheme
@@ -49,8 +47,8 @@ import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
  * The Items tab's first screen: Mods, search and Scan on top, a thin bar while Icons arrive, and
- * the Items as bare Icons, as many slot-sized cells per row as fit. All of it sits on the tiled
- * dirt list background.
+ * the Items as bare Icons, as many slot-sized cells per row as fit beside a scrollbar. All of it
+ * sits on the tiled dirt list background.
  */
 @Composable
 internal fun ItemGridScreen(
@@ -79,12 +77,7 @@ internal fun ItemGridScreen(
             McButton(stringResource(Res.string.grid_scan), onClick = viewModel::scan)
         }
         state.iconProgress?.let { McProgressBar(it, Modifier.padding(horizontal = 8.dp)) }
-        LazyVerticalGrid(
-            columns = GridCells.FixedSize(McDimens.SlotSize),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.Center,
-        ) {
+        McSlotGrid(Modifier.weight(1f).fillMaxWidth()) {
             items(state.items, key = { it.key }) { item ->
                 ItemCell(item, atlases, onClick = { navigator.push(Screen.Item(item.itemId)) })
             }

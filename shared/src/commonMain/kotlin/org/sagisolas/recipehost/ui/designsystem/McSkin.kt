@@ -19,6 +19,8 @@ import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_pressed
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_selected
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_dropdown_option_pressed
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_scroller
+import org.sagisolas.recipehost.shared.generated.resources.recipehost_scroller_background
 import org.sagisolas.recipehost.shared.generated.resources.recipehost_text_field_disabled
 import org.sagisolas.recipehost.shared.generated.resources.widget_button
 import org.sagisolas.recipehost.shared.generated.resources.widget_button_disabled
@@ -44,6 +46,9 @@ internal data class McSkin(
     val tab: McStateTextures,
     val progressTrack: McTexture,
     val progressFill: McTexture,
+    /** A list scrollbar's track and thumb, drawn by [mcVerticalScrollbar]. */
+    val scrollerTrack: McTexture,
+    val scrollerThumb: McTexture,
     val bottomBar: McTexture,
     val bottomBarItemSelected: McTexture,
     val bottomBarItem: McStateTextures,
@@ -90,6 +95,8 @@ internal fun rememberMcSkin(): McSkin {
         ),
         progressTrack = texture(Res.drawable.boss_bar_green_background, border = 1),
         progressFill = texture(Res.drawable.boss_bar_green_progress, border = 1),
+        scrollerTrack = texture(Res.drawable.recipehost_scroller_background, border = 0),
+        scrollerThumb = texture(Res.drawable.recipehost_scroller, border = 1),
         bottomBar = texture(Res.drawable.recipehost_bottom_bar, border = 1),
         bottomBarItemSelected = texture(Res.drawable.recipehost_bottom_bar_item_selected, border = 1),
         bottomBarItem = McStateTextures(

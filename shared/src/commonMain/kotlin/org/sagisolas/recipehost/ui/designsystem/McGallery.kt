@@ -3,6 +3,7 @@
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,6 +92,12 @@ internal fun McGallery(modifier: Modifier = Modifier) {
             Section("McPager") {
                 var page by remember { mutableIntStateOf(2) }
                 McPager(page, 12, onPrevious = { page-- }, onNext = { page++ })
+            }
+
+            Section("McSlotGrid") {
+                McSlotGrid(Modifier.fillMaxWidth().height(160.dp), verticalPadding = 4.dp) {
+                    items(200) { McSlot() }
+                }
             }
 
             Section("McProgressBar") {
