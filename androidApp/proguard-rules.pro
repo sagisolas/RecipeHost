@@ -1,21 +1,12 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# App-specific R8 rules. Libraries ship their own consumer rules, so add a rule here only for
+# code reached by reflection that R8 can't see.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep line numbers so crash stack traces can be retraced with the mapping file,
+# and hide the original source file names.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ML Kit discovers its ComponentRegistrars from the manifest and creates them reflectively.
+# firebase-components' consumer rule keeps the classes but, in R8 full mode, not their no-arg
+# constructors, so the registrars never load and the code scanner client NPEs on creation.
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }

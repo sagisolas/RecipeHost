@@ -33,6 +33,10 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+    androidResources {
+        // The app's strings are English only; drop the translations libraries bring in.
+        localeFilters += "en"
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -40,7 +44,12 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: shrink, optimize and obfuscate code, then drop resources nothing references.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            // Signed with the debug key so the release build installs locally.
+            // Replace with a real release keystore before publishing.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
