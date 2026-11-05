@@ -5,7 +5,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import okio.ByteString;
@@ -36,8 +35,9 @@ import java.util.function.Function;
  * does nothing on construction; the first {@link #handshake()} call triggers an
  * eager pass over {@code BuiltInRegistries.ITEM} and the client's
  * {@link net.minecraft.world.item.crafting.RecipeManager}. Icons are rendered
- * lazily in 32-item batches on the render thread, sharing a single
- * {@link IconRenderer} held for the source's lifetime (ADR 0003).
+ * lazily on the render thread, one {@link IconRenderer} sheet per batch within
+ * a time budget, sharing a single renderer held for the source's lifetime
+ * (ADR 0003). PNG encoding runs on the calling (sender) thread.
  *
  * <p>GL resources are released by {@link #close()}, posted to the render thread.
  * The caller (Session lifecycle) owns the close.
@@ -46,7 +46,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
 
     private static final int ITEM_BATCH_SIZE = 256;
     private static final int RECIPE_BATCH_SIZE = 256;
-    private static final int ICON_BATCH_SIZE = 32;
+    /** Render-thread time one icon batch may take, so streaming icons doesn't drop frames. */
+    private static final long ICON_RENDER_BUDGET_NANOS = 3_000_000L;
 
     private final ClientLevel level;
     private final Minecraft minecraft;
@@ -97,7 +98,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     @Override
     public synchronized Iterator<IconBatch> iconBatches() {
         materializeSnapshot();
-        return new IconBatchIterator(new ArrayList<>(itemIds));
+        return new IconBatchIterator(new ArrayList<>(itemIds), new PngEncoder());
     }
 
     private void materializeSnapshot() {
@@ -150,9 +151,11 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
 
     private final class IconBatchIterator implements Iterator<IconBatch> {
         private final List<String> remaining;
+        private final PngEncoder encoder;
 
-        IconBatchIterator(List<String> remaining) {
+        IconBatchIterator(List<String> remaining, PngEncoder encoder) {
             this.remaining = remaining;
+            this.encoder = encoder;
         }
 
         @Override
@@ -163,29 +166,37 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         @Override
         public IconBatch next() {
             if (!hasNext()) throw new NoSuchElementException();
-            int take = Math.min(ICON_BATCH_SIZE, remaining.size());
-            List<String> chunk = new ArrayList<>(remaining.subList(0, take));
-            remaining.subList(0, take).clear();
+            List<String> candidates = new ArrayList<>(
+                    remaining.subList(0, Math.min(IconRenderer.CAPACITY, remaining.size())));
 
-            CompletableFuture<IconBatch> future = new CompletableFuture<>();
+            CompletableFuture<IconSheet> future = new CompletableFuture<>();
             minecraft.execute(() -> {
                 try {
+                    long deadline = System.nanoTime() + ICON_RENDER_BUDGET_NANOS;
                     if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
-                    List<Icon> icons = new ArrayList<>(chunk.size());
-                    for (String id : chunk) {
-                        Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));
-                        byte[] png = iconRenderer.renderToPng(new ItemStack(item));
-                        icons.add(new Icon.Builder()
-                                .item_id(id)
-                                .png(ByteString.of(png))
-                                .build());
+                    List<ItemStack> stacks = new ArrayList<>(candidates.size());
+                    for (String id : candidates) {
+                        stacks.add(new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(id))));
                     }
-                    future.complete(new IconBatch.Builder().icons(icons).build());
+                    future.complete(iconRenderer.render(stacks, deadline));
                 } catch (Throwable t) {
                     future.completeExceptionally(t);
                 }
             });
 
+            IconSheet sheet = await(future);
+            List<Icon> icons = new ArrayList<>(sheet.count());
+            for (int i = 0; i < sheet.count(); i++) {
+                icons.add(new Icon.Builder()
+                        .item_id(candidates.get(i))
+                        .png(ByteString.of(encoder.encode(sheet.icon(i))))
+                        .build());
+            }
+            remaining.subList(0, sheet.count()).clear();
+            return new IconBatch.Builder().icons(icons).build();
+        }
+
+        private static <T> T await(CompletableFuture<T> future) {
             try {
                 return future.get();
             } catch (InterruptedException e) {
