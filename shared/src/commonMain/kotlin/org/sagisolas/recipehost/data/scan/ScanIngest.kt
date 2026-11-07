@@ -11,8 +11,10 @@ import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
 import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
+import org.sagisolas.recipehost.protocol.LayoutBatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
+import org.sagisolas.recipehost.protocol.RecipeLayout
 import kotlin.time.Clock
 
 /**
@@ -21,8 +23,9 @@ import kotlin.time.Clock
  * Items and Recipes are staged in memory and committed in one transaction after the last
  * RecipeBatch, so a stream that fails before then writes nothing. Icons are upserted batch by
  * batch after that commit, one `Icon atlas` per IconBatch, so a drop during Icons keeps what
- * was committed. LayoutBatches are ignored until the Catalog stores `Recipe layout`s
- * (recipe-layouts issue 06).
+ * was committed. `Recipe layout`s follow the same pattern: each LayoutBatch is stored and linked
+ * to its recipes in its own transaction after the commit, and once the Scan ends, normally or by a
+ * drop, layouts no recipe points at are deleted.
  */
 internal class ScanIngest(private val catalog: CatalogDatabase, private val clock: Clock) {
 
@@ -41,10 +44,12 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
     fun ingest(envelopes: Flow<Envelope>): Flow<ScanProgress> = flow {
         emit(ScanProgress.Connecting)
         var scan: StagedScan? = null
-        suspend fun FlowCollector<ScanProgress>.commitOnce(staged: StagedScan) {
-            if (staged.releaseIds != null) return
-            staged.releaseIds = commit(staged)
-            emit(ScanProgress.Committed)
+        suspend fun FlowCollector<ScanProgress>.commitOnce(staged: StagedScan): Committed {
+            staged.committed?.let { return it }
+            return commit(staged).also {
+                staged.committed = it
+                emit(ScanProgress.Committed)
+            }
         }
         envelopes.collect { envelope ->
             // A retry (RetryingSessionClient) restarts with a new Handshake: drop what was staged.
@@ -64,23 +69,35 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
             }
             envelope.icon_batch?.let { batch ->
                 val staged = scan ?: error("IconBatch before Handshake")
-                commitOnce(staged)
-                storeAtlasAndPruneOrphans(staged.releaseIds!!, batch)
+                storeAtlasAndPruneOrphans(commitOnce(staged), batch)
                 staged.iconsReceived += batch.item_ids.size
                 // The Handshake has no Icon total; the mod sends one Icon per Item.
                 emit(ScanProgress.Icons(staged.iconsReceived, staged.handshake.total_items))
             }
+            envelope.layout_batch?.let { batch ->
+                val staged = scan ?: error("LayoutBatch before Handshake")
+                storeLayouts(commitOnce(staged), batch)
+            }
         }
         val staged = scan ?: error("stream ended before Handshake")
         commitOnce(staged)
+        deleteUnreferencedLayouts()
         emit(ScanProgress.Done)
     }.catch { cause ->
         if (cause is CancellationException) throw cause
+        // A drop keeps the layouts that arrived, but its commit may still have orphaned old ones.
+        runCatching { deleteUnreferencedLayouts() }
         emit(ScanProgress.Failed(cause))
     }
 
-    /** Writes the staged Items and Recipes in one transaction; returns the release id per mod id. */
-    private fun commit(scan: StagedScan): Map<String, Long> {
+    /**
+     * Deletes the layouts no recipe points at. Run once the Scan has ended: its commit unlinked the
+     * recipes it replaced, and their layouts may be orphans now.
+     */
+    private fun deleteUnreferencedLayouts() = catalog.recipeLayoutQueries.deleteUnreferenced()
+
+    /** Writes the staged Items and Recipes in one transaction. */
+    private fun commit(scan: StagedScan): Committed {
         val handshake = scan.handshake
         val modIds = handshake.mods.mapTo(HashSet()) { it.id }
         // Checked before the transaction opens, so a broken mod contract writes nothing.
@@ -97,7 +114,7 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
             }
             replaceRecipes(instanceId, releaseIds, scan.recipes)
             releaseIds.forEach { (modId, releaseId) -> catalog.versionSelectionQueries.choose(modId, releaseId) }
-            releaseIds
+            Committed(releaseIds, instanceId)
         }
     }
 
@@ -106,17 +123,43 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
      * deletes the atlases no Icon points at any more (ADR 0014). One short transaction per batch,
      * so each committed batch survives a later drop.
      */
-    private fun storeAtlasAndPruneOrphans(releaseIds: Map<String, Long>, batch: IconBatch) {
+    private fun storeAtlasAndPruneOrphans(committed: Committed, batch: IconBatch) {
         if (batch.item_ids.isEmpty()) return
         if (batch.columns <= 0 || batch.cell_size <= 0) throw InvalidIconAtlasException(batch.columns, batch.cell_size)
         // Checked before the transaction opens, so a broken batch writes nothing.
-        val releases = batch.item_ids.map { releaseIds.releaseOf(it) }
+        val releases = batch.item_ids.map { committed.releaseOf(it) }
         catalog.transaction {
             with(catalog.iconQueries) {
                 insertAtlas(batch.png.toByteArray(), batch.columns.toLong(), batch.cell_size.toLong())
                 val atlasId = lastInsertedAtlasId().executeAsOne()
                 batch.item_ids.forEachIndexed { cell, itemId -> upsert(releases[cell], itemId, atlasId, cell.toLong()) }
                 deleteUnreferencedAtlases()
+            }
+        }
+    }
+
+    /**
+     * Stores each layout of the batch that carries an image (replacing what an earlier Scan stored
+     * under its key) and points the listed recipes of this Scan's Instance at it, each under its
+     * id's release. One transaction per batch, like Icons.
+     */
+    private fun storeLayouts(committed: Committed, batch: LayoutBatch) {
+        // Checked before the transaction opens, so a broken batch writes nothing.
+        val links = batch.layouts.flatMap { layout ->
+            layout.recipe_ids.map { recipeId -> LayoutLink(layout.key, committed.releaseOf(recipeId), recipeId) }
+        }
+        catalog.transaction {
+            batch.layouts.filter { it.png.size > 0 }.forEach { layout ->
+                catalog.recipeLayoutQueries.upsert(
+                    key = layout.key,
+                    png = layout.png.toByteArray(),
+                    width = layout.width.toLong(),
+                    height = layout.height.toLong(),
+                    slots = RecipeLayout.ADAPTER.encode(RecipeLayout(slots = layout.slots)),
+                )
+            }
+            links.forEach { link ->
+                catalog.recipeQueries.linkLayout(link.layoutKey, committed.instanceId, link.releaseId, link.recipeId)
             }
         }
     }
@@ -166,16 +209,24 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
         // TODO: measure memory and commit time on a large modpack; move to staging tables if needed.
         val items = ArrayList<Item>()
         val recipes = ArrayList<Recipe>()
-        /** Set by the commit: the release id per mod id, which Icons are filed under. */
-        var releaseIds: Map<String, Long>? = null
+        /** Set by the commit: where Icons and layouts are filed. */
+        var committed: Committed? = null
         var iconsReceived = 0
     }
 
     private fun StagedScan?.stillStaging(what: String): StagedScan {
         val staged = this ?: error("$what before Handshake")
-        check(staged.releaseIds == null) { "$what after the Scan's ${staged.handshake.total_recipes} recipes were committed" }
+        check(staged.committed == null) { "$what after the Scan's ${staged.handshake.total_recipes} recipes were committed" }
         return staged
     }
+
+    /** What the commit wrote: the release id per mod id, and the Scan's Instance. */
+    private class Committed(val releaseIds: Map<String, Long>, val instanceId: Long) {
+        fun releaseOf(id: String): Long = releaseIds.releaseOf(id)
+    }
+
+    /** One recipe of this Scan's Instance that a layout lists, under its id's release. */
+    private class LayoutLink(val layoutKey: String, val releaseId: Long, val recipeId: String)
 
     private companion object {
         fun requireModInfo(modIds: Set<String>, id: String) {
@@ -192,8 +243,9 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
 }
 
 /**
- * The companion mod broke its contract (issue 01): it sent an Item, Recipe or Icon whose id's
- * namespace has no `ModInfo` in the `Handshake`, so there is no `Mod release` to file it under.
+ * The companion mod broke its contract (issue 01): it sent an Item, Recipe or Icon, or a layout
+ * listing a recipe, whose id's namespace has no `ModInfo` in the `Handshake`, so there is no
+ * `Mod release` to file it under.
  */
 internal class UnknownNamespaceException(val namespace: String, val id: String) :
     IllegalStateException("no ModInfo in the Handshake for namespace '$namespace' of $id")

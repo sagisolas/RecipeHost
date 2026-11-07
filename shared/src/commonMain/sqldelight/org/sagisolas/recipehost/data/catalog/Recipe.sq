@@ -1,5 +1,6 @@
 -- A Recipe belongs to the Mod release of its id's namespace and is kept per Instance (ADR 0011).
 -- body is the encoded wire Recipe; body_hash (SHA-256 of body) merges identical variants across Instances.
+-- layout_key names its recipe_layout once a LayoutBatch has listed it; a recipe is inserted without one.
 CREATE TABLE recipe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     release_id INTEGER NOT NULL,
@@ -8,10 +9,14 @@ CREATE TABLE recipe (
     type_id TEXT NOT NULL,
     body BLOB NOT NULL,
     body_hash BLOB NOT NULL,
+    layout_key TEXT,
     UNIQUE (release_id, recipe_id, instance_id)
 );
 
 CREATE INDEX recipe_by_instance_release ON recipe(instance_id, release_id);
+
+-- For deleting the layouts no recipe points at.
+CREATE INDEX recipe_by_layout ON recipe(layout_key);
 
 -- Every result item of a recipe.
 CREATE TABLE recipe_output (
@@ -49,6 +54,11 @@ insert:
 INSERT INTO recipe(release_id, recipe_id, instance_id, type_id, body, body_hash)
 VALUES (:releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
 
+-- Points a recipe of one Instance and release at its layout; the layout row may not exist yet.
+linkLayout:
+UPDATE recipe SET layout_key = :layoutKey
+WHERE instance_id = :instanceId AND release_id = :releaseId AND recipe_id = :recipeId;
+
 lastInsertedId:
 SELECT last_insert_rowid();
 
@@ -70,9 +80,13 @@ SELECT item_id FROM recipe_input WHERE recipe_pk = :recipePk ORDER BY item_id;
 
 -- The recipes of the selected releases with a result of :itemId, one row per Instance, grouped
 -- by type and recipe and, within one (release, recipe id), the most recently scanned Instance first.
+-- The layout columns are null when the recipe has no layout, or its layout hasn't arrived.
 selectedProducing:
-SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name
+SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+    recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
+    recipe_layout.slots AS layout_slots
 FROM recipe
+LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
 WHERE recipe.id IN (SELECT recipe_pk FROM recipe_output WHERE item_id = :itemId)
@@ -80,8 +94,11 @@ ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scan
 
 -- Like selectedProducing, for the recipes with :itemId among the alternatives of an input Slot.
 selectedConsuming:
-SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name
+SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+    recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
+    recipe_layout.slots AS layout_slots
 FROM recipe
+LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
 WHERE recipe.id IN (SELECT recipe_pk FROM recipe_input WHERE item_id = :itemId)

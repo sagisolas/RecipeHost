@@ -73,14 +73,14 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
   - `recipe_layout(key PK, png BLOB, width, height, slots BLOB)`, where `slots` is the encoded list of `RecipeSlot`s.
   - `recipe` gains `layout_key` (nullable), and the encoded body keeps `layout_stacks`.
   - The commit after the last `RecipeBatch` clears `layout_key` on the recipes it replaces.
-  - `ScanIngest` upserts each `LayoutBatch` as it arrives, after the commit (like Icons). It stores the layout when `png` is present, and sets `layout_key` on this Scan's recipes whose ids it lists (scoped to this Instance and the Scan's releases).
+  - `ScanIngest` upserts each `LayoutBatch` as it arrives, after the commit (like Icons). It stores the layout when `png` is present (replacing an earlier image under that key), and sets `layout_key` on this Scan's recipes whose ids it lists (scoped to this Instance and the Scan's releases).
   - After the Scan completes, or drops, it deletes layouts no recipe references.
   - Clear Catalog deletes them too.
 - **Rendering:** the `RecipeLayout` seam from mobile-app issue 09 gains a captured implementation, chosen whenever the recipe has a layout and that layout is present in the Catalog.
   - The image is drawn at the largest whole-number scale that fits the section width, with nearest-neighbour filtering.
   - Each `RecipeSlot` rectangle (scaled the same way) shows an `ItemIcon` with its count, cycling alternatives on the screen's shared clock. No `McSlot` chrome is drawn, because the image already has it.
   - Tapping a slot opens that Item.
-  - Layout images are decoded off the main thread and cached by key in an app-scoped `LayoutImageCache`. Keys are immutable, so the cache needs no invalidation.
+  - Layout images are decoded off the main thread and cached by key in an app-scoped `LayoutImageCache`. A vanilla key names its parameters, not its pixels, so a later Scan with another resource pack or locale replaces its image (the latest Scan wins); the cache drops such keys when their image changes.
 - Until a recipe's layout arrives, and for recipes without one, the generic layout is used.
 
 ## Out of scope

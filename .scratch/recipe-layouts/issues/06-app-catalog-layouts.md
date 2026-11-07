@@ -1,6 +1,6 @@
 # App: Catalog storage and ingest of layouts
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Spec: ../spec.md
 

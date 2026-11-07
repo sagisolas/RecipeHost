@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
 import okio.IOException
@@ -23,6 +24,7 @@ import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
 import org.sagisolas.recipehost.protocol.RecipeLayout
+import org.sagisolas.recipehost.protocol.RecipeSlot
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -206,43 +208,102 @@ class ScanIngestTest {
     }
 
     @Test
-    fun layoutBatchesAreIgnoredAndTheScanStillCompletes() = runTest {
-        val layouts = Envelope(
-            layout_batch = LayoutBatch(
-                layouts = listOf(
-                    RecipeLayout(
-                        key = "minecraft:crafting_shaped/3x3",
-                        png = "layout".encodeUtf8(),
-                        width = 116,
-                        height = 54,
-                        recipe_ids = listOf("minecraft:stick"),
-                    ),
-                ),
-            ),
-        )
+    fun aLayoutArrivingAfterTheCommitIsStoredAndLinkedToItsRecipes() = runTest {
         val progress = ingest.ingest(
             flowOf(
-                handshake("ATM9", minecraft, items = 1, recipes = 1),
+                handshake("ATM9", minecraft, items = 1, recipes = 2),
                 items("minecraft:stick" to "Stick"),
-                recipes(shaped("minecraft:stick", result = "minecraft:stick", "minecraft:oak_planks")),
+                recipes(stickRecipe, torchRecipe),
                 iconAtlas(stickAtlas, "minecraft:stick"),
-                layouts,
+                layouts(craftingLayout(recipeIds = listOf("minecraft:stick"))),
             ),
         ).toList()
 
-        assertEquals(
-            listOf(
-                ScanProgress.Connecting,
-                ScanProgress.Items(received = 1, total = 1),
-                ScanProgress.Recipes(received = 1, total = 1),
-                ScanProgress.Committed,
-                ScanProgress.Icons(received = 1, total = 1),
-                ScanProgress.Done,
+        assertEquals(ScanProgress.Done, progress.last())
+        assertEquals(mapOf("minecraft:stick" to "minecraft:crafting", "minecraft:torch" to null), layoutKeysOf("ATM9"))
+        val stored = database.recipeLayoutQueries.byKey("minecraft:crafting").executeAsOne()
+        assertEquals(craftingPng, stored.png.toByteString())
+        assertEquals(116L to 54L, stored.width to stored.height)
+        assertEquals(craftingSlots, RecipeLayout.ADAPTER.decode(stored.slots).slots)
+    }
+
+    @Test
+    fun aRecipesOnlyEntryLinksAKeySentEarlierWithoutReplacingItsImage() = runTest {
+        ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 0, recipes = 2),
+                recipes(stickRecipe, torchRecipe),
+                layouts(craftingLayout(recipeIds = listOf("minecraft:stick"))),
+                layouts(recipesOnly("minecraft:crafting", "minecraft:torch")),
             ),
-            progress,
-        )
-        assertEquals(listOf("minecraft:stick"), recipeIdsOf("ATM9"))
-        assertEquals(stickAtlas to 0L, iconOf(minecraft, "minecraft:stick"))
+        ).toList()
+
+        assertEquals(mapOf("minecraft:stick" to "minecraft:crafting", "minecraft:torch" to "minecraft:crafting"), layoutKeysOf("ATM9"))
+        assertEquals(craftingPng, database.recipeLayoutQueries.byKey("minecraft:crafting").executeAsOne().png.toByteString())
+    }
+
+    @Test
+    fun aDropDuringLayoutsKeepsTheLayoutsThatArrived() = runTest {
+        val progress = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 0, recipes = 2),
+                recipes(stickRecipe, torchRecipe),
+                layouts(craftingLayout(recipeIds = listOf("minecraft:stick"))),
+            ).thenDrop(),
+        ).toList()
+
+        assertIs<ScanProgress.Failed>(progress.last())
+        assertEquals(mapOf("minecraft:stick" to "minecraft:crafting", "minecraft:torch" to null), layoutKeysOf("ATM9"))
+        assertEquals(1L, database.recipeLayoutQueries.count().executeAsOne())
+    }
+
+    @Test
+    fun layoutsNoRecipePointsAtAfterAScanAreDeleted() = runTest {
+        scanLayouts("ATM9", craftingLayout(recipeIds = listOf("minecraft:stick")), smeltingLayout(recipeIds = listOf("minecraft:torch")))
+
+        // The rescan's recipes start without layouts; only crafting is linked again.
+        scanLayouts("ATM9", craftingLayout(recipeIds = listOf("minecraft:stick")))
+
+        assertEquals(mapOf("minecraft:stick" to "minecraft:crafting", "minecraft:torch" to null), layoutKeysOf("ATM9"))
+        assertNull(database.recipeLayoutQueries.byKey(smeltingKey).executeAsOneOrNull())
+        assertEquals(1L, database.recipeLayoutQueries.count().executeAsOne())
+    }
+
+    @Test
+    fun aDroppedScanAlsoDeletesTheLayoutsItsCommitLeftUnreferenced() = runTest {
+        scanLayouts("ATM9", smeltingLayout(recipeIds = listOf("minecraft:torch")))
+
+        ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 0, recipes = 2),
+                recipes(stickRecipe, torchRecipe),
+            ).thenDrop(),
+        ).toList()
+
+        assertEquals(0L, database.recipeLayoutQueries.count().executeAsOne())
+    }
+
+    @Test
+    fun anotherInstancesLayoutsAndLinksAreUntouched() = runTest {
+        scanLayouts("Vanilla", smeltingLayout(recipeIds = listOf("minecraft:torch")))
+
+        scanLayouts("ATM9", craftingLayout(recipeIds = listOf("minecraft:stick", "minecraft:torch")))
+
+        assertEquals(mapOf("minecraft:stick" to null, "minecraft:torch" to smeltingKey), layoutKeysOf("Vanilla"))
+        assertEquals(mapOf("minecraft:stick" to "minecraft:crafting", "minecraft:torch" to "minecraft:crafting"), layoutKeysOf("ATM9"))
+        assertEquals(2L, database.recipeLayoutQueries.count().executeAsOne())
+    }
+
+    @Test
+    fun aLaterScansImageReplacesTheOneStoredUnderTheSameKey() = runTest {
+        // Another resource pack draws the same vanilla layout differently: the latest Scan wins.
+        val otherPack = "crafting-layout-other-pack".encodeUtf8()
+        scanLayouts("ATM9", craftingLayout(recipeIds = listOf("minecraft:stick")))
+
+        scanLayouts("Vanilla", craftingLayout(recipeIds = listOf("minecraft:stick"), png = otherPack))
+
+        assertEquals(otherPack, database.recipeLayoutQueries.byKey("minecraft:crafting").executeAsOne().png.toByteString())
+        assertEquals("minecraft:crafting", layoutKeysOf("ATM9")["minecraft:stick"])
     }
 
     @Test
@@ -389,6 +450,46 @@ class ScanIngestTest {
 
     private fun recipes(vararg recipes: Recipe) = Envelope(recipe_batch = RecipeBatch(recipes = recipes.toList()))
 
+    private fun layouts(vararg layouts: RecipeLayout) = Envelope(layout_batch = LayoutBatch(layouts = layouts.toList()))
+
+    private val craftingPng = "crafting-layout".encodeUtf8()
+    private val craftingSlots = listOf(
+        RecipeSlot(x = 0, y = 0, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
+        RecipeSlot(x = 98, y = 18, width = 18, height = 18, role = RecipeSlot.Role.OUTPUT),
+    )
+
+    private fun craftingLayout(recipeIds: List<String>, png: ByteString = craftingPng) = RecipeLayout(
+        key = "minecraft:crafting",
+        png = png,
+        width = 116,
+        height = 54,
+        slots = craftingSlots,
+        recipe_ids = recipeIds,
+    )
+
+    private val smeltingKey = "minecraft:smelting/200/0.1"
+
+    private fun smeltingLayout(recipeIds: List<String>) = RecipeLayout(
+        key = smeltingKey,
+        png = "smelting-layout".encodeUtf8(),
+        width = 98,
+        height = 70,
+        slots = craftingSlots,
+        recipe_ids = recipeIds,
+    )
+
+    /** A complete Scan of [instance] with the stick and torch recipes, then [layouts] in one batch. */
+    private suspend fun scanLayouts(instance: String, vararg layouts: RecipeLayout) = ingest.ingest(
+        flowOf(
+            handshake(instance, minecraft, items = 0, recipes = 2),
+            recipes(stickRecipe, torchRecipe),
+            layouts(*layouts),
+        ),
+    ).toList().also { assertEquals(ScanProgress.Done, it.last()) }
+
+    /** A key-only entry: more recipes for a key whose image was sent before. */
+    private fun recipesOnly(key: String, vararg recipeIds: String) = RecipeLayout(key = key, recipe_ids = recipeIds.toList())
+
     private val stickAtlas = "stick-atlas".encodeUtf8()
     private val cogAtlas = "cog-atlas".encodeUtf8()
     private val sharedAtlas = "stick-and-cog-atlas".encodeUtf8()
@@ -433,6 +534,9 @@ class ScanIngestTest {
 
     private fun itemsOf(mod: ModInfo) =
         database.itemQueries.ofRelease(releaseId(mod)).executeAsList().map { it.display_name to it.ordinal }
+
+    private fun layoutKeysOf(instance: String) =
+        database.recipeQueries.ofInstance(instance).executeAsList().associate { it.recipe_id to it.layout_key }
 
     private fun recipeIdsOf(instance: String) =
         database.recipeQueries.ofInstance(instance).executeAsList().map { it.recipe_id }

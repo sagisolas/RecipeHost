@@ -2,12 +2,15 @@ package org.sagisolas.recipehost.domain.recipes
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create5
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.shaped
 import org.sagisolas.recipehost.domain.catalog.ModList
+import org.sagisolas.recipehost.protocol.RecipeLayout
+import org.sagisolas.recipehost.protocol.RecipeSlot
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -98,4 +101,47 @@ class RecipesForTest {
 
     private suspend fun recipeIdsFor(itemId: String) =
         recipesFor(itemId).first().flatMap { group -> group.recipes.map { it.recipeId } }
+
+    private val stick = shaped("minecraft:stick", result = "minecraft:stick", "minecraft:oak_planks")
+    private val craftingSlots = listOf(
+        RecipeSlot(x = 29, y = 16, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
+        RecipeSlot(x = 123, y = 34, width = 18, height = 18, role = RecipeSlot.Role.OUTPUT),
+    )
+
+    @Test
+    fun aRecipeWithAStoredLayoutCarriesItsKeySizeAndSlots() = runTest {
+        catalog.scan(
+            "ATM9", minecraft,
+            recipes = listOf(stick),
+            layouts = listOf(
+                RecipeLayout(
+                    key = "minecraft:crafting",
+                    png = "crafting-layout".encodeUtf8(),
+                    width = 128,
+                    height = 70,
+                    slots = craftingSlots,
+                    recipe_ids = listOf("minecraft:stick"),
+                ),
+            ),
+        )
+
+        val variant = recipesFor("minecraft:stick").first().single().recipes.single().defaultVariant
+
+        assertEquals(CatalogLayout(key = "minecraft:crafting", width = 128, height = 70, slots = craftingSlots), variant.layout)
+    }
+
+    @Test
+    fun aRecipeWhoseLayoutIsMissingStillLoadsWithANullLayout() = runTest {
+        // Linked by a recipes-only entry to a key whose image never arrived.
+        catalog.scan(
+            "ATM9", minecraft,
+            recipes = listOf(stick),
+            layouts = listOf(RecipeLayout(key = "minecraft:crafting", recipe_ids = listOf("minecraft:stick"))),
+        )
+
+        val variant = recipesFor("minecraft:stick").first().single().recipes.single().defaultVariant
+
+        assertEquals(stick, variant.recipe)
+        assertEquals(null, variant.layout)
+    }
 }

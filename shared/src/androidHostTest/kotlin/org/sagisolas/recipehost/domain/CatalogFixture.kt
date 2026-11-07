@@ -14,9 +14,11 @@ import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ItemBatch
 import org.sagisolas.recipehost.protocol.ItemStack
+import org.sagisolas.recipehost.protocol.LayoutBatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
+import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.assertEquals
 import kotlin.time.Clock
@@ -41,8 +43,8 @@ internal class CatalogFixture {
 
     /**
      * Runs a complete Scan of [instance] on Minecraft [mcVersion] carrying [mods]; each Scan is
-     * one second later than the previous one. [icons] go out as one Icon atlas, in cell order.
-     * Asserts it finished.
+     * one second later than the previous one. [icons] go out as one Icon atlas, in cell order, and
+     * [layouts] as one LayoutBatch. Asserts it finished.
      */
     suspend fun scan(
         instance: String,
@@ -51,6 +53,7 @@ internal class CatalogFixture {
         items: List<Pair<String, String>> = emptyList(),
         recipes: List<Recipe> = emptyList(),
         icons: List<String> = emptyList(),
+        layouts: List<RecipeLayout> = emptyList(),
     ) {
         nowMillis += 1_000
         val envelopes = buildList {
@@ -73,6 +76,7 @@ internal class CatalogFixture {
             if (icons.isNotEmpty()) {
                 add(iconAtlas(ATLAS_PNG, *icons.toTypedArray()))
             }
+            if (layouts.isNotEmpty()) add(Envelope(layout_batch = LayoutBatch(layouts = layouts)))
         }
         val progress = ingest.ingest(envelopes.asFlow()).toList()
         assertEquals(ScanProgress.Done, progress.last(), "Scan failed: $progress")
