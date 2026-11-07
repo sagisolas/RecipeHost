@@ -139,14 +139,18 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
 
         RegistryAccess registryAccess = level.registryAccess();
         List<org.sagisolas.recipehost.protocol.Recipe> wireRecipes = new ArrayList<>();
+        List<LayoutJob> jobs = new ArrayList<>();
+        RecipeMapper recipeMapper = new RecipeMapper(new VanillaLayouts(minecraft));
         Set<String> ownerNamespaces = new HashSet<>(mapped.namespacesWithItems());
         for (RecipeHolder<?> holder : level.getRecipeManager().getRecipes()) {
-            wireRecipes.add(RecipeMapper.toWire(holder, registryAccess));
+            RecipeMapper.Mapped recipe = recipeMapper.map(holder, registryAccess);
+            wireRecipes.add(recipe.recipe());
+            recipe.layout().ifPresent(jobs::add);
             ownerNamespaces.add(holder.id().getNamespace());
         }
         this.recipes = Collections.unmodifiableList(wireRecipes);
-        // TODO(recipe-layouts issues 03, 05): the vanilla and EMI layout sources add their jobs here.
-        this.layoutJobs = List.of();
+        // TODO(recipe-layouts issue 05): with EMI loaded, its layout capture supplies the jobs instead.
+        this.layoutJobs = Collections.unmodifiableList(jobs);
 
         this.mods = Collections.unmodifiableList(ModInfos.assemble(Platform.listMods(), ownerNamespaces));
 

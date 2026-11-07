@@ -69,4 +69,11 @@ public class LayoutKeysTest {
         // sha256(00000001 00000001 00000000 00000000) truncated to 128 bits.
         assertEquals("d66c3b2546298fcb2c1a95a86cf0c952", LayoutKeys.contentHash(new int[]{0}, 1, 1, List.of()));
     }
+
+    @Test
+    public void aCookingKeyNamesItsTypeCookTimeAndXp() {
+        assertEquals("minecraft:smelting/200/0.1", LayoutKeys.cooking("minecraft:smelting", 200, 0.1f));
+        assertEquals("minecraft:campfire_cooking/600/0.35", LayoutKeys.cooking("minecraft:campfire_cooking", 600, 0.35f));
+        assertEquals("minecraft:blasting/100/1.0", LayoutKeys.cooking("minecraft:blasting", 100, 1f));
+    }
 }

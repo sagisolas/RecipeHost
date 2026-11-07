@@ -35,15 +35,15 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
   - It runs on the render thread under the same per-frame time budget as Icons, starting only after the last `IconBatch` has been produced.
   - Mouse position is passed as `-1, -1` so no hover highlight is drawn.
 - **Dedup:** each layout source supplies a key.
-  - Vanilla layouts use a parameter key, e.g. `minecraft:crafting_shaped/3x3` or `minecraft:smelting/200/0.1`. A key that was already rendered isn't rendered again.
+  - Vanilla layouts use a parameter key, e.g. `minecraft:crafting` or `minecraft:smelting/200/0.1`. A key that was already rendered isn't rendered again.
   - EMI layouts are rendered, then keyed by a hash of the cropped pixels and the slot rectangles (SHA-256, hex-encoded, truncated to 128 bits).
   - `RecipeBatch`es go out before any rendering, carrying only `layout_stacks`. Rendering runs afterwards. Each `LayoutBatch` entry carries the ids of the recipes that produced it. If a later recipe renders to an already-sent key, that key is sent again with only `recipe_ids` and an empty `png`.
 - **Failures:** if a recipe's layout throws or renders nothing, that recipe ships without a layout. The failure is logged once per `type_id`.
 
 ### Mod: vanilla layouts (EMI absent)
 
-- `VanillaLayouts` draws shaped (by width×height), shapeless, the four cooking types, smithing and stonecutter.
-  - It uses vanilla GUI sprites through `GuiGraphics`, so resource packs apply.
+- `VanillaLayouts` draws shaped and shapeless (one shared 3×3 crafting layout), the four cooking types, smithing and stonecutter.
+  - Crafting, cooking and smithing are the vanilla container screens' own `renderBg`, drawn with an empty menu and cropped to the menu's slots, so resource packs and screen-restyling mods apply. The stonecutter is hand-drawn from vanilla textures, because its screen has no result slot to crop around.
   - It draws text (cook time, XP) in the game font, in the game locale.
   - It is a renderer of its own, separate from EMI capture.
 - Each layout lists its `RecipeSlot`s. `RecipeMapper` fills `layout_stacks` from the same data it already uses for `inputs`/`results`.
@@ -96,7 +96,7 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
 - **Mod, pure:**
   - `LayoutKeysTest`: vanilla parameter keys, and the content hash being stable for equal pixels plus rectangles and different when a rectangle moves.
   - `ShelfPackerTest`: layouts of varied size fit into a sheet without overlap.
-  - `RecipeMapperTest`: `layout_stacks` line up with the vanilla layouts' slot order.
+  - `RecipeMapperTest`: a shaped pattern lands in the 3×3 grid where the recipe book puts it.
   - EMI id fallback: a null id gives `<ns>:<hash>`, and the same body gives the same id.
 - **Mod, `:protocol`:** round-trip of `LayoutBatch` and of the new `Recipe` fields.
 - **App:**
