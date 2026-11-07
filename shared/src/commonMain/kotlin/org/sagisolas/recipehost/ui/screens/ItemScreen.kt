@@ -55,14 +55,14 @@ internal fun ItemScreen(
     val open = { itemId: String -> navigator.push(Screen.Item(itemId)) }
     Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
         // Until the first state arrives the header's Item isn't resolved yet; it would flash as unknown.
-        if (state.loaded) Header(state.header, atlases)
+        Header(state.header, atlases)
         McTabs(
             tabs = listOf(stringResource(Res.string.item_tab_recipes), stringResource(Res.string.item_tab_uses)),
             selectedIndex = state.tab.ordinal,
             onSelect = { viewModel.selectTab(ItemTab.entries[it]) },
         )
         when {
-            !state.loaded -> Unit
+            state.header == null -> Unit
             state.sections.isEmpty() -> McText(
                 stringResource(Res.string.item_no_recipes),
                 Modifier.fillMaxWidth().padding(16.dp),
@@ -91,18 +91,18 @@ internal fun ItemScreen(
 
 /** The Item's Icon, then its display name over its id. An unresolved Item shows only its id. */
 @Composable
-private fun Header(item: StackUi, atlases: IconAtlasCache) {
+private fun Header(item: StackUi?, atlases: IconAtlasCache) {
     Row(
         Modifier.fillMaxWidth().padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        McSlot { StackIcon(item, atlases) }
+        if (item != null) {
+            McSlot { StackIcon(item, atlases) }
+        }
         Column {
-            item.item?.let {
-                McText(it.displayName, color = McTheme.colors.textOnDark, style = McTheme.typography.title, maxLines = 2)
-            }
-            McText(item.itemId, color = McTheme.colors.textOnDark, style = McTheme.typography.small, maxLines = 1)
+            McText(item?.item?.displayName ?: "", color = McTheme.colors.textOnDark, style = McTheme.typography.title, maxLines = 2)
+            McText(item?.item?.itemId ?: "", color = McTheme.colors.textOnDark, style = McTheme.typography.small, maxLines = 1)
         }
     }
 }

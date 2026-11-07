@@ -20,14 +20,14 @@ import org.sagisolas.recipehost.domain.catalog.StackResolution
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
 import org.sagisolas.recipehost.protocol.ItemStack
+import kotlin.time.Duration.Companion.milliseconds
 
 /** What the Item screen shows: the Item in its [header], and the [tab]'s sections. */
 internal data class ItemUiState(
-    val header: StackUi,
+    /** `null` until the tab's recipes first arrive **/
+    val header: StackUi?,
     val tab: ItemTab = ItemTab.Recipes,
     val sections: List<RecipeSectionUi> = emptyList(),
-    /** `false` until the tab's recipes first arrive, so an empty tab isn't shown meanwhile. */
-    val loaded: Boolean = false,
 )
 
 /** The Item screen's tabs, in tab order. */
@@ -115,17 +115,15 @@ internal class ItemViewModel(
         var tick = 0
         while (true) {
             emit(tick++)
-            delay(ALTERNATIVE_MILLIS)
+            delay(ALTERNATIVE_SHOW_TIME)
         }
     }
 
     private val header: Flow<StackUi> = resolveStack(itemId).map { StackUi(itemId, count = 1, item = itemOf(it)) }
 
-    private val initial = StackUi(itemId, count = 1, item = null)
-
     val state: StateFlow<ItemUiState> = combine(header, resolved, ticks) { header, resolved, tick ->
-        ItemUiState(header, resolved.tab, resolved.sections.map { sectionOf(it, resolved.items, tick) }, loaded = true)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ItemUiState(initial))
+        ItemUiState(header, resolved.tab, resolved.sections.map { sectionOf(it, resolved.items, tick) })
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ItemUiState(null))
 
     fun selectTab(tab: ItemTab) {
         this.tab.value = tab
@@ -226,7 +224,7 @@ private fun List<ItemStack>.alternativeAt(tick: Int): ItemStack? = if (isEmpty()
 private fun itemOf(resolution: StackResolution): CatalogItem? = (resolution as? StackResolution.Resolved)?.item
 
 /** How long each alternative of a Slot shows. */
-private const val ALTERNATIVE_MILLIS = 1_000L
+private val ALTERNATIVE_SHOW_TIME = 1_000.milliseconds
 
 /** Keeps the state shared across a configuration change, which briefly stops the collection. */
 private const val STOP_TIMEOUT_MILLIS = 5_000L
