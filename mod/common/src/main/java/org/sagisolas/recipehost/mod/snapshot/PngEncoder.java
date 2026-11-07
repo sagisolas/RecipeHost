@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 
 /**
- * Encodes icons to PNG with one reused {@link ImageWriter} and an in-memory
+ * Encodes Icon atlases and layouts to PNG with one reused {@link ImageWriter} and an in-memory
  * stream. {@code ImageIO.write} looks the writer up and goes through a
  * disk-backed cache stream on every call, which is about 8× slower for small
  * images like Icon atlases. Not thread-safe: use one encoder per thread.

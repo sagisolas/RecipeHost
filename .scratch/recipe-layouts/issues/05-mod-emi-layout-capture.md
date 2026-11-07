@@ -15,6 +15,7 @@ Spec: ../spec.md
   - **`GeneratedSlotWidget`**: `getStack()` is sampled once.
   - **`FillingArrowWidget`**: only the empty arrow is drawn.
   - **Everything else** renders as it is, text and other animated textures included.
+- `LayoutRenderer` clips each job with a raw GL scissor in sheet pixels. A widget that calls `GuiGraphics.enableScissor` gets a box computed from the window's GUI scale, and its `disableScissor` turns the job's clip off. Handle that here, for example by wrapping the `GuiGraphics` passed to widgets.
 - If `addWidgets` throws, or a widget throws while drawing, the recipe has no layout. The failure is logged once per category.
 
 ## Acceptance

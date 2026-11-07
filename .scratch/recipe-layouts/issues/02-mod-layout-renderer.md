@@ -1,6 +1,6 @@
 # Mod: LayoutRenderer pipeline and LayoutBatch streaming
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Spec: ../spec.md
 
@@ -13,7 +13,7 @@ Spec: ../spec.md
   - either a parameter key or "hash after render";
   - the recipe ids that use it.
 - Jobs are shelf-packed onto a shared offscreen sheet. Each sheet is read back once, and each layout is cropped and encoded to its own PNG with `PngEncoder`.
-- Hash keys are SHA-256 over the cropped RGBA pixels plus the slot rectangles, hex-encoded and truncated to 128 bits. Parameter keys that were already rendered skip rendering.
+- Hash keys are SHA-256 over the cropped RGBA pixels plus the slot rectangles, hex-encoded and truncated to 128 bits. Jobs that share a parameter key are merged before rendering, so the key is drawn once and its entry lists all their recipe ids.
 - Each key is sent once per Snapshot with its `png`. Later recipes that resolve to the same key are sent as an entry with `recipe_ids` only.
 - It runs on the render thread under the same per-frame time budget as icons, and starts only after the last icon batch.
 - If a job's draw callback throws, that job is dropped, its recipes ship without a layout, and the failure is logged once per `type_id`.

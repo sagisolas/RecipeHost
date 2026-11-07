@@ -94,23 +94,11 @@ final class IconRenderer implements AutoCloseable {
             RenderSystem.bindTexture(target.getColorTextureId());
             image.downloadTexture(0, false);
             image.flipY();
-            return new IconSheet(COLUMNS, CELL, drawn, toArgb(image));
+            return new IconSheet(COLUMNS, CELL, drawn, NativeImages.toArgb(image));
         } finally {
             target.unbindWrite();
             main.bindWrite(true);
         }
-    }
-
-    /** NativeImage pixels are ABGR; swap red and blue to get ARGB. */
-    private static int[] toArgb(NativeImage image) {
-        int[] argb = new int[WIDTH * HEIGHT];
-        for (int y = 0; y < HEIGHT; y++) {
-            for (int x = 0; x < WIDTH; x++) {
-                int abgr = image.getPixelRGBA(x, y);
-                argb[y * WIDTH + x] = (abgr & 0xFF00FF00) | ((abgr & 0xFF) << 16) | ((abgr >>> 16) & 0xFF);
-            }
-        }
-        return argb;
     }
 
     @Override

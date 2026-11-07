@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Minecraft-backed {@link SnapshotSource}. Holds a live {@link ClientLevel} and
@@ -40,6 +41,10 @@ import java.util.function.Function;
  * (ADR 0003). Each sheet goes out whole as one Icon atlas (ADR 0014); its PNG
  * encoding runs on the calling (sender) thread.
  *
+ * <p>Recipe layouts follow the same pattern with a {@link LayoutRenderer}: they are
+ * rendered only once the sender asks for them, after the last Icon batch, one
+ * sheet per batch within the same time budget ({@link LayoutBatches}).
+ *
  * <p>GL resources are released by {@link #close()}, posted to the render thread.
  * The caller (Session lifecycle) owns the close.
  */
@@ -47,8 +52,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
 
     private static final int ITEM_BATCH_SIZE = 256;
     private static final int RECIPE_BATCH_SIZE = 256;
-    /** Render-thread time one icon batch may take, so streaming icons doesn't drop frames. */
-    private static final long ICON_RENDER_BUDGET_NANOS = 3_000_000L;
+    /** Render-thread time one icon or layout batch may take, so streaming them doesn't drop frames. */
+    private static final long RENDER_BUDGET_NANOS = 3_000_000L;
 
     private final ClientLevel level;
     private final Minecraft minecraft;
@@ -60,8 +65,10 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private List<ModInfo> mods;
     private String locale;
     private String instanceName;
+    private List<LayoutJob> layoutJobs;
 
     private volatile IconRenderer iconRenderer;
+    private volatile LayoutRenderer layoutRenderer;
 
     public MinecraftSnapshotSource(ClientLevel level) {
         this.level = level;
@@ -103,9 +110,21 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     }
 
     @Override
-    public Iterator<LayoutBatch> layoutBatches() {
-        // TODO(recipe-layouts issue 02): stream the LayoutRenderer's batches.
-        return Collections.emptyIterator();
+    public synchronized Iterator<LayoutBatch> layoutBatches() {
+        materializeSnapshot();
+        return new LayoutBatches(layoutJobs, this::renderLayoutSheet, new PngEncoder());
+    }
+
+    /**
+     * Runs on the sender thread, which blocks until the render thread is done, so
+     * {@code pending} isn't touched while the sheet is drawn.
+     */
+    private LayoutSheet renderLayoutSheet(List<LayoutJob> pending) {
+        return onRenderThread(() -> {
+            long deadline = System.nanoTime() + RENDER_BUDGET_NANOS;
+            if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
+            return layoutRenderer.render(pending, deadline);
+        });
     }
 
     private void materializeSnapshot() {
@@ -126,6 +145,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
             ownerNamespaces.add(holder.id().getNamespace());
         }
         this.recipes = Collections.unmodifiableList(wireRecipes);
+        // TODO(recipe-layouts issues 03, 05): the vanilla and EMI layout sources add their jobs here.
+        this.layoutJobs = List.of();
 
         this.mods = Collections.unmodifiableList(ModInfos.assemble(Platform.listMods(), ownerNamespaces));
 
@@ -135,10 +156,37 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Release GL resources on the render thread. Safe to call repeatedly. */
     @Override
     public void close() {
-        IconRenderer toClose = iconRenderer;
+        IconRenderer icons = iconRenderer;
         iconRenderer = null;
-        if (toClose != null) {
-            minecraft.execute(toClose::close);
+        if (icons != null) {
+            minecraft.execute(icons::close);
+        }
+        LayoutRenderer layouts = layoutRenderer;
+        layoutRenderer = null;
+        if (layouts != null) {
+            minecraft.execute(layouts::close);
+        }
+    }
+
+    /** Runs {@code work} on the render thread and blocks the calling thread for its result. */
+    private <T> T onRenderThread(Supplier<T> work) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        minecraft.execute(() -> {
+            try {
+                future.complete(work.get());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        });
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) throw re;
+            throw new RuntimeException(cause);
         }
     }
 
@@ -176,22 +224,15 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
             List<String> candidates = new ArrayList<>(
                     remaining.subList(0, Math.min(IconRenderer.CAPACITY, remaining.size())));
 
-            CompletableFuture<IconSheet> future = new CompletableFuture<>();
-            minecraft.execute(() -> {
-                try {
-                    long deadline = System.nanoTime() + ICON_RENDER_BUDGET_NANOS;
-                    if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
-                    List<ItemStack> stacks = new ArrayList<>(candidates.size());
-                    for (String id : candidates) {
-                        stacks.add(new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(id))));
-                    }
-                    future.complete(iconRenderer.render(stacks, deadline));
-                } catch (Throwable t) {
-                    future.completeExceptionally(t);
+            IconSheet sheet = onRenderThread(() -> {
+                long deadline = System.nanoTime() + RENDER_BUDGET_NANOS;
+                if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
+                List<ItemStack> stacks = new ArrayList<>(candidates.size());
+                for (String id : candidates) {
+                    stacks.add(new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(id))));
                 }
+                return iconRenderer.render(stacks, deadline);
             });
-
-            IconSheet sheet = await(future);
             List<String> drawn = new ArrayList<>(candidates.subList(0, sheet.count()));
             remaining.subList(0, sheet.count()).clear();
             return new IconBatch.Builder()
@@ -200,19 +241,6 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
                     .columns(sheet.columns())
                     .item_ids(drawn)
                     .build();
-        }
-
-        private static <T> T await(CompletableFuture<T> future) {
-            try {
-                return future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException re) throw re;
-                throw new RuntimeException(cause);
-            }
         }
     }
 }
