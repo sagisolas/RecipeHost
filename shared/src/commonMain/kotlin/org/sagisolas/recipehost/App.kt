@@ -17,7 +17,6 @@ import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.Tab
 import org.sagisolas.recipehost.ui.navigation.rememberNavigator
 import org.sagisolas.recipehost.shared.generated.resources.Res
-import org.sagisolas.recipehost.shared.generated.resources.placeholder_item
 import org.sagisolas.recipehost.shared.generated.resources.placeholder_open_item
 import org.sagisolas.recipehost.shared.generated.resources.placeholder_settings
 import org.sagisolas.recipehost.ui.AppTheme
@@ -27,6 +26,7 @@ import org.sagisolas.recipehost.ui.RootScaffold
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.screens.ItemGridScreen
+import org.sagisolas.recipehost.ui.screens.ItemScreen
 import org.sagisolas.recipehost.ui.screens.ModListScreen
 import org.sagisolas.recipehost.ui.screens.ScanProgressScreen
 import org.sagisolas.recipehost.ui.screens.WelcomeScreen
@@ -76,20 +76,13 @@ private fun TabScreen(screen: Screen, graph: AppGraph, navigator: Navigator) {
     when (screen) {
         Screen.Grid -> ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.iconAtlases)
         Screen.ModList -> ModListScreen(viewModel { graph.modListViewModel() }, navigator)
-        // TODO(issues 09-10): the Item screen and Settings.
+        is Screen.Item -> ItemScreen(viewModel { graph.itemViewModel(screen.itemId) }, navigator, graph.iconAtlases)
+        // TODO(issue 10): Settings.
         Screen.Settings -> PlaceholderScreen(
             stringResource(Res.string.placeholder_settings),
             actions = listOf(
                 PlaceholderAction(stringResource(Res.string.placeholder_open_item, "minecraft:stone")) {
                     navigator.push(Screen.Item("minecraft:stone"))
-                },
-            ),
-        )
-        is Screen.Item -> PlaceholderScreen(
-            stringResource(Res.string.placeholder_item, screen.itemId),
-            actions = listOf(
-                PlaceholderAction(stringResource(Res.string.placeholder_open_item, "minecraft:stick")) {
-                    navigator.push(Screen.Item("minecraft:stick"))
                 },
             ),
         )

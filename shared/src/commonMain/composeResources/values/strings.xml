@@ -27,8 +27,12 @@
     <string name="mod_list_title">Filter items by mod</string>
     <string name="mod_release">%1$s · MC %2$s</string>
 
-    <!-- Placeholder screens until issues 09-10 replace them. -->
+    <string name="item_tab_recipes">Recipes</string>
+    <string name="item_tab_uses">Uses</string>
+    <string name="item_no_recipes">No recipes</string>
+    <string name="item_from_instances">From %1$s</string>
+
+    <!-- Placeholder screens until issue 10 replaces them. -->
     <string name="placeholder_settings">Settings</string>
-    <string name="placeholder_item">Item %1$s</string>
     <string name="placeholder_open_item">Open %1$s</string>
 </resources>

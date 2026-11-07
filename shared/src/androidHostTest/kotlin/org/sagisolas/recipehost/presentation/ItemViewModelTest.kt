@@ -1,0 +1,212 @@
+package org.sagisolas.recipehost.presentation
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.sagisolas.recipehost.domain.catalog.CatalogItem
+import org.sagisolas.recipehost.domain.catalog.StackResolution
+import org.sagisolas.recipehost.domain.recipes.CatalogRecipe
+import org.sagisolas.recipehost.domain.recipes.RecipeGroup
+import org.sagisolas.recipehost.domain.recipes.RecipeVariant
+import org.sagisolas.recipehost.protocol.ItemStack
+import org.sagisolas.recipehost.protocol.Recipe
+import org.sagisolas.recipehost.protocol.Slot
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ItemViewModelTest {
+
+    private val recipes = MutableStateFlow<List<RecipeGroup>>(emptyList())
+    private val uses = MutableStateFlow<List<RecipeGroup>>(emptyList())
+
+    /** Every id resolves to an Item named after its path, except those in [unknown]. */
+    private val unknown = mutableSetOf<String>()
+
+    @BeforeTest
+    fun setMain() = Dispatchers.setMain(StandardTestDispatcher())
+
+    @AfterTest
+    fun tearDown() = Dispatchers.resetMain()
+
+    private fun TestScope.viewModel(itemId: String = "minecraft:stick"): ItemViewModel {
+        val viewModel = ItemViewModel(
+            itemId = itemId,
+            recipesFor = { recipes },
+            usesOf = { uses },
+            resolveStack = { id -> MutableStateFlow(resolutionOf(id)) },
+        )
+        // The state is shared while the screen collects it, as the UI does.
+        backgroundScope.launch { viewModel.state.collect {} }
+        runCurrent()
+        return viewModel
+    }
+
+    private fun resolutionOf(id: String): StackResolution =
+        if (id in unknown) StackResolution.Unresolved(id) else StackResolution.Resolved(itemOf(id))
+
+    @Test
+    fun recipesShowOneSectionPerRecipeType() = runTest {
+        recipes.value = listOf(
+            group("minecraft:crafting_shaped", recipe("minecraft:stick"), recipe("minecraft:stick_from_bamboo")),
+            group("minecraft:stonecutting", recipe("minecraft:stick_from_stone")),
+        )
+        val viewModel = viewModel()
+
+        val sections = viewModel.state.value.sections
+        assertEquals(listOf("minecraft:crafting_shaped", "minecraft:stonecutting"), sections.map { it.typeId })
+        assertEquals(listOf(2, 1), sections.map { it.count })
+        assertEquals(listOf(0, 0), sections.map { it.index })
+    }
+
+    @Test
+    fun thePagerMovesWithinItsSectionOnly() = runTest {
+        recipes.value = listOf(
+            group("minecraft:crafting_shaped", recipe("minecraft:stick"), recipe("minecraft:stick_from_bamboo")),
+            group("minecraft:stonecutting", recipe("minecraft:stick_from_stone"), recipe("minecraft:stick_from_andesite")),
+        )
+        val viewModel = viewModel()
+
+        viewModel.next("minecraft:crafting_shaped")
+        runCurrent()
+        assertEquals(listOf("minecraft:stick_from_bamboo", "minecraft:stick_from_stone"), viewModel.state.value.sections.map { it.recipeId })
+
+        viewModel.next("minecraft:crafting_shaped")
+        runCurrent()
+        assertEquals(1, viewModel.state.value.sections.first().index, "the pager stops at the last recipe")
+
+        viewModel.previous("minecraft:crafting_shaped")
+        runCurrent()
+        assertEquals("minecraft:stick", viewModel.state.value.sections.first().recipeId)
+    }
+
+    @Test
+    fun onlyARecipeWithSeveralBodiesOffersItsInstances() = runTest {
+        recipes.value = listOf(
+            group(
+                "minecraft:crafting_shaped",
+                recipe(
+                    "minecraft:stick",
+                    listOf("Pack") to body("minecraft:stick", inputs = listOf(listOf("minecraft:bamboo"))),
+                    listOf("Vanilla", "Other") to body("minecraft:stick", inputs = listOf(listOf("minecraft:oak_planks"))),
+                ),
+            ),
+            group("minecraft:stonecutting", recipe("minecraft:stick_from_stone")),
+        )
+        val viewModel = viewModel()
+
+        val (crafting, stonecutting) = viewModel.state.value.sections
+        assertEquals(listOf(listOf("Pack"), listOf("Vanilla", "Other")), crafting.variants)
+        assertEquals(0, crafting.selectedVariant, "the newest variant shows first")
+        assertEquals(listOf("minecraft:bamboo"), crafting.inputIds)
+        assertEquals(emptyList(), stonecutting.variants)
+    }
+
+    @Test
+    fun switchingTheVariantShowsItsBody() = runTest {
+        recipes.value = listOf(
+            group(
+                "minecraft:crafting_shaped",
+                recipe(
+                    "minecraft:stick",
+                    listOf("Pack") to body("minecraft:stick", inputs = listOf(listOf("minecraft:bamboo"))),
+                    listOf("Vanilla") to body("minecraft:stick", inputs = listOf(listOf("minecraft:oak_planks"))),
+                ),
+            ),
+        )
+        val viewModel = viewModel()
+
+        viewModel.selectVariant("minecraft:crafting_shaped", 1)
+        runCurrent()
+
+        val section = viewModel.state.value.sections.single()
+        assertEquals(1, section.selectedVariant)
+        assertEquals(listOf("minecraft:oak_planks"), section.inputIds)
+    }
+
+    @Test
+    fun alternativesCycleEverySecondOnOneClock() = runTest {
+        val planks = listOf("minecraft:oak_planks", "minecraft:spruce_planks", "minecraft:birch_planks")
+        val logs = listOf("minecraft:oak_log", "minecraft:spruce_log")
+        recipes.value = listOf(group("minecraft:crafting_shaped", recipe("minecraft:stick", listOf("ATM") to body("minecraft:stick", inputs = listOf(planks, logs)))))
+        val viewModel = viewModel()
+        assertEquals(listOf("minecraft:oak_planks", "minecraft:oak_log"), viewModel.state.value.sections.single().inputIds)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(listOf("minecraft:spruce_planks", "minecraft:spruce_log"), viewModel.state.value.sections.single().inputIds)
+
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(listOf("minecraft:oak_planks", "minecraft:spruce_log"), viewModel.state.value.sections.single().inputIds)
+    }
+
+    @Test
+    fun stacksShowTheirItemOrJustTheirIdWhenUnresolved() = runTest {
+        unknown += "gadgets:widget"
+        recipes.value = listOf(
+            group(
+                "minecraft:crafting_shaped",
+                recipe("minecraft:stick", listOf("ATM") to body("minecraft:stick", inputs = listOf(listOf("gadgets:widget"), emptyList()), results = listOf("minecraft:stick" to 0))),
+            ),
+        )
+        val viewModel = viewModel()
+
+        val layout = viewModel.state.value.sections.single().layout as RecipeLayoutUi.Generic
+        assertEquals(listOf(StackUi("gadgets:widget", count = 1, item = null), null), layout.inputs)
+        assertEquals(listOf(StackUi("minecraft:stick", count = 1, item = itemOf("minecraft:stick"))), layout.results, "a count of 0 is 1")
+    }
+
+    @Test
+    fun theHeaderShowsTheItem() = runTest {
+        unknown += "gadgets:widget"
+
+        assertEquals(StackUi("minecraft:stick", count = 1, item = itemOf("minecraft:stick")), viewModel("minecraft:stick").state.value.header)
+        assertEquals(StackUi("gadgets:widget", count = 1, item = null), viewModel("gadgets:widget").state.value.header)
+    }
+
+    @Test
+    fun theUsesTabShowsUsesWithItsOwnPagers() = runTest {
+        recipes.value = listOf(group("minecraft:crafting_shaped", recipe("minecraft:stick"), recipe("minecraft:stick_from_bamboo")))
+        uses.value = listOf(group("minecraft:crafting_shaped", recipe("minecraft:torch"), recipe("minecraft:ladder")))
+        val viewModel = viewModel()
+        viewModel.next("minecraft:crafting_shaped")
+        runCurrent()
+
+        viewModel.selectTab(ItemTab.Uses)
+        runCurrent()
+
+        assertEquals(ItemTab.Uses, viewModel.state.value.tab)
+        assertEquals(listOf("minecraft:torch"), viewModel.state.value.sections.map { it.recipeId })
+    }
+}
+
+/** The stacks the section's generic layout shows in its input slots now. */
+private val RecipeSectionUi.inputIds get() = (layout as RecipeLayoutUi.Generic).inputs.map { it?.itemId }
+
+private fun itemOf(id: String) = CatalogItem(releaseId = 1, itemId = id, displayName = id.substringAfter(':'), icon = null)
+
+private fun group(typeId: String, vararg recipes: CatalogRecipe) =
+    RecipeGroup(typeId, recipes.map { it.copy(variants = it.variants.map { v -> v.copy(recipe = v.recipe.copy(type_id = typeId)) }) })
+
+/** A recipe with one variant per entry of [variants]: its Instance names and its body. */
+private fun recipe(id: String, vararg variants: Pair<List<String>, Recipe> = arrayOf(listOf("ATM") to body(id))) =
+    CatalogRecipe(releaseId = 1, recipeId = id, variants = variants.map { (names, body) -> RecipeVariant(body, names, layout = null) })
+
+/** A body taking one stack per input slot (alternatives within a slot) and making [results]. */
+private fun body(id: String, inputs: List<List<String>> = listOf(listOf("minecraft:oak_planks")), results: List<Pair<String, Int>> = listOf("minecraft:stick" to 4)) =
+    Recipe(
+        id = id,
+        inputs = inputs.map { alternatives -> Slot(stacks = alternatives.map { ItemStack(item_id = it, count = 1) }) },
+        results = results.map { (item, count) -> ItemStack(item_id = item, count = count) },
+    )

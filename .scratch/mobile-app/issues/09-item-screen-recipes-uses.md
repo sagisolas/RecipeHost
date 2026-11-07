@@ -1,6 +1,6 @@
 # Item screen: Recipes/Uses tabs, pager, "From <instance>" selector, generic recipe layout
 
-Status: ready-for-agent
+Status: done
 Blocked by: 05, 06, 07
 Spec: ../spec.md
 

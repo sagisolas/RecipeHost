@@ -1,0 +1,232 @@
+package org.sagisolas.recipehost.ui.screens
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.stringResource
+import org.sagisolas.recipehost.presentation.ItemTab
+import org.sagisolas.recipehost.presentation.ItemViewModel
+import org.sagisolas.recipehost.presentation.RecipeLayoutUi
+import org.sagisolas.recipehost.presentation.RecipeSectionUi
+import org.sagisolas.recipehost.presentation.StackUi
+import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.item_from_instances
+import org.sagisolas.recipehost.shared.generated.resources.item_no_recipes
+import org.sagisolas.recipehost.shared.generated.resources.item_tab_recipes
+import org.sagisolas.recipehost.shared.generated.resources.item_tab_uses
+import org.sagisolas.recipehost.ui.designsystem.McDimens
+import org.sagisolas.recipehost.ui.designsystem.McDropdown
+import org.sagisolas.recipehost.ui.designsystem.McPager
+import org.sagisolas.recipehost.ui.designsystem.McPanel
+import org.sagisolas.recipehost.ui.designsystem.McSlot
+import org.sagisolas.recipehost.ui.designsystem.McTabs
+import org.sagisolas.recipehost.ui.designsystem.McText
+import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.item.IconAtlasCache
+import org.sagisolas.recipehost.ui.item.ItemIcon
+import org.sagisolas.recipehost.ui.navigation.Navigator
+import org.sagisolas.recipehost.ui.navigation.Screen
+import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
+
+/**
+ * An Item, pushed onto the current tab's stack: its Icon, name and id on top, then its Recipes
+ * and Uses tabs, each a list of one section per recipe type. Tapping a stack opens its Item.
+ */
+@Composable
+internal fun ItemScreen(
+    viewModel: ItemViewModel,
+    navigator: Navigator,
+    atlases: IconAtlasCache,
+    modifier: Modifier = Modifier,
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val open = { itemId: String -> navigator.push(Screen.Item(itemId)) }
+    Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
+        // Until the first state arrives the header's Item isn't resolved yet; it would flash as unknown.
+        if (state.loaded) Header(state.header, atlases)
+        McTabs(
+            tabs = listOf(stringResource(Res.string.item_tab_recipes), stringResource(Res.string.item_tab_uses)),
+            selectedIndex = state.tab.ordinal,
+            onSelect = { viewModel.selectTab(ItemTab.entries[it]) },
+        )
+        when {
+            !state.loaded -> Unit
+            state.sections.isEmpty() -> McText(
+                stringResource(Res.string.item_no_recipes),
+                Modifier.fillMaxWidth().padding(16.dp),
+                color = McTheme.colors.textOnDark,
+            )
+            else -> LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                items(state.sections, key = { it.typeId }) { section ->
+                    RecipeSection(
+                        section,
+                        atlases,
+                        onPrevious = { viewModel.previous(section.typeId) },
+                        onNext = { viewModel.next(section.typeId) },
+                        onSelectVariant = { viewModel.selectVariant(section.typeId, it) },
+                        onOpen = open,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The Item's Icon, then its display name over its id. An unresolved Item shows only its id. */
+@Composable
+private fun Header(item: StackUi, atlases: IconAtlasCache) {
+    Row(
+        Modifier.fillMaxWidth().padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        McSlot { StackIcon(item, atlases) }
+        Column {
+            item.item?.let {
+                McText(it.displayName, color = McTheme.colors.textOnDark, style = McTheme.typography.title, maxLines = 2)
+            }
+            McText(item.itemId, color = McTheme.colors.textOnDark, style = McTheme.typography.small, maxLines = 1)
+        }
+    }
+}
+
+/**
+ * One recipe type: its type id with the pager at the end, the "From <instance>" choice when the
+ * recipe has several bodies, then the recipe.
+ */
+@Composable
+private fun RecipeSection(
+    section: RecipeSectionUi,
+    atlases: IconAtlasCache,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onSelectVariant: (Int) -> Unit,
+    onOpen: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            McText(
+                section.typeId,
+                Modifier.weight(1f),
+                color = McTheme.colors.textOnDark,
+                style = McTheme.typography.small,
+                maxLines = 2,
+            )
+            McPager(section.index, section.count, onPrevious, onNext)
+        }
+        if (section.variants.isNotEmpty()) {
+            // McDropdown's label isn't composable, so the labels are resolved here.
+            val labels = section.variants.map { stringResource(Res.string.item_from_instances, it.joinToString(", ")) }
+            McDropdown(
+                options = section.variants.indices.toList(),
+                selected = section.selectedVariant,
+                onSelect = onSelectVariant,
+                label = { labels[it] },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        RecipeLayout(section.layout, atlases, onOpen)
+    }
+}
+
+/** Draws a recipe in its layout; the seam where captured `Recipe layout`s plug in (ADR 0015). */
+@Composable
+private fun RecipeLayout(layout: RecipeLayoutUi, atlases: IconAtlasCache, onOpen: (String) -> Unit) {
+    when (layout) {
+        is RecipeLayoutUi.Generic -> GenericLayout(layout, atlases, onOpen)
+    }
+}
+
+/** The inputs in a wrapped row, an arrow, then the results. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GenericLayout(layout: RecipeLayoutUi.Generic, atlases: IconAtlasCache, onOpen: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(Modifier.weight(1f, fill = false)) {
+            layout.inputs.forEach { StackSlot(it, atlases, onOpen) }
+        }
+        McText("→", color = McTheme.colors.textOnDark, style = McTheme.typography.title)
+        FlowRow {
+            layout.results.forEach { StackSlot(it, atlases, onOpen) }
+        }
+    }
+}
+
+/** A Slot with its stack: tap opens the Item, a long press shows its name and id until dismissed. */
+@Composable
+private fun StackSlot(stack: StackUi?, atlases: IconAtlasCache, onOpen: (String) -> Unit) {
+    if (stack == null) {
+        McSlot()
+        return
+    }
+    // Keyed by the stack: when the alternatives cycle, an open popup closes instead of changing Item.
+    var showId by remember(stack.itemId) { mutableStateOf(false) }
+    McSlot(Modifier.combinedClickable(onLongClick = { showId = true }, onClick = { onOpen(stack.itemId) })) {
+        StackIcon(stack, atlases)
+        if (stack.count > 1) {
+            McText(
+                stack.count.toString(),
+                Modifier.align(Alignment.BottomEnd),
+                color = McTheme.colors.textOnDark,
+                style = McTheme.typography.small,
+                maxLines = 1,
+            )
+        }
+        if (showId) {
+            val below = with(LocalDensity.current) { McDimens.SlotSize.roundToPx() }
+            Popup(offset = IntOffset(0, below), onDismissRequest = { showId = false }) {
+                McPanel {
+                    Column {
+                        stack.item?.let { McText(it.displayName, maxLines = 1) }
+                        McText(stack.itemId, style = McTheme.typography.small, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The stack's Icon, or the missing texture when its id doesn't resolve to an Item. */
+@Composable
+private fun StackIcon(stack: StackUi, atlases: IconAtlasCache) {
+    val item = stack.item
+    if (item != null) {
+        ItemIcon(item.icon, atlases)
+    } else {
+        Image(
+            McTheme.skin.missingTexture,
+            contentDescription = null,
+            modifier = Modifier.size(McDimens.SlotContentSize),
+            filterQuality = FilterQuality.None,
+        )
+    }
+}

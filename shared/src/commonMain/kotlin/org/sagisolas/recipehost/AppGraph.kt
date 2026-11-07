@@ -20,6 +20,7 @@ import org.sagisolas.recipehost.domain.recipes.RecipesFor
 import org.sagisolas.recipehost.domain.recipes.UsesOf
 import org.sagisolas.recipehost.platform.QrScanner
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
+import org.sagisolas.recipehost.presentation.ItemViewModel
 import org.sagisolas.recipehost.presentation.ModFilterRequests
 import org.sagisolas.recipehost.presentation.ModListViewModel
 import org.sagisolas.recipehost.presentation.PairingEntry
@@ -74,7 +75,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
 
     // The ViewModel factories, called by `viewModel { }` in each screen's entry. Navigation state
     // is the UI's: `App` builds the `Navigator`, and the screens navigate after calling their ViewModel.
-    // TODO(issues 09-10): the Item and Settings ViewModels.
+    // TODO(issue 10): the Settings ViewModel.
 
     internal fun welcomeViewModel() = WelcomeViewModel(qrPairing)
 
@@ -83,4 +84,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal fun itemGridViewModel() = ItemGridViewModel(itemSearch, modFilters, scans.progress, qrPairing)
 
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
+
+    internal fun itemViewModel(itemId: String) =
+        ItemViewModel(itemId, recipesFor::invoke, usesOf::invoke, resolveStack::invoke)
 }
