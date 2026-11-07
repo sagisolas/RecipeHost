@@ -10,10 +10,11 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
-class IconAtlasCacheTest {
+class ImageCacheTest {
     private val png = byteArrayOf(1, 2, 3)
 
     private fun TestScope.cache(load: suspend (Long) -> ByteArray?, decode: (ByteArray) -> ImageBitmap) =
@@ -84,6 +85,27 @@ class IconAtlasCacheTest {
         cache.get(1)
         cache.get(2)
         assertEquals(listOf(1L, 2L, 3L, 2L), loads)
+    }
+
+    @Test
+    fun clearForgetsDecodedImagesAndLoadsStillInFlight() = runTest {
+        var loads = 0
+        val gate = CompletableDeferred<Unit>()
+        val cache = cache(load = { loads++; if (it == 2L) gate.await(); png }, decode = { FakeImageBitmap() })
+        val before = cache.get(1)
+        val inFlight = async { cache.get(2) }
+        testScheduler.runCurrent()
+        val generation = cache.generation
+
+        cache.clear()
+        gate.complete(Unit)
+        inFlight.await()
+
+        assertNull(cache.peek(1))
+        assertNull(cache.peek(2), "a load started before clear isn't kept")
+        assertNotSame(before, cache.get(1))
+        assertEquals(3, loads)
+        assertEquals(generation + 1, cache.generation, "screens showing an image reload it")
     }
 
     @Test

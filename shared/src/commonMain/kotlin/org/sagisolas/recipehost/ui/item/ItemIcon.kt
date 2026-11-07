@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.io.encoding.Base64
 import org.sagisolas.recipehost.domain.catalog.IconRegion
+import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.ui.AppTheme
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McSlot
@@ -45,6 +46,22 @@ internal fun ItemIcon(
     val iconModifier = modifier.size(McDimens.SlotContentSize)
     if (painter != null) {
         Image(painter, contentDescription = null, modifier = iconModifier)
+    }
+}
+
+/** The stack's Icon, or the missing texture when its id doesn't resolve to an Item. */
+@Composable
+internal fun StackIcon(stack: StackUi, atlases: IconAtlasCache, modifier: Modifier = Modifier) {
+    val item = stack.item
+    if (item != null) {
+        ItemIcon(item.icon, atlases, modifier)
+    } else {
+        Image(
+            McTheme.skin.missingTexture,
+            contentDescription = null,
+            modifier = modifier.size(McDimens.SlotContentSize),
+            filterQuality = FilterQuality.None,
+        )
     }
 }
 

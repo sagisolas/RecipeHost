@@ -76,7 +76,12 @@ private fun TabScreen(screen: Screen, graph: AppGraph, navigator: Navigator) {
     when (screen) {
         Screen.Grid -> ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.iconAtlases)
         Screen.ModList -> ModListScreen(viewModel { graph.modListViewModel() }, navigator)
-        is Screen.Item -> ItemScreen(viewModel { graph.itemViewModel(screen.itemId) }, navigator, graph.iconAtlases)
+        is Screen.Item -> ItemScreen(
+            viewModel { graph.itemViewModel(screen.itemId) },
+            navigator,
+            graph.iconAtlases,
+            graph.layoutImages,
+        )
         // TODO(issue 10): Settings.
         Screen.Settings -> PlaceholderScreen(
             stringResource(Res.string.placeholder_settings),

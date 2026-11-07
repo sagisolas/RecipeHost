@@ -13,16 +13,19 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
+import org.sagisolas.recipehost.domain.recipes.CatalogLayout
 import org.sagisolas.recipehost.domain.recipes.CatalogRecipe
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
 import org.sagisolas.recipehost.protocol.ItemStack
 import org.sagisolas.recipehost.protocol.Recipe
+import org.sagisolas.recipehost.protocol.RecipeSlot
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ItemViewModelTest {
@@ -149,6 +152,53 @@ class ItemViewModelTest {
         advanceTimeBy(2_000)
         runCurrent()
         assertEquals(listOf("minecraft:oak_planks", "minecraft:spruce_log"), viewModel.state.value.sections.single().inputIds)
+    }
+
+    @Test
+    fun aRecipeWithAStoredLayoutFillsItsSlotsFromItsLayoutStacks() = runTest {
+        val crafting = CatalogLayout(
+            key = "minecraft:crafting",
+            width = 116,
+            height = 54,
+            slots = listOf(
+                RecipeSlot(x = 1, y = 1, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
+                RecipeSlot(x = 19, y = 1, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
+                RecipeSlot(x = 94, y = 18, width = 26, height = 26, role = RecipeSlot.Role.OUTPUT),
+            ),
+        )
+        val stick = body("minecraft:stick").copy(
+            layout_stacks = listOf(
+                Slot(stacks = listOf(ItemStack("minecraft:oak_planks", 1), ItemStack("minecraft:spruce_planks", 1))),
+                Slot(),
+                Slot(stacks = listOf(ItemStack("minecraft:stick", 4))),
+            ),
+        )
+        recipes.value = listOf(
+            group("minecraft:crafting_shaped", CatalogRecipe(1, "minecraft:stick", listOf(RecipeVariant(stick, listOf("ATM"), crafting)))),
+            group("minecraft:stonecutting", recipe("minecraft:stick_from_stone")),
+        )
+        val viewModel = viewModel()
+
+        val (shaped, stonecutting) = viewModel.state.value.sections
+        assertEquals(
+            RecipeLayoutUi.Captured(
+                key = "minecraft:crafting",
+                width = 116,
+                height = 54,
+                slots = listOf(
+                    LayoutSlotUi(x = 1, y = 1, width = 18, height = 18, stack = StackUi("minecraft:oak_planks", 1, itemOf("minecraft:oak_planks"))),
+                    LayoutSlotUi(x = 19, y = 1, width = 18, height = 18, stack = null),
+                    LayoutSlotUi(x = 94, y = 18, width = 26, height = 26, stack = StackUi("minecraft:stick", 4, itemOf("minecraft:stick"))),
+                ),
+            ),
+            shaped.layout,
+        )
+        assertIs<RecipeLayoutUi.Generic>(stonecutting.layout, "a recipe without a stored layout stays generic")
+
+        advanceTimeBy(1_000)
+        runCurrent()
+        val firstSlot = (viewModel.state.value.sections.first().layout as RecipeLayoutUi.Captured).slots.first()
+        assertEquals("minecraft:spruce_planks", firstSlot.stack?.itemId, "alternatives cycle on the same clock")
     }
 
     @Test

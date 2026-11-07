@@ -5,9 +5,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.scan.ScanController
 import org.sagisolas.recipehost.data.scan.ScanIngest
+import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.transport.KtorSocketConnector
 import org.sagisolas.recipehost.data.transport.RetryingSessionClient
 import org.sagisolas.recipehost.data.transport.SessionClient
@@ -16,6 +19,7 @@ import org.sagisolas.recipehost.domain.catalog.IconAtlases
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.domain.catalog.ResolveStack
+import org.sagisolas.recipehost.domain.recipes.LayoutImages
 import org.sagisolas.recipehost.domain.recipes.RecipesFor
 import org.sagisolas.recipehost.domain.recipes.UsesOf
 import org.sagisolas.recipehost.platform.QrScanner
@@ -29,6 +33,7 @@ import org.sagisolas.recipehost.presentation.ScanProgressViewModel
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
 import org.sagisolas.recipehost.ui.navigation.CatalogEmptiness
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
+import org.sagisolas.recipehost.ui.item.LayoutImageCache
 import kotlin.time.Clock
 
 /**
@@ -67,6 +72,17 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
 
     /** Decoded `Icon atlas`es for every screen that shows Icons; loads and decodes on I/O. */
     internal val iconAtlases = IconAtlasCache(appScope, IconAtlases(catalog, Dispatchers.IO)::png)
+
+    /** Decoded `Recipe layout` images for the Item screen; loads and decodes on I/O. */
+    internal val layoutImages = LayoutImageCache(appScope, LayoutImages(catalog, Dispatchers.IO)::png)
+
+    init {
+        // A Scan may have replaced the image under a layout key, so the cached images go when it
+        // ends. On the main thread, where the cache is used.
+        appScope.launch(Dispatchers.Main) {
+            scans.progress.filter { it is ScanProgress.Done || it is ScanProgress.Failed }.collect { layoutImages.clear() }
+        }
+    }
 
     private val qrPairing = QrPairing { pairing.scanQr() }
 

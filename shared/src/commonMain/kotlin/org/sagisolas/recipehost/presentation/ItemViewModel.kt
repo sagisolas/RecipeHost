@@ -49,13 +49,22 @@ internal data class RecipeSectionUi(
 )
 
 /**
- * How one recipe is drawn, chosen per recipe. Only the [Generic] layout exists so far; a recipe
- * with a captured `Recipe layout` (ADR 0015) gets its own kind here.
+ * How one recipe is drawn, chosen per recipe: [Captured] when it has a stored `Recipe layout`
+ * (ADR 0015), [Generic] otherwise.
  */
 internal sealed interface RecipeLayoutUi {
     /** The input slots in a wrapped row, an arrow, then the results. A `null` input is an empty slot. */
     data class Generic(val inputs: List<StackUi?>, val results: List<StackUi>) : RecipeLayoutUi
+
+    /**
+     * The layout's image, loaded by [key], [width] by [height] GUI px, with the recipe's stacks
+     * in its [slots].
+     */
+    data class Captured(val key: String, val width: Int, val height: Int, val slots: List<LayoutSlotUi>) : RecipeLayoutUi
 }
+
+/** A `Recipe slot`'s rectangle in GUI px, with the stack it shows now; `null` when it's empty. */
+internal data class LayoutSlotUi(val x: Int, val y: Int, val width: Int, val height: Int, val stack: StackUi?)
 
 /** An ItemStack as shown: [item] is `null` when it doesn't resolve, so its id shows instead. */
 internal data class StackUi(val itemId: String, val count: Int, val item: CatalogItem?)
@@ -181,21 +190,35 @@ private fun sectionOf(placed: PlacedSection, items: Map<String, CatalogItem?>, t
 )
 
 /**
- * The layout [variant] is drawn in at [tick]: the generic one, until captured layouts plug in
- * here for a variant with a stored layout.
+ * The layout [variant] is drawn in at [tick]: its stored layout when it has one, whose slots its
+ * `layout_stacks` fill by index, and the generic one otherwise.
  */
-private fun layoutOf(variant: RecipeVariant, items: Map<String, CatalogItem?>, tick: Int): RecipeLayoutUi =
-    RecipeLayoutUi.Generic(
-        inputs = variant.recipe.inputs.map { slot -> slot.stacks.alternativeAt(tick)?.let { stackOf(it, items) } },
-        results = variant.recipe.results.map { stackOf(it, items) },
+private fun layoutOf(variant: RecipeVariant, items: Map<String, CatalogItem?>, tick: Int): RecipeLayoutUi {
+    val recipe = variant.recipe
+    val layout = variant.layout ?: return RecipeLayoutUi.Generic(
+        inputs = recipe.inputs.map { slot -> slot.stacks.alternativeAt(tick)?.let { stackOf(it, items) } },
+        results = recipe.results.map { stackOf(it, items) },
     )
+    return RecipeLayoutUi.Captured(
+        key = layout.key,
+        width = layout.width,
+        height = layout.height,
+        slots = layout.slots.mapIndexed { index, slot ->
+            // A slot past the recipe's stacks (a mismatched layout) stays empty.
+            val stack = recipe.layout_stacks.getOrNull(index)?.stacks?.alternativeAt(tick)?.let { stackOf(it, items) }
+            LayoutSlotUi(slot.x, slot.y, slot.width, slot.height, stack)
+        },
+    )
+}
 
 private fun stackOf(stack: ItemStack, items: Map<String, CatalogItem?>) =
     StackUi(stack.item_id, count = stack.count.coerceAtLeast(1), item = items[stack.item_id])
 
-/** Every item id [this] shows: each alternative of each input, and the results. */
-private fun RecipeVariant.stackIds(): List<String> =
-    recipe.inputs.flatMap { slot -> slot.stacks.map { it.item_id } } + recipe.results.map { it.item_id }
+/** Every item id [this] shows: each alternative of each slot of its layout, or of its inputs and results. */
+private fun RecipeVariant.stackIds(): List<String> {
+    val stacks = if (layout != null) recipe.layout_stacks.flatMap { it.stacks } else recipe.inputs.flatMap { it.stacks } + recipe.results
+    return stacks.map { it.item_id }
+}
 
 /** The alternative shown at [tick], or `null` for an empty Slot. */
 private fun List<ItemStack>.alternativeAt(tick: Int): ItemStack? = if (isEmpty()) null else this[tick % size]

@@ -1,6 +1,6 @@
 # App: captured RecipeLayout rendering on the item screen
 
-Status: ready-for-agent
+Status: done
 Blocked by: 06, mobile-app/09
 Spec: ../spec.md
 
