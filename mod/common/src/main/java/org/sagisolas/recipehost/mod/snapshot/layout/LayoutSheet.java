@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import java.util.List;
 
@@ -7,7 +7,7 @@ import java.util.List;
  * those it was given, each either placed on the sheet or failed. Plain CPU data,
  * so cropping, hashing and PNG encoding run off the render thread.
  */
-final class LayoutSheet {
+public final class LayoutSheet {
 
     record Placed(LayoutJob job, int x, int y) {}
 

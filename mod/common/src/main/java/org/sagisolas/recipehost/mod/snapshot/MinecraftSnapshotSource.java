@@ -30,6 +30,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.sagisolas.recipehost.mod.snapshot.icon.IconRenderer;
+import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
+import org.sagisolas.recipehost.mod.snapshot.item.ItemMapper;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
+import org.sagisolas.recipehost.mod.snapshot.vanilla.RecipeMapper;
+import org.sagisolas.recipehost.mod.snapshot.vanilla.VanillaLayouts;
+import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
 
 /**
  * Minecraft-backed {@link SnapshotSource}. Holds a live {@link ClientLevel} and

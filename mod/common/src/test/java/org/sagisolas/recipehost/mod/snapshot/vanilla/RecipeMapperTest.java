@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.ItemStack;

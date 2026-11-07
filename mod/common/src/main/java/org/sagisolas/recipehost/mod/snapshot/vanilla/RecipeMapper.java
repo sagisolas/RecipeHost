@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -20,6 +20,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.mod.snapshot.item.Ids;
 
 /**
  * Flat {@code instanceof} cascade mapping vanilla recipe types to the wire
@@ -27,22 +29,22 @@ import java.util.Optional;
  * a shell carrying only {@code type_id} and the result (ADR 0008). Pinned
  * {@code extras} keys are documented in ADR 0002.
  */
-final class RecipeMapper {
+public final class RecipeMapper {
 
     private static final Slot EMPTY = new Slot.Builder().build();
     /** The crafting table's grid is 3×3. */
     private static final int GRID_SIDE = 3;
 
     /** A wire recipe, and the job that renders its layout when it has one. */
-    record Mapped(org.sagisolas.recipehost.protocol.Recipe recipe, Optional<LayoutJob> layout) {}
+    public record Mapped(org.sagisolas.recipehost.protocol.Recipe recipe, Optional<LayoutJob> layout) {}
 
     private final VanillaLayouts layouts;
 
-    RecipeMapper(VanillaLayouts layouts) {
+    public RecipeMapper(VanillaLayouts layouts) {
         this.layouts = layouts;
     }
 
-    Mapped map(RecipeHolder<?> holder, RegistryAccess registryAccess) {
+    public Mapped map(RecipeHolder<?> holder, RegistryAccess registryAccess) {
         Recipe<?> recipe = holder.value();
         String id = holder.id().toString();
         String typeId = typeIdOf(recipe);

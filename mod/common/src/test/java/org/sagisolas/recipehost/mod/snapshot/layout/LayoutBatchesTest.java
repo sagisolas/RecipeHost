@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import okio.ByteString;
 import org.junit.Test;
@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 
 public class LayoutBatchesTest {
 

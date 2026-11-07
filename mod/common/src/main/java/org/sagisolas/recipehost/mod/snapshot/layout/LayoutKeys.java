@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 
@@ -8,27 +8,15 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 
-/** Keys that name a `Recipe layout` on the wire, so equal layouts are sent and stored once. */
+/**
+ * The key of a `Recipe layout` known only once it is drawn, so equal layouts are sent and stored
+ * once. Layout sources that know their key up front (vanilla) name it themselves.
+ */
 final class LayoutKeys {
 
     private static final int KEY_BYTES = 16;
 
-    /** The one vanilla crafting layout: every shaped and shapeless recipe shows the crafting table's grid. */
-    static final String CRAFTING = "minecraft:crafting";
-    /** The one vanilla smithing transform layout: nothing about it varies by recipe. */
-    static final String SMITHING = "minecraft:smithing_transform";
-    /** The one vanilla stonecutter layout. */
-    static final String STONECUTTER = "minecraft:stonecutting";
-
     private LayoutKeys() {}
-
-    /**
-     * A vanilla cooking layout (smelting, blasting, smoking, campfire). The cook
-     * time and XP are baked into the image as text, so they are part of the key.
-     */
-    static String cooking(String typeId, int cookTimeTicks, float xp) {
-        return typeId + "/" + cookTimeTicks + "/" + xp;
-    }
 
     /**
      * The key of a layout known only once drawn (EMI): SHA-256 over its size, its

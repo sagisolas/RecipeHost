@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.item;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.resources.language.I18n;
@@ -15,13 +15,13 @@ import java.util.Set;
  * Walks {@code BuiltInRegistries.ITEM} once and produces the three parallel
  * views the snapshot stream needs: wire {@link org.sagisolas.recipehost.protocol.Item}s,
  * their ids (in the same order, for the icon stream), and the set of namespaces
- * that contributed at least one item (one input to the {@link ModInfos} list).
+ * that contributed at least one item (one input to the {@link org.sagisolas.recipehost.mod.snapshot.ModInfos} list).
  */
-final class ItemMapper {
+public final class ItemMapper {
 
     private ItemMapper() {}
 
-    static Result map() {
+    public static Result map() {
         List<org.sagisolas.recipehost.protocol.Item> wireItems = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         Set<String> namespacesWithItems = new HashSet<>();
@@ -42,7 +42,7 @@ final class ItemMapper {
                 Collections.unmodifiableSet(namespacesWithItems));
     }
 
-    record Result(
+    public record Result(
             List<org.sagisolas.recipehost.protocol.Item> wireItems,
             List<String> ids,
             Set<String> namespacesWithItems) {}

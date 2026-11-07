@@ -1,8 +1,9 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 import java.util.List;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 
 /**
  * One layout {@link VanillaLayouts} draws: its parameter key, its size in GUI px,

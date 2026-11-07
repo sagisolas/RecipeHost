@@ -1,13 +1,13 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.item;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 
-final class Ids {
+public final class Ids {
 
     private Ids() {}
 
-    static String itemId(Item item) {
+    public static String itemId(Item item) {
         return BuiltInRegistries.ITEM.getKey(item).toString();
     }
 }

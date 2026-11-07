@@ -1,13 +1,13 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.icon;
 
 import java.awt.image.BufferedImage;
 
 /**
  * One read-back of {@link IconRenderer}'s grid: square icons laid out row-major,
  * {@code columns} per row, as top-down ARGB pixels. Plain CPU data, so building
- * the atlas image (and {@link PngEncoder} encoding it) runs off the render thread.
+ * the atlas image (and {@link org.sagisolas.recipehost.mod.snapshot.image.PngEncoder} encoding it) runs off the render thread.
  */
-final class IconSheet {
+public final class IconSheet {
 
     private final int columns;
     private final int cell;
@@ -25,15 +25,15 @@ final class IconSheet {
         this.argb = argb;
     }
 
-    int count() {
+    public int count() {
         return count;
     }
 
-    int columns() {
+    public int columns() {
         return columns;
     }
 
-    int cell() {
+    public int cell() {
         return cell;
     }
 
@@ -41,7 +41,7 @@ final class IconSheet {
      * The sheet as an Icon atlas: full width, cut after the last row that holds a
      * drawn cell, so a partly filled sheet doesn't carry empty rows.
      */
-    BufferedImage image() {
+    public BufferedImage image() {
         int width = columns * cell;
         int height = Math.max(1, (count + columns - 1) / columns) * cell;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);

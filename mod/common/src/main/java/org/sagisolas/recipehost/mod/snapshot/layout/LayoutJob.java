@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import net.minecraft.client.gui.GuiGraphics;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
@@ -18,7 +18,7 @@ import java.util.Objects;
  * @param parameterKey the key when it is known before drawing, or null to key by
  *                     {@link LayoutKeys#contentHash} once drawn
  */
-record LayoutJob(
+public record LayoutJob(
         String typeId,
         int width,
         int height,
@@ -29,11 +29,11 @@ record LayoutJob(
 
     /** Draws the layout with its top-left corner at (0, 0). Runs on the render thread. */
     @FunctionalInterface
-    interface Drawer {
+    public interface Drawer {
         void draw(GuiGraphics graphics, int mouseX, int mouseY);
     }
 
-    LayoutJob {
+    public LayoutJob {
         Objects.requireNonNull(typeId);
         Objects.requireNonNull(drawer);
         slots = List.copyOf(slots);
@@ -46,13 +46,13 @@ record LayoutJob(
     }
 
     /** A layout whose key is known up front, such as {@code minecraft:crafting_shaped/3x3}. */
-    static LayoutJob keyed(String key, String typeId, int width, int height,
+    public static LayoutJob keyed(String key, String typeId, int width, int height,
                            List<RecipeSlot> slots, List<String> recipeIds, Drawer drawer) {
         return new LayoutJob(typeId, width, height, slots, Objects.requireNonNull(key), recipeIds, drawer);
     }
 
     /** A layout keyed by a hash of what it draws, such as an EMI recipe's. */
-    static LayoutJob hashed(String typeId, int width, int height,
+    public static LayoutJob hashed(String typeId, int width, int height,
                             List<RecipeSlot> slots, List<String> recipeIds, Drawer drawer) {
         return new LayoutJob(typeId, width, height, slots, null, recipeIds, drawer);
     }

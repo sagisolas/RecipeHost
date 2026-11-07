@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import okio.ByteString;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 
 /**
  * Turns {@link LayoutJob}s into the Snapshot's {@link LayoutBatch}es, one per
@@ -29,13 +30,13 @@ import java.util.Set;
  * <p>Cropping, hashing and PNG encoding run on the calling (sender) thread; only
  * {@link SheetRenderer#render} touches the render thread.
  */
-final class LayoutBatches implements Iterator<LayoutBatch> {
+public final class LayoutBatches implements Iterator<LayoutBatch> {
 
     private static final Logger LOG = LoggerFactory.getLogger(LayoutBatches.class);
 
     /** Renders one sheet from the front of {@code pending}, taking at least one job. */
     @FunctionalInterface
-    interface SheetRenderer {
+    public interface SheetRenderer {
         LayoutSheet render(List<LayoutJob> pending);
     }
 
@@ -46,7 +47,7 @@ final class LayoutBatches implements Iterator<LayoutBatch> {
     private final Set<String> loggedTypes = new HashSet<>();
     private LayoutBatch next;
 
-    LayoutBatches(List<LayoutJob> jobs, SheetRenderer renderer, PngEncoder encoder) {
+    public LayoutBatches(List<LayoutJob> jobs, SheetRenderer renderer, PngEncoder encoder) {
         this.pending = mergeParameterKeys(jobs);
         this.renderer = renderer;
         this.encoder = encoder;

@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.icon;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -13,6 +13,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 
 import java.util.List;
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
  * Owns one offscreen {@link RenderTarget} laid out as a grid of 16×16 cells and
@@ -25,12 +26,12 @@ import java.util.List;
  * texture atlas so 3D block items, custom renderers, and model overrides come out
  * correctly.
  */
-final class IconRenderer implements AutoCloseable {
+public final class IconRenderer implements AutoCloseable {
 
     static final int CELL = 16;
     static final int COLUMNS = 8;
     static final int ROWS = 4;
-    static final int CAPACITY = COLUMNS * ROWS;
+    public static final int CAPACITY = COLUMNS * ROWS;
 
     private static final int WIDTH = COLUMNS * CELL;
     private static final int HEIGHT = ROWS * CELL;
@@ -43,7 +44,7 @@ final class IconRenderer implements AutoCloseable {
     private final Minecraft minecraft;
     private final RenderTarget target;
 
-    IconRenderer(Minecraft minecraft) {
+    public IconRenderer(Minecraft minecraft) {
         this.minecraft = minecraft;
         this.target = new TextureTarget(WIDTH, HEIGHT, true, Minecraft.ON_OSX);
         this.target.setClearColor(0f, 0f, 0f, 0f);
@@ -55,7 +56,7 @@ final class IconRenderer implements AutoCloseable {
      * sheet back. At least one stack is drawn, so callers always make progress.
      * The sheet's {@link IconSheet#count()} says how many were taken.
      */
-    IconSheet render(List<ItemStack> stacks, long deadlineNanos) {
+    public IconSheet render(List<ItemStack> stacks, long deadlineNanos) {
         RenderTarget main = minecraft.getMainRenderTarget();
         // clear() ends with unbindWrite() (back to the window's framebuffer), so
         // bind after clearing or the items are drawn into the window, not the sheet.

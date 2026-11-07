@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -14,6 +14,7 @@ import org.joml.Matrix4fStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
  * Owns one offscreen {@link RenderTarget} and draws {@link LayoutJob}s onto it at
@@ -21,7 +22,7 @@ import java.util.Optional;
  * setup and one synchronous read-back per sheet. All methods must be called on the
  * render thread, including {@link #close()}.
  */
-final class LayoutRenderer implements AutoCloseable {
+public final class LayoutRenderer implements AutoCloseable {
 
     private static final int SIZE = 512;
 
@@ -35,7 +36,7 @@ final class LayoutRenderer implements AutoCloseable {
     private final Minecraft minecraft;
     private final RenderTarget target;
 
-    LayoutRenderer(Minecraft minecraft) {
+    public LayoutRenderer(Minecraft minecraft) {
         this.minecraft = minecraft;
         this.target = new TextureTarget(SIZE, SIZE, true, Minecraft.ON_OSX);
         this.target.setClearColor(0f, 0f, 0f, 0f);
@@ -48,7 +49,7 @@ final class LayoutRenderer implements AutoCloseable {
      * clipped to its own rectangle. A job whose draw throws (an exception or a
      * linkage error), or that is larger than an empty sheet, is reported as failed.
      */
-    LayoutSheet render(List<LayoutJob> jobs, long deadlineNanos) {
+    public LayoutSheet render(List<LayoutJob> jobs, long deadlineNanos) {
         RenderTarget main = minecraft.getMainRenderTarget();
         // clear() ends with unbindWrite(), so bind after clearing (see IconRenderer).
         target.clear(Minecraft.ON_OSX);

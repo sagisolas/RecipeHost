@@ -1,4 +1,4 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 
 /**
  * Draws the `Recipe layout`s of the vanilla-dispatch recipe types when EMI is
@@ -37,7 +38,7 @@ import java.util.function.Supplier;
  * a list of buttons, not as a result slot, so its layout is drawn by hand from vanilla
  * textures.
  */
-final class VanillaLayouts {
+public final class VanillaLayouts {
 
     /** Item slots are 16 px; a slot's rectangle is its 18 px frame around that. */
     private static final int ITEM_SIZE = 16;
@@ -69,17 +70,17 @@ final class VanillaLayouts {
      * Reads each screen's slot positions from a fresh menu on the player's inventory.
      * The screens themselves are made only when a layout is drawn, on the render thread.
      */
-    VanillaLayouts(Minecraft minecraft) {
+    public VanillaLayouts(Minecraft minecraft) {
         this.font = minecraft.font;
         Inventory inventory = minecraft.player.getInventory();
 
         CraftingMenu craftingMenu = new CraftingMenu(0, inventory);
         this.crafting = screenLayout(craftingMenu, CRAFTING_GRID, CRAFTING_RESULT,
-                () -> new CraftingBackground(craftingMenu, minecraft)).toLayout(LayoutKeys.CRAFTING);
+                () -> new CraftingBackground(craftingMenu, minecraft)).toLayout(VanillaLayoutKeys.CRAFTING);
 
         SmithingMenu smithingMenu = new SmithingMenu(0, inventory);
         this.smithing = screenLayout(smithingMenu, SMITHING_INPUTS, SMITHING_RESULT,
-                () -> new SmithingBackground(smithingMenu, minecraft)).toLayout(LayoutKeys.SMITHING);
+                () -> new SmithingBackground(smithingMenu, minecraft)).toLayout(VanillaLayoutKeys.SMITHING);
 
         FurnaceMenu furnaceMenu = new FurnaceMenu(0, inventory);
         this.furnace = screenLayout(furnaceMenu, new int[]{FURNACE_INGREDIENT}, FURNACE_RESULT,
@@ -120,7 +121,7 @@ final class VanillaLayouts {
             graphics.drawString(font, time, textRight - font.width(time), textTop, TEXT_COLOR, false);
             graphics.drawString(font, experience, textRight - font.width(experience), textTop + font.lineHeight, TEXT_COLOR, false);
         };
-        return new VanillaLayout(LayoutKeys.cooking(typeId, cookTimeTicks, xp),
+        return new VanillaLayout(VanillaLayoutKeys.cooking(typeId, cookTimeTicks, xp),
                 screen.width(), screen.height(), screen.slots(), drawer);
     }
 
@@ -210,7 +211,7 @@ final class VanillaLayouts {
             List<RecipeSlot> slots = List.of(
                     rect(0, INPUT_Y, RecipeSlot.Role.INPUT),
                     rect(RESULT_X + RESULT_FRAME_MARGIN - 1, INPUT_Y, RecipeSlot.Role.OUTPUT));
-            return new VanillaLayout(LayoutKeys.STONECUTTER, RESULT_X + RESULT_FRAME, RESULT_FRAME, slots, Stonecutter::draw);
+            return new VanillaLayout(VanillaLayoutKeys.STONECUTTER, RESULT_X + RESULT_FRAME, RESULT_FRAME, slots, Stonecutter::draw);
         }
 
         private static void draw(GuiGraphics graphics, int mouseX, int mouseY) {

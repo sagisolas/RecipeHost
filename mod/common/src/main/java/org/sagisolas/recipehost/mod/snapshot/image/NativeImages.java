@@ -1,14 +1,14 @@
-package org.sagisolas.recipehost.mod.snapshot;
+package org.sagisolas.recipehost.mod.snapshot.image;
 
 import com.mojang.blaze3d.platform.NativeImage;
 
 /** Reading rendered sheets back into plain pixels. */
-final class NativeImages {
+public final class NativeImages {
 
     private NativeImages() {}
 
     /** The image's pixels, top-down and row-major. NativeImage stores ABGR; swap red and blue to get ARGB. */
-    static int[] toArgb(NativeImage image) {
+    public static int[] toArgb(NativeImage image) {
         int width = image.getWidth();
         int height = image.getHeight();
         int[] argb = new int[width * height];
