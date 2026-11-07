@@ -26,8 +26,8 @@ internal typealias LayoutImageCache = ImageCache<String>
  * for the others. An image that is gone or fails to decode is remembered as missing, until [clear].
  *
  * Holds at most [capacity] images, dropping the least recently used one; a dropped image is
- * loaded again when next asked for. For Icons, the default of 256 atlases of 8×4 16 px cells is
- * about 8 MB, enough for 8192 Icons.
+ * loaded again when next asked for. For Icons, the default of 256 atlases of 8×4 32 px cells is
+ * about 32 MB, enough for 8192 Icons.
  *
  * Main-thread only: [get] and [peek] are called from composition, [clear] from the main thread.
  */

@@ -16,8 +16,12 @@ import java.util.List;
 import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
- * Owns one offscreen {@link RenderTarget} laid out as a grid of 16×16 cells and
- * rasterizes {@link ItemStack}s into it, a sheet at a time. Each sheet costs one
+ * Owns one offscreen {@link RenderTarget} laid out as a grid of cells and
+ * rasterizes {@link ItemStack}s into it, a sheet at a time. Items are drawn in
+ * GUI units (16 per item, as {@code renderItem} expects) and rasterized at
+ * {@link #SCALE}× that, so each cell is {@link #CELL} px and 3D block items,
+ * glint and custom renderers keep detail on high-density screens; a flat
+ * item's texels simply become {@code SCALE}×{@code SCALE} blocks. Each sheet costs one
  * clear, one GL state setup and one synchronous read-back, instead of one per
  * icon. All methods must be called on the render thread, including
  * {@link #close()}.
@@ -28,7 +32,11 @@ import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
  */
 public final class IconRenderer implements AutoCloseable {
 
-    static final int CELL = 16;
+    /** Size of one item in GUI units, the coordinates {@code renderItem} draws in. */
+    private static final int ITEM = 16;
+    /** Framebuffer pixels per GUI unit. */
+    static final int SCALE = 2;
+    static final int CELL = ITEM * SCALE;
     static final int COLUMNS = 8;
     static final int ROWS = 4;
     public static final int CAPACITY = COLUMNS * ROWS;
@@ -67,9 +75,12 @@ public final class IconRenderer implements AutoCloseable {
         // projection/model-view left over from the last frame are the screen's
         // (ortho over the scaled window, identity view). Under those the items
         // are scaled down and depth-clipped, giving fully transparent icons.
+        // The ortho spans the sheet in GUI units while the viewport (set by
+        // bindWrite) spans it in pixels, which is what scales items by SCALE.
         RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(
-                new Matrix4f().setOrtho(0f, WIDTH, HEIGHT, 0f, NEAR, FAR), VertexSorting.ORTHOGRAPHIC_Z);
+                new Matrix4f().setOrtho(0f, COLUMNS * ITEM, ROWS * ITEM, 0f, NEAR, FAR),
+                VertexSorting.ORTHOGRAPHIC_Z);
         Matrix4fStack modelView = RenderSystem.getModelViewStack();
         modelView.pushMatrix();
         modelView.translation(0f, 0f, GUI_DEPTH_OFFSET);
@@ -81,7 +92,7 @@ public final class IconRenderer implements AutoCloseable {
         try {
             GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
             do {
-                guiGraphics.renderItem(stacks.get(drawn), (drawn % COLUMNS) * CELL, (drawn / COLUMNS) * CELL);
+                guiGraphics.renderItem(stacks.get(drawn), (drawn % COLUMNS) * ITEM, (drawn / COLUMNS) * ITEM);
                 drawn++;
             } while (drawn < limit && System.nanoTime() < deadlineNanos);
             guiGraphics.flush();

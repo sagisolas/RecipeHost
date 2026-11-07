@@ -2,6 +2,7 @@ package org.sagisolas.recipehost.ui.item
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -9,15 +10,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.io.encoding.Base64
+import kotlin.math.floor
 import org.sagisolas.recipehost.domain.catalog.IconRegion
 import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.ui.AppTheme
@@ -26,8 +30,9 @@ import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 
 /**
- * An item's Icon: its [icon] region of an `Icon atlas` from [atlases], sized to fill a [McSlot]
- * and drawn with nearest-neighbour filtering. Shows the skin's missing texture while [icon] is
+ * An item's Icon: its [icon] region of an `Icon atlas` from [atlases], drawn with
+ * nearest-neighbour filtering at [iconPixelSize] inside a [McSlot]'s content area, so every
+ * texel covers the same whole number of device pixels. Shows the skin's missing texture while [icon] is
  * `null` (not arrived yet), while its atlas is loading, when the atlas is missing, or when the
  * region doesn't fit inside it (a malformed IconBatch).
  */
@@ -43,11 +48,26 @@ internal fun ItemIcon(
     }
     val atlas = atlasId?.let { id -> loaded?.takeIf { it.id == id }?.bitmap ?: atlases.peek(id) }
     val painter = remember(atlas, icon) { if (atlas != null && icon != null) regionPainter(atlas, icon) else null }
-    val iconModifier = modifier.size(McDimens.SlotContentSize)
     if (painter != null) {
-        Image(painter, contentDescription = null, modifier = iconModifier)
+        val iconSize = with(LocalDensity.current) { iconPixelSize(McDimens.SlotContentSize.toPx()).toDp() }
+        Box(modifier.size(McDimens.SlotContentSize), contentAlignment = Alignment.Center) {
+            Image(painter, contentDescription = null, modifier = Modifier.size(iconSize))
+        }
     }
 }
+
+/**
+ * The largest size, in device pixels, that fits in [availablePx] and gives each of an Icon's 16
+ * texels a whole number of pixels, so nearest-neighbour scaling draws them all the same width.
+ * A space smaller than one pixel per texel is used whole.
+ */
+internal fun iconPixelSize(availablePx: Float): Int {
+    val perTexel = floor(availablePx / ICON_TEXELS).toInt()
+    return if (perTexel >= 1) perTexel * ICON_TEXELS else availablePx.toInt()
+}
+
+/** Texels across an Icon: the 16 GUI units Minecraft draws an item in. */
+private const val ICON_TEXELS = 16
 
 /** The stack's Icon, or the missing texture when its id doesn't resolve to an Item. */
 @Composable

@@ -68,7 +68,7 @@ _Avoid_: Placed slot, Slot (the semantic input)
 `{ item_id, count }`. A `count` of 0 is interpreted as 1. Carries no NBT in v1.
 
 **Icon**:
-The 16×16 image of an `Item`, produced on the render thread via `GuiGraphics.renderItem` into an offscreen framebuffer. It travels and is stored as one cell of an `Icon atlas`, never as an image of its own. One icon per `Item` — enchantment/potion/NBT variants are out of scope for v1.
+The 32×32 image of an `Item` (its 16 GUI units rendered at 2×), produced on the render thread via `GuiGraphics.renderItem` into an offscreen framebuffer. It travels and is stored as one cell of an `Icon atlas`, never as an image of its own. One icon per `Item` — enchantment/potion/NBT variants are out of scope for v1.
 
 **Icon atlas**:
 One PNG sheet of `Icon`s in square cells, row-major, as carried by one `IconBatch`: the companion mod's render sheet sent whole, with its cell size, columns and the item id of each cell. The `Catalog` keeps atlases as received and points each `Icon` at its cell; the mobile app decodes an atlas once and draws Icons as regions of it (ADR 0014).
