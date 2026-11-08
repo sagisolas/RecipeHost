@@ -41,8 +41,8 @@ class UsesOfTest {
 
         assertEquals(
             listOf(
-                "create:cutting" to listOf("create:cutting/spruce_planks"),
                 "minecraft:crafting_shaped" to listOf("minecraft:chest", "minecraft:stick"),
+                "create:cutting" to listOf("create:cutting/spruce_planks"),
             ),
             groups.map { group -> group.typeId to group.recipes.map { it.recipeId } },
         )

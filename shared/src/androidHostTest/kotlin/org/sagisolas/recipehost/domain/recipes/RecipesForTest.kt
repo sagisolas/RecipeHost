@@ -44,10 +44,28 @@ class RecipesForTest {
 
         assertEquals(
             listOf(
-                "create:crushing" to listOf("create:crushing/raw_iron"),
                 crafting to listOf("minecraft:iron_ingot_from_block", "minecraft:iron_ingot_from_nuggets"),
+                "create:crushing" to listOf("create:crushing/raw_iron"),
             ),
             groups.map { group -> group.typeId to group.recipes.map { it.recipeId } },
+        )
+    }
+
+    @Test
+    fun minecraftTypesComeFirstThenTheOthersByTypeId() = runTest {
+        catalog.scan(
+            "ATM9", minecraft, create6,
+            recipes = listOf(
+                shaped("create:mixing/iron", result = "minecraft:iron_ingot", "minecraft:raw_iron", type = "create:mixing"),
+                shaped("minecraft:iron_ingot_from_nuggets", result = "minecraft:iron_ingot", "minecraft:iron_nugget"),
+                shaped("create:crushing/raw_iron", result = "minecraft:iron_ingot", "minecraft:raw_iron", type = "create:crushing"),
+                shaped("minecraft:iron_ingot_from_blasting", result = "minecraft:iron_ingot", "minecraft:raw_iron", type = "minecraft:blasting"),
+            ),
+        )
+
+        assertEquals(
+            listOf("minecraft:blasting", crafting, "create:crushing", "create:mixing"),
+            recipesFor("minecraft:iron_ingot").first().map { it.typeId },
         )
     }
 

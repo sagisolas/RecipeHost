@@ -1,6 +1,8 @@
 package org.sagisolas.recipehost.domain.recipes
 
 import okio.ByteString.Companion.toByteString
+import org.sagisolas.recipehost.data.catalog.MINECRAFT
+import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.RecipeSlot
@@ -52,6 +54,7 @@ internal class InstanceRecipe(
 
 /**
  * Groups rows by type, then collapses each `(release, recipe id)` by body hash into variants.
+ * `minecraft:` types come first, then the others; each part keeps the type order of the rows.
  * Expects the rows ordered by type, recipe id and release, newest Instance first within a recipe,
  * as the recipe queries return them.
  */
@@ -63,7 +66,7 @@ internal fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
                 CatalogRecipe(releaseId = key.first, recipeId = key.second, variants = instances.toVariants())
             },
         )
-    }
+    }.sortedBy { namespaceOf(it.typeId) != MINECRAFT } // stable: false (the game's own) sorts first
 
 /** Rows of one recipe, newest Instance first, collapsed by body hash; groupBy keeps first-seen order. */
 private fun List<InstanceRecipe>.toVariants(): List<RecipeVariant> =
