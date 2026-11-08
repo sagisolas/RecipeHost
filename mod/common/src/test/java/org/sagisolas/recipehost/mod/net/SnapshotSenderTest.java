@@ -1,6 +1,5 @@
 package org.sagisolas.recipehost.mod.net;
 
-import okio.Buffer;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
@@ -14,7 +13,10 @@ import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,41 +24,41 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SnapshotSenderTest {
 
     @Test
     public void streamsHandshakeThenBatchesThenLayoutsThenDone() throws Exception {
-        Handshake handshake = new Handshake.Builder()
-                .protocol_version(1)
-                .minecraft_version("1.21.1")
-                .locale("en_us")
-                .total_items(1)
-                .total_recipes(1)
+        Handshake handshake = Handshake.newBuilder()
+                .setProtocolVersion(1)
+                .setMinecraftVersion("1.21.1")
+                .setLocale("en_us")
+                .setTotalItems(1)
+                .setTotalRecipes(1)
                 .build();
 
-        ItemBatch items = new ItemBatch.Builder()
-                .items(Collections.singletonList(
-                        new Item.Builder().id("minecraft:stick").display_name("Stick").build()))
+        ItemBatch items = ItemBatch.newBuilder()
+                .addAllItems(Collections.singletonList(
+                        Item.newBuilder().setId("minecraft:stick").setDisplayName("Stick").build()))
                 .build();
 
-        RecipeBatch recipes = new RecipeBatch.Builder()
-                .recipes(Collections.singletonList(
-                        new Recipe.Builder().type_id("minecraft:crafting_shaped").build()))
+        RecipeBatch recipes = RecipeBatch.newBuilder()
+                .addAllRecipes(Collections.singletonList(
+                        Recipe.newBuilder().setTypeId("minecraft:crafting_shaped").build()))
                 .build();
 
-        IconBatch icons = new IconBatch.Builder()
-                .cell_size(16)
-                .columns(8)
-                .item_ids(Collections.singletonList("minecraft:stick"))
+        IconBatch icons = IconBatch.newBuilder()
+                .setCellSize(16)
+                .setColumns(8)
+                .addAllItemIds(Collections.singletonList("minecraft:stick"))
                 .build();
 
-        LayoutBatch layouts = new LayoutBatch.Builder()
-                .layouts(Collections.singletonList(new RecipeLayout.Builder()
-                        .key("minecraft:crafting_shaped/3x3")
-                        .recipe_ids(Collections.singletonList("minecraft:stick"))
+        LayoutBatch layouts = LayoutBatch.newBuilder()
+                .addAllLayouts(Collections.singletonList(RecipeLayout.newBuilder()
+                        .setKey("minecraft:crafting_shaped/3x3")
+                        .addAllRecipeIds(Collections.singletonList("minecraft:stick"))
                         .build()))
                 .build();
 
@@ -67,22 +69,22 @@ public class SnapshotSenderTest {
                 Collections.singletonList(icons),
                 Collections.singletonList(layouts));
 
-        Buffer out = new Buffer();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         SnapshotSender.send(out, source);
 
         List<Envelope> frames = drain(out);
         assertEquals(6, frames.size());
-        assertEquals(handshake, frames.get(0).handshake);
-        assertEquals(items, frames.get(1).item_batch);
-        assertEquals(recipes, frames.get(2).recipe_batch);
-        assertEquals(icons, frames.get(3).icon_batch);
-        assertEquals(layouts, frames.get(4).layout_batch);
-        assertNotNull("final frame must be Done", frames.get(5).done);
+        assertEquals(handshake, frames.get(0).getHandshake());
+        assertEquals(items, frames.get(1).getItemBatch());
+        assertEquals(recipes, frames.get(2).getRecipeBatch());
+        assertEquals(icons, frames.get(3).getIconBatch());
+        assertEquals(layouts, frames.get(4).getLayoutBatch());
+        assertTrue("final frame must be Done", frames.get(5).hasDone());
     }
 
     @Test
     public void emptySourceStillSendsHandshakeAndDone() throws Exception {
-        Handshake handshake = new Handshake.Builder().protocol_version(1).build();
+        Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
         FakeSource source = new FakeSource(
                 handshake,
                 Collections.<ItemBatch>emptyList(),
@@ -90,18 +92,18 @@ public class SnapshotSenderTest {
                 Collections.<IconBatch>emptyList(),
                 Collections.<LayoutBatch>emptyList());
 
-        Buffer out = new Buffer();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         SnapshotSender.send(out, source);
 
         List<Envelope> frames = drain(out);
         assertEquals(2, frames.size());
-        assertEquals(handshake, frames.get(0).handshake);
-        assertNotNull(frames.get(1).done);
+        assertEquals(handshake, frames.get(0).getHandshake());
+        assertTrue(frames.get(1).hasDone());
     }
 
     @Test
     public void writesErrorFrameAndRethrowsIfSourceThrows() throws Exception {
-        Handshake handshake = new Handshake.Builder().protocol_version(1).build();
+        Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
         SnapshotSource exploding = new SnapshotSource() {
             @Override public Handshake handshake() { return handshake; }
             @Override public Iterator<ItemBatch> itemBatches() {
@@ -115,7 +117,7 @@ public class SnapshotSenderTest {
             @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
         };
 
-        Buffer out = new Buffer();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             SnapshotSender.send(out, exploding);
         } catch (IOException expected) {
@@ -124,16 +126,17 @@ public class SnapshotSenderTest {
 
         List<Envelope> frames = drain(out);
         // Handshake must still be first; an Error must appear.
-        assertEquals(handshake, frames.get(0).handshake);
+        assertEquals(handshake, frames.get(0).getHandshake());
         Envelope last = frames.get(frames.size() - 1);
-        assertNotNull("expected trailing Error frame", last.error);
-        assertNull("no Done when erroring", last.done);
+        assertTrue("expected trailing Error frame", last.hasError());
+        assertFalse("no Done when erroring", last.hasDone());
     }
 
-    private static List<Envelope> drain(Buffer out) throws IOException {
+    private static List<Envelope> drain(ByteArrayOutputStream out) throws IOException {
         List<Envelope> frames = new ArrayList<>();
+        InputStream in = new ByteArrayInputStream(out.toByteArray());
         Envelope e;
-        while ((e = EnvelopeFraming.readFrame(out)) != null) {
+        while ((e = EnvelopeFraming.readFrame(in)) != null) {
             frames.add(e);
         }
         return frames;

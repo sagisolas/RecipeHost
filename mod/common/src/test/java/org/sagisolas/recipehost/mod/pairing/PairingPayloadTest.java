@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class PairingPayloadTest {
 
     // 32 zero bytes → base64url "AAAA…A" (43 chars, padding stripped)
-    private static final ByteString ZERO_TOKEN = ByteString.of(new byte[32]);
+    private static final ByteString ZERO_TOKEN = ByteString.copyFrom(new byte[32]);
     private static final String ZERO_TOKEN_B64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     @Test
@@ -37,7 +37,7 @@ public class PairingPayloadTest {
         byte[] raw = new byte[32];
         for (int i = 0; i < 32; i++) raw[i] = (byte) new int[]{0xfb, 0xff, 0xbf}[i % 3];
 
-        String uri = PairingPayload.toUri(List.of(InetAddress.getByName("10.0.0.2")), 1, ByteString.of(raw));
+        String uri = PairingPayload.toUri(List.of(InetAddress.getByName("10.0.0.2")), 1, ByteString.copyFrom(raw));
 
         assertEquals("recipehost://pair?v=1&h=10.0.0.2&p=1&t=" + "-_-_".repeat(10) + "-_8", uri);
     }

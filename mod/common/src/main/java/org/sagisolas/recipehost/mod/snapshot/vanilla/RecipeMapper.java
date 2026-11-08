@@ -31,7 +31,7 @@ import org.sagisolas.recipehost.mod.snapshot.item.Ids;
  */
 public final class RecipeMapper {
 
-    private static final Slot EMPTY = new Slot.Builder().build();
+    private static final Slot EMPTY = Slot.getDefaultInstance();
     /** The crafting table's grid is 3×3. */
     private static final int GRID_SIDE = 3;
 
@@ -126,7 +126,7 @@ public final class RecipeMapper {
         List<Slot> stacks = new ArrayList<>(slots.size());
         int nextInput = 0;
         for (RecipeSlot slot : slots) {
-            switch (slot.role) {
+            switch (slot.getRole()) {
                 case INPUT -> stacks.add(nextInput < inputs.size() ? inputs.get(nextInput++) : EMPTY);
                 case OUTPUT -> stacks.add(result);
                 case CATALYST -> stacks.add(EMPTY);
@@ -164,18 +164,18 @@ public final class RecipeMapper {
             Map<String, String> extras,
             VanillaLayout layout,
             List<Slot> layoutInputs) {
-        ItemStack resultStack = new ItemStack.Builder()
-                .item_id(Ids.itemId(result.getItem()))
-                .count(result.getCount())
+        ItemStack resultStack = ItemStack.newBuilder()
+                .setItemId(Ids.itemId(result.getItem()))
+                .setCount(result.getCount())
                 .build();
-        org.sagisolas.recipehost.protocol.Recipe wire = new org.sagisolas.recipehost.protocol.Recipe.Builder()
-                .id(id)
-                .type_id(typeId)
-                .inputs(inputs)
-                .results(List.of(resultStack))
-                .extras(extras)
-                .layout_stacks(layout == null ? List.of()
-                        : layoutStacks(layout.slots(), layoutInputs, new Slot.Builder().stacks(List.of(resultStack)).build()))
+        org.sagisolas.recipehost.protocol.Recipe wire = org.sagisolas.recipehost.protocol.Recipe.newBuilder()
+                .setId(id)
+                .setTypeId(typeId)
+                .addAllInputs(inputs)
+                .addResults(resultStack)
+                .putAllExtras(extras)
+                .addAllLayoutStacks(layout == null ? List.of()
+                        : layoutStacks(layout.slots(), layoutInputs, Slot.newBuilder().addStacks(resultStack).build()))
                 .build();
         return new Mapped(wire, Optional.ofNullable(layout).map(l -> l.job(typeId, id)));
     }

@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
@@ -24,7 +24,7 @@ public class LayoutBatchesTest {
     private static final int RED = 0xFFFF0000;
     private static final int BLUE = 0xFF0000FF;
     private static final List<RecipeSlot> SLOTS = List.of(
-            new RecipeSlot.Builder().x(1).y(1).width(2).height(2).role(RecipeSlot.Role.INPUT).build());
+            RecipeSlot.newBuilder().setX(1).setY(1).setWidth(2).setHeight(2).setRole(RecipeSlot.Role.INPUT).build());
 
     /**
      * Stands in for the GL renderer: takes up to {@code perSheet} jobs, lays them
@@ -96,19 +96,19 @@ public class LayoutBatchesTest {
                 List.of(hashed("r:a"), hashed("r:b"), hashed("r:c")), sheets, new PngEncoder()));
 
         assertEquals(2, batches.size());
-        RecipeLayout a = batches.get(0).layouts.get(0);
-        RecipeLayout b = batches.get(0).layouts.get(1);
-        RecipeLayout c = batches.get(1).layouts.get(0);
+        RecipeLayout a = batches.get(0).getLayoutsList().get(0);
+        RecipeLayout b = batches.get(0).getLayoutsList().get(1);
+        RecipeLayout c = batches.get(1).getLayoutsList().get(0);
 
-        assertEquals(List.of("r:a"), a.recipe_ids);
-        assertEquals(4, a.width);
-        assertEquals(3, a.height);
-        assertEquals(SLOTS, a.slots);
-        assertEquals(RED, pixelOf(a.png));
-        assertEquals(BLUE, pixelOf(b.png));
-        assertFalse("different pixels, different keys", a.key.equals(b.key));
+        assertEquals(List.of("r:a"), a.getRecipeIdsList());
+        assertEquals(4, a.getWidth());
+        assertEquals(3, a.getHeight());
+        assertEquals(SLOTS, a.getSlotsList());
+        assertEquals(RED, pixelOf(a.getPng()));
+        assertEquals(BLUE, pixelOf(b.getPng()));
+        assertFalse("different pixels, different keys", a.getKey().equals(b.getKey()));
 
-        assertEquals(new RecipeLayout.Builder().key(a.key).recipe_ids(List.of("r:c")).build(), c);
+        assertEquals(RecipeLayout.newBuilder().setKey(a.getKey()).addAllRecipeIds(List.of("r:c")).build(), c);
     }
 
     @Test
@@ -121,11 +121,11 @@ public class LayoutBatchesTest {
 
         assertEquals(List.of(List.of("r:1", "r:2"), List.of("r:other")),
                 sheets.rendered.stream().map(LayoutJob::recipeIds).toList());
-        List<RecipeLayout> layouts = batches.stream().flatMap(batch -> batch.layouts.stream()).toList();
+        List<RecipeLayout> layouts = batches.stream().flatMap(batch -> batch.getLayoutsList().stream()).toList();
         assertEquals(2, layouts.size());
-        assertEquals("test:grid/3x3", layouts.get(0).key);
-        assertEquals(List.of("r:1", "r:2"), layouts.get(0).recipe_ids);
-        assertFalse(layouts.get(0).png.size() == 0);
+        assertEquals("test:grid/3x3", layouts.get(0).getKey());
+        assertEquals(List.of("r:1", "r:2"), layouts.get(0).getRecipeIdsList());
+        assertFalse(layouts.get(0).getPng().size() == 0);
     }
 
     @Test
@@ -135,7 +135,7 @@ public class LayoutBatchesTest {
         List<LayoutBatch> batches = drain(new LayoutBatches(List.of(hashed("r:blank"), hashed("r:ok")), sheets, new PngEncoder()));
 
         assertEquals(List.of(List.of("r:ok")),
-                batches.stream().flatMap(batch -> batch.layouts.stream()).map(layout -> layout.recipe_ids).toList());
+                batches.stream().flatMap(batch -> batch.getLayoutsList().stream()).map(layout -> layout.getRecipeIdsList()).toList());
     }
 
     @Test
@@ -146,8 +146,8 @@ public class LayoutBatchesTest {
         List<LayoutBatch> batches = drain(new LayoutBatches(List.of(broken, hashed("r:ok")), sheets, new PngEncoder()));
 
         List<String> ids = batches.stream()
-                .flatMap(batch -> batch.layouts.stream())
-                .flatMap(layout -> layout.recipe_ids.stream())
+                .flatMap(batch -> batch.getLayoutsList().stream())
+                .flatMap(layout -> layout.getRecipeIdsList().stream())
                 .toList();
         assertEquals(List.of("r:ok"), ids);
     }

@@ -53,6 +53,6 @@ public class ModInfosTest {
     }
 
     private static ModInfo info(String id, String name, String version) {
-        return new ModInfo.Builder().id(id).name(name).version(version).build();
+        return ModInfo.newBuilder().setId(id).setName(name).setVersion(version).build();
     }
 }

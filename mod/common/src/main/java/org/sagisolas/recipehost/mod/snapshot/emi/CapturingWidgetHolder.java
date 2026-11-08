@@ -86,12 +86,12 @@ final class CapturingWidgetHolder implements WidgetHolder {
     }
 
     private static RecipeSlot recipeSlot(Bounds bounds, RecipeSlot.Role role) {
-        return new RecipeSlot.Builder()
-                .x(bounds.x())
-                .y(bounds.y())
-                .width(bounds.width())
-                .height(bounds.height())
-                .role(role)
+        return RecipeSlot.newBuilder()
+                .setX(bounds.x())
+                .setY(bounds.y())
+                .setWidth(bounds.width())
+                .setHeight(bounds.height())
+                .setRole(role)
                 .build();
     }
 }

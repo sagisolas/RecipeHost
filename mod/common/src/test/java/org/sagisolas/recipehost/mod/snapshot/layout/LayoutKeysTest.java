@@ -21,7 +21,7 @@ public class LayoutKeysTest {
     }
 
     private static RecipeSlot slot(int x, int y, RecipeSlot.Role role) {
-        return new RecipeSlot.Builder().x(x).y(y).width(18).height(18).role(role).build();
+        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(18).setHeight(18).setRole(role).build();
     }
 
     private static final List<RecipeSlot> SLOTS = List.of(

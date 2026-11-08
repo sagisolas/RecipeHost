@@ -28,7 +28,7 @@ public class CapturingWidgetHolderTest {
     }
 
     private static RecipeSlot slot(int x, int y, int size, RecipeSlot.Role role) {
-        return new RecipeSlot.Builder().x(x).y(y).width(size).height(size).role(role).build();
+        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(size).setHeight(size).setRole(role).build();
     }
 
     @Test
@@ -63,7 +63,7 @@ public class CapturingWidgetHolderTest {
         holder.add(new SlotWidget(FakeIngredient.of("minecraft:iron_ingot"), 60, 18).recipeContext(new NoRecipe()));
 
         assertEquals(List.of(RecipeSlot.Role.INPUT, RecipeSlot.Role.CATALYST, RecipeSlot.Role.OUTPUT),
-                holder.capture().slots().stream().map(captured -> captured.slot().role).toList());
+                holder.capture().slots().stream().map(captured -> captured.slot().getRole()).toList());
     }
 
     @Test

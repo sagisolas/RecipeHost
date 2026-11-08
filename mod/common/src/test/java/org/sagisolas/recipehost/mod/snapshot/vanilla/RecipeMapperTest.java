@@ -10,13 +10,13 @@ import static org.junit.Assert.assertEquals;
 
 public class RecipeMapperTest {
 
-    private static final Slot E = new Slot.Builder().build();
+    private static final Slot E = Slot.newBuilder().build();
     private static final Slot A = slotOf("minecraft:a");
     private static final Slot B = slotOf("minecraft:b");
     private static final Slot C = slotOf("minecraft:c");
 
     private static Slot slotOf(String itemId) {
-        return new Slot.Builder().stacks(List.of(new ItemStack.Builder().item_id(itemId).count(1).build())).build();
+        return Slot.newBuilder().addAllStacks(List.of(ItemStack.newBuilder().setItemId(itemId).setCount(1).build())).build();
     }
 
     @Test

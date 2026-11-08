@@ -115,7 +115,7 @@ public final class VanillaLayouts {
         Component experience = Component.translatable("recipehost.layout.experience", decimal(Float.toString(xp)));
         RecipeSlot result = screen.slots().getLast();
         int textRight = screen.width() - PADDING / 2;
-        int textTop = result.y + SLOT_SIZE + RESULT_FRAME_MARGIN;
+        int textTop = result.getY() + SLOT_SIZE + RESULT_FRAME_MARGIN;
         LayoutJob.Drawer drawer = (graphics, mouseX, mouseY) -> {
             screen.drawer().draw(graphics, mouseX, mouseY);
             graphics.drawString(font, time, textRight - font.width(time), textTop, TEXT_COLOR, false);
@@ -182,7 +182,7 @@ public final class VanillaLayouts {
     }
 
     private static RecipeSlot rect(int x, int y, RecipeSlot.Role role) {
-        return new RecipeSlot.Builder().x(x).y(y).width(SLOT_SIZE).height(SLOT_SIZE).role(role).build();
+        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(SLOT_SIZE).setHeight(SLOT_SIZE).setRole(role).build();
     }
 
     /**

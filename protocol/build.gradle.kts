@@ -1,6 +1,6 @@
 plugins {
     `java-library`
-    alias(libs.plugins.wire)
+    alias(libs.plugins.protobuf)
 }
 
 java {
@@ -8,17 +8,25 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-wire {
-    sourcePath {
-        srcDir("src/main/proto")
+// The mod's side of the schema: protoc's lite Java output on protobuf-javalite, a pure-Java
+// runtime (ADR 0007). The app generates its own Kotlin types from the same .proto with Wire.
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
     }
-    java {
-        android = false
+    generateProtoTasks {
+        all().configureEach {
+            builtins {
+                named("java") {
+                    option("lite")
+                }
+            }
+        }
     }
 }
 
 dependencies {
-    api(libs.wire.runtime)
+    api(libs.protobuf.javalite)
 
     testImplementation(libs.junit)
 }

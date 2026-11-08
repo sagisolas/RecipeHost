@@ -97,7 +97,7 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
     }
 
     private static RecipeSlot padded(RecipeSlot slot) {
-        return slot.newBuilder().x(slot.x + PADDING).y(slot.y + PADDING).build();
+        return slot.toBuilder().setX(slot.getX() + PADDING).setY(slot.getY() + PADDING).build();
     }
 
     private static boolean showsNonItem(EmiIngredient ingredient) {

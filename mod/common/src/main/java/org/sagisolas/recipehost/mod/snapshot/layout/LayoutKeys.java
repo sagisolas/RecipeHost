@@ -27,7 +27,7 @@ final class LayoutKeys {
         for (int pixel : argb) buffer.putInt((pixel << 8) | (pixel >>> 24));
         buffer.putInt(slots.size());
         for (RecipeSlot slot : slots) {
-            buffer.putInt(slot.x).putInt(slot.y).putInt(slot.width).putInt(slot.height).putInt(slot.role.getValue());
+            buffer.putInt(slot.getX()).putInt(slot.getY()).putInt(slot.getWidth()).putInt(slot.getHeight()).putInt(slot.getRoleValue());
         }
         return Hashes.truncatedSha256Hex(buffer.array());
     }

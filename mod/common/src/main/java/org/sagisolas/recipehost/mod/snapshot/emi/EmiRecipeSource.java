@@ -75,7 +75,7 @@ public final class EmiRecipeSource implements RecipeSource {
             recipes.add(wire);
             // A recipe without an id gets one in its category's namespace.
             namespaces.add((id != null ? id : categoryId).getNamespace());
-            capture.map(c -> new EmiLayoutDrawer(c).job(categoryId.toString(), wire.id)).ifPresent(layouts::add);
+            capture.map(c -> new EmiLayoutDrawer(c).job(categoryId.toString(), wire.getId())).ifPresent(layouts::add);
         }
         return new Recipes(recipes, layouts, namespaces);
     }

@@ -1,6 +1,5 @@
 package org.sagisolas.recipehost.mod.net;
 
-import okio.BufferedSink;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
@@ -13,6 +12,7 @@ import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Iterator;
 
 /**
@@ -24,9 +24,9 @@ public final class SnapshotSender {
 
     private SnapshotSender() {}
 
-    public static void send(BufferedSink out, SnapshotSource source) throws IOException {
+    public static void send(OutputStream out, SnapshotSource source) throws IOException {
         Handshake handshake = source.handshake();
-        EnvelopeFraming.writeFrame(out, new Envelope.Builder().handshake(handshake).build());
+        EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setHandshake(handshake).build());
 
         try {
             drainItems(out, source.itemBatches());
@@ -34,38 +34,38 @@ public final class SnapshotSender {
             drainIcons(out, source.iconBatches());
             drainLayouts(out, source.layoutBatches());
         } catch (RuntimeException | IOException ex) {
-            Error error = new Error.Builder().code(ErrorCode.SOURCE_FAILURE).build();
-            EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(error).build());
+            Error error = Error.newBuilder().setCode(ErrorCode.SOURCE_FAILURE).build();
+            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setError(error).build());
             out.flush();
             if (ex instanceof IOException) throw (IOException) ex;
             throw new IOException(ex);
         }
 
-        EnvelopeFraming.writeFrame(out, new Envelope.Builder().done(new Done.Builder().build()).build());
+        EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setDone(Done.getDefaultInstance()).build());
         out.flush();
     }
 
-    private static void drainItems(BufferedSink out, Iterator<ItemBatch> it) throws IOException {
+    private static void drainItems(OutputStream out, Iterator<ItemBatch> it) throws IOException {
         while (it.hasNext()) {
-            EnvelopeFraming.writeFrame(out, new Envelope.Builder().item_batch(it.next()).build());
+            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setItemBatch(it.next()).build());
         }
     }
 
-    private static void drainRecipes(BufferedSink out, Iterator<RecipeBatch> it) throws IOException {
+    private static void drainRecipes(OutputStream out, Iterator<RecipeBatch> it) throws IOException {
         while (it.hasNext()) {
-            EnvelopeFraming.writeFrame(out, new Envelope.Builder().recipe_batch(it.next()).build());
+            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setRecipeBatch(it.next()).build());
         }
     }
 
-    private static void drainIcons(BufferedSink out, Iterator<IconBatch> it) throws IOException {
+    private static void drainIcons(OutputStream out, Iterator<IconBatch> it) throws IOException {
         while (it.hasNext()) {
-            EnvelopeFraming.writeFrame(out, new Envelope.Builder().icon_batch(it.next()).build());
+            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setIconBatch(it.next()).build());
         }
     }
 
-    private static void drainLayouts(BufferedSink out, Iterator<LayoutBatch> it) throws IOException {
+    private static void drainLayouts(OutputStream out, Iterator<LayoutBatch> it) throws IOException {
         while (it.hasNext()) {
-            EnvelopeFraming.writeFrame(out, new Envelope.Builder().layout_batch(it.next()).build());
+            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setLayoutBatch(it.next()).build());
         }
     }
 }

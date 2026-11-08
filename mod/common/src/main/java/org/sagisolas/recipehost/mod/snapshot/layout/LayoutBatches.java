@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
 import org.slf4j.Logger;
@@ -57,7 +57,7 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     public boolean hasNext() {
         while (next == null && !pending.isEmpty()) {
             List<RecipeLayout> layouts = nextLayouts();
-            if (!layouts.isEmpty()) next = new LayoutBatch.Builder().layouts(layouts).build();
+            if (!layouts.isEmpty()) next = LayoutBatch.newBuilder().addAllLayouts(layouts).build();
         }
         return next != null;
     }
@@ -125,18 +125,18 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     private RecipeLayout withImage(String key, LayoutJob job, int[] pixels) {
         BufferedImage image = new BufferedImage(job.width(), job.height(), BufferedImage.TYPE_INT_ARGB);
         image.setRGB(0, 0, job.width(), job.height(), pixels, 0, job.width());
-        return new RecipeLayout.Builder()
-                .key(key)
-                .png(ByteString.of(encoder.encode(image)))
-                .width(job.width())
-                .height(job.height())
-                .slots(job.slots())
-                .recipe_ids(job.recipeIds())
+        return RecipeLayout.newBuilder()
+                .setKey(key)
+                .setPng(ByteString.copyFrom(encoder.encode(image)))
+                .setWidth(job.width())
+                .setHeight(job.height())
+                .addAllSlots(job.slots())
+                .addAllRecipeIds(job.recipeIds())
                 .build();
     }
 
     private static RecipeLayout recipeIdsOnly(String key, LayoutJob job) {
-        return new RecipeLayout.Builder().key(key).recipe_ids(job.recipeIds()).build();
+        return RecipeLayout.newBuilder().setKey(key).addAllRecipeIds(job.recipeIds()).build();
     }
 
     private void logOncePerType(LayoutJob job, Throwable cause) {

@@ -1,18 +1,16 @@
 package org.sagisolas.recipehost.tools.probe
 
-import okio.ByteString
-import okio.ByteString.Companion.decodeBase64
-import okio.buffer
-import okio.sink
-import okio.source
+import com.google.protobuf.ByteString
 import org.sagisolas.recipehost.protocol.Auth
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.EnvelopeFraming
-import org.sagisolas.recipehost.protocol.ErrorCode
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URI
 import java.net.URLDecoder
+import java.util.Base64
 import kotlin.system.exitProcess
 
 /** Usage: probe 'recipehost://pair?v=1&h=…&p=…&t=…'  (copy the URI from the game log). */
@@ -27,8 +25,8 @@ fun main(args: Array<String>) {
     }
     val hosts = query.getValue("h").split(",")
     val port = query.getValue("p").toInt()
-    val token: ByteString = query.getValue("t").decodeBase64()
-        ?: error("token is not valid base64url")
+    val token: ByteString = runCatching { ByteString.copyFrom(Base64.getUrlDecoder().decode(query.getValue("t"))) }
+        .getOrElse { error("token is not valid base64url") }
 
     // Hosts are unfiltered (see GLOSSARY: Pairing payload) — try each until one connects.
     val socket = hosts.firstNotNullOfOrNull { host ->
@@ -42,12 +40,12 @@ fun main(args: Array<String>) {
     }
 
     socket.use { socket ->
-        val out = socket.getOutputStream().sink().buffer()
-        val input = socket.getInputStream().source().buffer()
+        val out = BufferedOutputStream(socket.getOutputStream())
+        val input = BufferedInputStream(socket.getInputStream())
 
         EnvelopeFraming.writeFrame(
             out,
-            Envelope.Builder().auth(Auth.Builder().token(token).build()).build(),
+            Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(token)).build(),
         )
         out.flush()
 
@@ -58,33 +56,35 @@ fun main(args: Array<String>) {
         while (true) {
             val envelope = EnvelopeFraming.readFrame(input) ?: break
 
-            envelope.error?.let {
-                System.err.println("[probe] server error: ${it.code ?: ErrorCode.UNSPECIFIED}")
+            if (envelope.hasError()) {
+                System.err.println("[probe] server error: ${envelope.error.code}")
                 exitProcess(1)
             }
-            envelope.handshake?.let { h ->
-                println("protocol_version = ${h.protocol_version}")
-                println("minecraft_version = ${h.minecraft_version}")
+            if (envelope.hasHandshake()) {
+                val h = envelope.handshake
+                println("protocol_version = ${h.protocolVersion}")
+                println("minecraft_version = ${h.minecraftVersion}")
                 println("locale = ${h.locale}")
-                println("instance_name = ${h.instance_name}")
-                println("total_items (reported) = ${h.total_items}")
-                println("total_recipes (reported) = ${h.total_recipes}")
-                println("mods (${h.mods.size}):")
-                for (m in h.mods) println("  - ${m.id}  ${m.name}  v${m.version}")
+                println("instance_name = ${h.instanceName}")
+                println("total_items (reported) = ${h.totalItems}")
+                println("total_recipes (reported) = ${h.totalRecipes}")
+                println("mods (${h.modsCount}):")
+                for (m in h.modsList) println("  - ${m.id}  ${m.name}  v${m.version}")
                 handshakePrinted = true
             }
-            envelope.item_batch?.let { itemCount += it.items.size }
-            envelope.recipe_batch?.let { batch ->
+            if (envelope.hasItemBatch()) itemCount += envelope.itemBatch.itemsCount
+            if (envelope.hasRecipeBatch()) {
+                val batch = envelope.recipeBatch
                 if (recipeCount == 0) {
                     println("first recipes:")
-                    for (r in batch.recipes.take(5)) println("  - ${r.id}  (${r.type_id})")
+                    for (r in batch.recipesList.take(5)) println("  - ${r.id}  (${r.typeId})")
                 }
-                recipeCount += batch.recipes.size
+                recipeCount += batch.recipesCount
             }
 
             // Stop before draining icons; mobile-side would keep going, but the probe
             // only verifies metadata + batch counts.
-            if (envelope.icon_batch != null || envelope.done != null) break
+            if (envelope.hasIconBatch() || envelope.hasDone()) break
         }
 
         if (!handshakePrinted) {

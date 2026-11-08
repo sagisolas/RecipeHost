@@ -29,9 +29,9 @@ public final class ItemMapper {
             ResourceLocation key = entry.getKey().location();
             Item item = entry.getValue();
             String id = key.toString();
-            wireItems.add(new org.sagisolas.recipehost.protocol.Item.Builder()
-                    .id(id)
-                    .display_name(I18n.get(item.getDescriptionId()))
+            wireItems.add(org.sagisolas.recipehost.protocol.Item.newBuilder()
+                    .setId(id)
+                    .setDisplayName(I18n.get(item.getDescriptionId()))
                     .build());
             ids.add(id);
             namespacesWithItems.add(key.getNamespace());

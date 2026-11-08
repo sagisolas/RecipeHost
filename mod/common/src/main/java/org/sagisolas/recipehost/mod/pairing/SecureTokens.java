@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 
 import java.security.SecureRandom;
 import java.util.function.Supplier;
@@ -14,6 +14,6 @@ public final class SecureTokens implements Supplier<ByteString> {
     public ByteString get() {
         byte[] b = new byte[32];
         random.nextBytes(b);
-        return ByteString.of(b);
+        return ByteString.copyFrom(b);
     }
 }

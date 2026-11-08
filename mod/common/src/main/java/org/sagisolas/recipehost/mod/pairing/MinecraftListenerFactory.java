@@ -3,7 +3,7 @@ package org.sagisolas.recipehost.mod.pairing;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.mod.net.SessionListener;
 import org.sagisolas.recipehost.mod.snapshot.MinecraftSnapshotSource;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;

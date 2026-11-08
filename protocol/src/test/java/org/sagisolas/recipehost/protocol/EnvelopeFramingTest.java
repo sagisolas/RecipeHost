@@ -1,11 +1,15 @@
 package org.sagisolas.recipehost.protocol;
 
-import okio.Buffer;
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -16,9 +20,10 @@ public class EnvelopeFramingTest {
 
     @Test
     public void readsBackToBackFramesIndependently() throws Exception {
-        Buffer buf = new Buffer();
-        EnvelopeFraming.writeFrame(buf, authEnvelope());
-        EnvelopeFraming.writeFrame(buf, doneEnvelope());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EnvelopeFraming.writeFrame(out, authEnvelope());
+        EnvelopeFraming.writeFrame(out, doneEnvelope());
+        InputStream buf = new ByteArrayInputStream(out.toByteArray());
 
         assertEquals(authEnvelope(), EnvelopeFraming.readFrame(buf));
         assertEquals(doneEnvelope(), EnvelopeFraming.readFrame(buf));
@@ -27,27 +32,27 @@ public class EnvelopeFramingTest {
 
     @Test
     public void emptyStreamIsCleanEof() throws Exception {
-        assertNull(EnvelopeFraming.readFrame(new Buffer()));
+        assertNull(EnvelopeFraming.readFrame(new ByteArrayInputStream(new byte[0])));
     }
 
     @Test
     public void streamEndingInsideBodyThrows() {
-        ByteString framed = ByteString.decodeHex(AUTH_HEX);
-        Buffer truncated = new Buffer().write(framed.substring(0, framed.size() - 4));
+        byte[] framed = hex(AUTH_HEX);
+        InputStream truncated = new ByteArrayInputStream(Arrays.copyOf(framed, framed.length - 4));
         assertThrows(EOFException.class, () -> EnvelopeFraming.readFrame(truncated));
     }
 
     @Test
     public void streamEndingInsideLengthPrefixThrows() {
         // d9 has the continuation bit set, so a second length byte must follow.
-        Buffer source = new Buffer().write(ByteString.decodeHex("d9"));
+        InputStream source = new ByteArrayInputStream(hex("d9"));
         assertThrows(EOFException.class, () -> EnvelopeFraming.readFrame(source));
     }
 
     @Test
     public void negativeLengthPrefixIsIoError() {
         // ff ff ff ff 0f is varint 0xffffffff, which overflows int to -1.
-        Buffer source = new Buffer().write(ByteString.decodeHex("ffffffff0f"));
+        InputStream source = new ByteArrayInputStream(hex("ffffffff0f"));
         assertThrows(IOException.class, () -> EnvelopeFraming.readFrame(source));
     }
 
@@ -74,56 +79,56 @@ public class EnvelopeFramingTest {
             + "0a1e0a126d696e6563726166743a616e6465736974651208416e646573697465";
 
     private static Envelope doneEnvelope() {
-        return new Envelope.Builder().done(new Done.Builder().build()).build();
+        return Envelope.newBuilder().setDone(Done.getDefaultInstance()).build();
     }
 
     private static Envelope authEnvelope() {
         byte[] token = new byte[32];
         for (int i = 0; i < 32; i++) token[i] = (byte) i;
-        return new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build();
+        return Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token))).build();
     }
 
     private static Envelope itemBatchEnvelope() {
-        return new Envelope.Builder().item_batch(new ItemBatch.Builder().items(List.of(
+        return Envelope.newBuilder().setItemBatch(ItemBatch.newBuilder().addAllItems(List.of(
                 item("minecraft:stone", "Stone"),
                 item("minecraft:granite", "Granite"),
                 item("minecraft:polished_granite", "Polished Granite"),
                 item("minecraft:diorite", "Diorite"),
                 item("minecraft:polished_diorite", "Polished Diorite"),
-                item("minecraft:andesite", "Andesite"))).build()).build();
+                item("minecraft:andesite", "Andesite")))).build();
     }
 
     private static Item item(String id, String displayName) {
-        return new Item.Builder().id(id).display_name(displayName).build();
+        return Item.newBuilder().setId(id).setDisplayName(displayName).build();
     }
 
     private static void assertGolden(Envelope envelope, String hex) throws Exception {
-        ByteString expected = ByteString.decodeHex(hex);
+        byte[] expected = hex(hex);
 
-        Buffer written = new Buffer();
+        ByteArrayOutputStream written = new ByteArrayOutputStream();
         EnvelopeFraming.writeFrame(written, envelope);
-        assertEquals("encoded frame bytes", expected, written.readByteString());
+        assertEquals("encoded frame bytes", HexFormat.of().formatHex(expected), HexFormat.of().formatHex(written.toByteArray()));
 
-        Buffer source = new Buffer().write(expected);
+        InputStream source = new ByteArrayInputStream(expected);
         assertEquals("decoded envelope", envelope, EnvelopeFraming.readFrame(source));
         assertNull("frame must consume exactly its bytes", EnvelopeFraming.readFrame(source));
     }
 
     @Test
     public void layoutBatchRoundTrips() throws Exception {
-        RecipeLayout layout = new RecipeLayout.Builder()
-                .key("minecraft:smelting/200/0.1")
-                .png(ByteString.of((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G'))
-                .width(82)
-                .height(54)
-                .slots(List.of(
+        RecipeLayout layout = RecipeLayout.newBuilder()
+                .setKey("minecraft:smelting/200/0.1")
+                .setPng(ByteString.copyFrom(new byte[] {(byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G'}))
+                .setWidth(82)
+                .setHeight(54)
+                .addAllSlots(List.of(
                         slot(0, 0, RecipeSlot.Role.INPUT),
                         slot(0, 36, RecipeSlot.Role.CATALYST),
                         slot(60, 18, RecipeSlot.Role.OUTPUT)))
-                .recipe_ids(List.of("minecraft:iron_ingot_from_smelting_raw_iron", "minecraft:glass"))
+                .addAllRecipeIds(List.of("minecraft:iron_ingot_from_smelting_raw_iron", "minecraft:glass"))
                 .build();
-        Envelope envelope = new Envelope.Builder()
-                .layout_batch(new LayoutBatch.Builder().layouts(List.of(layout)).build())
+        Envelope envelope = Envelope.newBuilder()
+                .setLayoutBatch(LayoutBatch.newBuilder().addLayouts(layout))
                 .build();
 
         assertEquals(envelope, roundTrip(envelope));
@@ -131,35 +136,40 @@ public class EnvelopeFramingTest {
 
     @Test
     public void recipeLayoutStacksRoundTrip() throws Exception {
-        Recipe recipe = new Recipe.Builder()
-                .id("minecraft:glass")
-                .type_id("minecraft:smelting")
-                .layout_stacks(List.of(
-                        new Slot.Builder().stacks(List.of(stack("minecraft:sand"), stack("minecraft:red_sand"))).build(),
-                        new Slot.Builder().build(),
-                        new Slot.Builder().stacks(List.of(stack("minecraft:glass"))).build()))
+        Recipe recipe = Recipe.newBuilder()
+                .setId("minecraft:glass")
+                .setTypeId("minecraft:smelting")
+                .addAllLayoutStacks(List.of(
+                        Slot.newBuilder().addAllStacks(List.of(stack("minecraft:sand"), stack("minecraft:red_sand"))).build(),
+                        Slot.getDefaultInstance(),
+                        Slot.newBuilder().addStacks(stack("minecraft:glass")).build()))
                 .build();
-        Envelope envelope = new Envelope.Builder()
-                .recipe_batch(new RecipeBatch.Builder().recipes(List.of(recipe)).build())
+        Envelope envelope = Envelope.newBuilder()
+                .setRecipeBatch(RecipeBatch.newBuilder().addRecipes(recipe))
                 .build();
 
         assertEquals(envelope, roundTrip(envelope));
     }
 
     private static Envelope roundTrip(Envelope envelope) throws IOException {
-        Buffer buf = new Buffer();
-        EnvelopeFraming.writeFrame(buf, envelope);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        EnvelopeFraming.writeFrame(out, envelope);
+        InputStream buf = new ByteArrayInputStream(out.toByteArray());
         Envelope read = EnvelopeFraming.readFrame(buf);
         assertNull("frame must consume exactly its bytes", EnvelopeFraming.readFrame(buf));
         return read;
     }
 
     private static RecipeSlot slot(int x, int y, RecipeSlot.Role role) {
-        return new RecipeSlot.Builder().x(x).y(y).width(18).height(18).role(role).build();
+        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(18).setHeight(18).setRole(role).build();
     }
 
     private static ItemStack stack(String itemId) {
-        return new ItemStack.Builder().item_id(itemId).count(1).build();
+        return ItemStack.newBuilder().setItemId(itemId).setCount(1).build();
+    }
+
+    private static byte[] hex(String hex) {
+        return HexFormat.of().parseHex(hex);
     }
 
     @Test

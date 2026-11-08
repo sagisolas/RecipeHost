@@ -16,11 +16,11 @@ final class IngredientMapper {
         ItemStack[] items = ingredient.getItems();
         List<org.sagisolas.recipehost.protocol.ItemStack> stacks = new ArrayList<>(items.length);
         for (ItemStack stack : items) {
-            stacks.add(new org.sagisolas.recipehost.protocol.ItemStack.Builder()
-                    .item_id(Ids.itemId(stack.getItem()))
-                    .count(stack.getCount())
+            stacks.add(org.sagisolas.recipehost.protocol.ItemStack.newBuilder()
+                    .setItemId(Ids.itemId(stack.getItem()))
+                    .setCount(stack.getCount())
                     .build());
         }
-        return new Slot.Builder().stacks(stacks).build();
+        return Slot.newBuilder().addAllStacks(stacks).build();
     }
 }

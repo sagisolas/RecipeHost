@@ -1,15 +1,16 @@
 package org.sagisolas.recipehost.mod.net;
 
-import okio.BufferedSink;
-import okio.ByteString;
-import okio.Okio;
+import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.Error;
 import org.sagisolas.recipehost.protocol.ErrorCode;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -102,9 +103,9 @@ public final class SessionListener implements Closeable {
 
     private void handleClient(Socket client) {
         try {
-            Envelope first = EnvelopeFraming.readFrame(Okio.buffer(Okio.source(client.getInputStream())));
-            BufferedSink out = Okio.buffer(Okio.sink(client.getOutputStream()));
-            if (first == null || first.auth == null || !expectedToken.equals(first.auth.token)) {
+            Envelope first = EnvelopeFraming.readFrame(new BufferedInputStream(client.getInputStream()));
+            OutputStream out = new BufferedOutputStream(client.getOutputStream());
+            if (first == null || !first.hasAuth() || !expectedToken.equals(first.getAuth().getToken())) {
                 writeError(out, ErrorCode.UNAUTHORIZED);
                 return;
             }
@@ -121,13 +122,13 @@ public final class SessionListener implements Closeable {
 
     private static void sendErrorAndClose(Socket client, ErrorCode code) {
         try (Socket s = client) {
-            writeError(Okio.buffer(Okio.sink(s.getOutputStream())), code);
+            writeError(new BufferedOutputStream(s.getOutputStream()), code);
         } catch (IOException ignored) {}
     }
 
-    private static void writeError(BufferedSink out, ErrorCode code) throws IOException {
-        Error err = new Error.Builder().code(code).build();
-        EnvelopeFraming.writeFrame(out, new Envelope.Builder().error(err).build());
+    private static void writeError(OutputStream out, ErrorCode code) throws IOException {
+        Error err = Error.newBuilder().setCode(code).build();
+        EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setError(err).build());
         out.flush();
     }
 

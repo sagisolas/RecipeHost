@@ -1,9 +1,6 @@
 package org.sagisolas.recipehost.mod.net;
 
-import okio.BufferedSink;
-import okio.BufferedSource;
-import okio.ByteString;
-import okio.Okio;
+import com.google.protobuf.ByteString;
 import org.junit.After;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Auth;
@@ -16,7 +13,11 @@ import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -28,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class SessionListenerTest {
@@ -43,19 +43,19 @@ public class SessionListenerTest {
     @Test
     public void validTokenReceivesFullSnapshot() throws Exception {
         byte[] token = tokenOf(1);
-        Handshake handshake = new Handshake.Builder().protocol_version(1).minecraft_version("1.21.1").build();
+        Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).setMinecraftVersion("1.21.1").build();
         EmptySource source = new EmptySource(handshake);
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source);
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), source);
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build()).build());
 
             List<Envelope> frames = readAll(s);
-            assertEquals(handshake, frames.get(0).handshake);
-            assertNotNull("final frame must be Done", frames.get(frames.size() - 1).done);
+            assertEquals(handshake, frames.get(0).getHandshake());
+            assertTrue("final frame must be Done", frames.get(frames.size() - 1).hasDone());
         }
 
         assertTrue("source must be consumed exactly once", source.consumed.await(2, TimeUnit.SECONDS));
@@ -65,19 +65,19 @@ public class SessionListenerTest {
     public void wrongTokenGetsErrorFrameAndNoSnapshot() throws Exception {
         byte[] expected = tokenOf(2);
         byte[] wrong = tokenOf(3);
-        EmptySource source = new EmptySource(new Handshake.Builder().protocol_version(1).build());
+        EmptySource source = new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build());
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(expected), source);
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(expected), source);
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(wrong)).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(wrong)).build()).build());
 
             List<Envelope> frames = readAll(s);
             assertEquals("only an Error frame expected", 1, frames.size());
-            assertNotNull(frames.get(0).error);
-            assertEquals(ErrorCode.UNAUTHORIZED, frames.get(0).error.code);
+            assertTrue(frames.get(0).hasError());
+            assertEquals(ErrorCode.UNAUTHORIZED, frames.get(0).getError().getCode());
         }
 
         // Source must never have been consumed — handshake() was never called.
@@ -87,15 +87,15 @@ public class SessionListenerTest {
     @Test
     public void secondConcurrentConnectionIsRefused() throws Exception {
         byte[] token = tokenOf(4);
-        BlockingSource source = new BlockingSource(new Handshake.Builder().protocol_version(1).build());
+        BlockingSource source = new BlockingSource(Handshake.newBuilder().setProtocolVersion(1).build());
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source);
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), source);
         listener.start();
 
         // First connection — authenticates, blocks inside the source so the session stays open.
         Socket first = new Socket(InetAddress.getLoopbackAddress(), listener.port());
         writeFrame(first,
-                new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+                Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build()).build());
         assertTrue("first session must reach the source", source.entered.await(2, TimeUnit.SECONDS));
 
         // Second connection — should be refused with an Error, not hang.
@@ -103,8 +103,8 @@ public class SessionListenerTest {
             second.setSoTimeout(2000);
             List<Envelope> frames = readAll(second);
             assertEquals(1, frames.size());
-            assertNotNull(frames.get(0).error);
-            assertEquals(ErrorCode.BUSY, frames.get(0).error.code);
+            assertTrue(frames.get(0).hasError());
+            assertEquals(ErrorCode.BUSY, frames.get(0).getError().getCode());
         }
 
         source.release.countDown();
@@ -114,15 +114,15 @@ public class SessionListenerTest {
     @Test
     public void deliveredSnapshotFiresOnSnapshotDelivered() throws Exception {
         byte[] token = tokenOf(5);
-        EmptySource source = new EmptySource(new Handshake.Builder().protocol_version(1).build());
+        EmptySource source = new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build());
         CountDownLatch delivered = new CountDownLatch(1);
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source, delivered::countDown, () -> {});
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), source, delivered::countDown, () -> {});
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build()).build());
             readAll(s);
         }
 
@@ -132,14 +132,14 @@ public class SessionListenerTest {
     @Test
     public void wrongTokenDoesNotFireOnSnapshotDelivered() throws Exception {
         AtomicInteger delivered = new AtomicInteger();
-        EmptySource source = new EmptySource(new Handshake.Builder().protocol_version(1).build());
+        EmptySource source = new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build());
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(tokenOf(6)), source, delivered::incrementAndGet, () -> {});
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(tokenOf(6)), source, delivered::incrementAndGet, () -> {});
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(tokenOf(7))).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(tokenOf(7))).build()).build());
             readAll(s); // EOF ⇒ server's handleClient has finished
         }
 
@@ -150,18 +150,18 @@ public class SessionListenerTest {
     public void midStreamSourceFailureDoesNotFireOnSnapshotDelivered() throws Exception {
         byte[] token = tokenOf(8);
         AtomicInteger delivered = new AtomicInteger();
-        SnapshotSource failing = new EmptySource(new Handshake.Builder().protocol_version(1).build()) {
+        SnapshotSource failing = new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build()) {
             @Override public Iterator<ItemBatch> itemBatches() { throw new IllegalStateException("boom"); }
         };
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), failing, delivered::incrementAndGet, () -> {});
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), failing, delivered::incrementAndGet, () -> {});
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build()).build());
             List<Envelope> frames = readAll(s);
-            assertNotNull("stream must end with Error", frames.get(frames.size() - 1).error);
+            assertTrue("stream must end with Error", frames.get(frames.size() - 1).hasError());
         }
 
         assertEquals(0, delivered.get());
@@ -170,8 +170,8 @@ public class SessionListenerTest {
     @Test
     public void closeWithoutActiveSessionTerminatesImmediately() throws Exception {
         AtomicInteger terminated = new AtomicInteger();
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(tokenOf(9)),
-                new EmptySource(new Handshake.Builder().build()), () -> {}, terminated::incrementAndGet);
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(tokenOf(9)),
+                new EmptySource(Handshake.newBuilder().build()), () -> {}, terminated::incrementAndGet);
         listener.start();
 
         listener.close();
@@ -183,16 +183,16 @@ public class SessionListenerTest {
     @Test
     public void closeDuringActiveSessionTerminatesOnlyAfterSessionFinishes() throws Exception {
         byte[] token = tokenOf(10);
-        BlockingSource source = new BlockingSource(new Handshake.Builder().protocol_version(1).build());
+        BlockingSource source = new BlockingSource(Handshake.newBuilder().setProtocolVersion(1).build());
         CountDownLatch terminated = new CountDownLatch(1);
 
-        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.of(token), source,
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), source,
                 () -> {}, terminated::countDown);
         listener.start();
 
         try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
             writeFrame(s,
-                    new Envelope.Builder().auth(new Auth.Builder().token(ByteString.of(token)).build()).build());
+                    Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build()).build());
             assertTrue(source.entered.await(2, TimeUnit.SECONDS));
 
             listener.close();
@@ -212,7 +212,7 @@ public class SessionListenerTest {
     }
 
     private static void writeFrame(Socket s, Envelope envelope) throws IOException {
-        BufferedSink out = Okio.buffer(Okio.sink(s.getOutputStream()));
+        OutputStream out = new BufferedOutputStream(s.getOutputStream());
         EnvelopeFraming.writeFrame(out, envelope);
         out.flush();
     }
@@ -221,7 +221,7 @@ public class SessionListenerTest {
         List<Envelope> frames = new ArrayList<>();
         Envelope e;
         try {
-            BufferedSource in = Okio.buffer(Okio.source(s.getInputStream()));
+            InputStream in = new BufferedInputStream(s.getInputStream());
             while ((e = EnvelopeFraming.readFrame(in)) != null) {
                 frames.add(e);
             }

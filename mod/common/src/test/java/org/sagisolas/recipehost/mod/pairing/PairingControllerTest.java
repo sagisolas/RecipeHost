@@ -1,11 +1,12 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.junit.Test;
 
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class PairingControllerTest {
 
         assertEquals(1, factory.bound.size());
         assertEquals(token(1), factory.bound.get(0).token);
-        assertEquals("recipehost://pair?v=1&h=10.0.0.2&p=4000&t=" + token(1).base64Url().replace("=", ""), uri);
+        assertEquals("recipehost://pair?v=1&h=10.0.0.2&p=4000&t=" + Base64.getUrlEncoder().withoutPadding().encodeToString(token(1).toByteArray()), uri);
     }
 
     @Test
@@ -103,7 +104,7 @@ public class PairingControllerTest {
     private static ByteString token(int seed) {
         byte[] b = new byte[32];
         b[0] = (byte) seed;
-        return ByteString.of(b);
+        return ByteString.copyFrom(b);
     }
 
     private static InetAddress addr(String literal) {

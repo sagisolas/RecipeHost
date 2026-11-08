@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.mod.Platform;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
 import org.sagisolas.recipehost.mod.net.WireProtocol;
@@ -78,14 +78,14 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     @Override
     public synchronized Handshake handshake() {
         materializeSnapshot();
-        return new Handshake.Builder()
-                .protocol_version(WireProtocol.PROTOCOL_VERSION)
-                .minecraft_version(Platform.minecraftVersion())
-                .locale(locale)
-                .mods(mods)
-                .instance_name(instanceName)
-                .total_items(items.size())
-                .total_recipes(recipes.size())
+        return Handshake.newBuilder()
+                .setProtocolVersion(WireProtocol.PROTOCOL_VERSION)
+                .setMinecraftVersion(Platform.minecraftVersion())
+                .setLocale(locale)
+                .addAllMods(mods)
+                .setInstanceName(instanceName)
+                .setTotalItems(items.size())
+                .setTotalRecipes(recipes.size())
                 .build();
     }
 
@@ -93,14 +93,14 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     public synchronized Iterator<ItemBatch> itemBatches() {
         materializeSnapshot();
         return batched(items, ITEM_BATCH_SIZE,
-                chunk -> new ItemBatch.Builder().items(chunk).build());
+                chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
     }
 
     @Override
     public synchronized Iterator<RecipeBatch> recipeBatches() {
         materializeSnapshot();
         return batched(recipes, RECIPE_BATCH_SIZE,
-                chunk -> new RecipeBatch.Builder().recipes(chunk).build());
+                chunk -> RecipeBatch.newBuilder().addAllRecipes(chunk).build());
     }
 
     @Override
@@ -206,11 +206,11 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
             });
             List<String> drawn = new ArrayList<>(candidates.subList(0, sheet.count()));
             remaining.subList(0, sheet.count()).clear();
-            return new IconBatch.Builder()
-                    .png(ByteString.of(encoder.encode(sheet.image())))
-                    .cell_size(sheet.cell())
-                    .columns(sheet.columns())
-                    .item_ids(drawn)
+            return IconBatch.newBuilder()
+                    .setPng(ByteString.copyFrom(encoder.encode(sheet.image())))
+                    .setCellSize(sheet.cell())
+                    .setColumns(sheet.columns())
+                    .addAllItemIds(drawn)
                     .build();
         }
     }

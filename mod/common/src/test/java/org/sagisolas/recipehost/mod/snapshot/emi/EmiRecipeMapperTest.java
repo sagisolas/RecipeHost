@@ -18,7 +18,7 @@ public class EmiRecipeMapperTest {
     private static final EmiRecipeMapper.Stack WATER = new EmiRecipeMapper.Stack(null, 1000);
 
     private static ItemStack wire(String itemId, int count) {
-        return new ItemStack.Builder().item_id(itemId).count(count).build();
+        return ItemStack.newBuilder().setItemId(itemId).setCount(count).build();
     }
 
     @Test
@@ -26,8 +26,8 @@ public class EmiRecipeMapperTest {
         Recipe first = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
         Recipe again = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
 
-        assertTrue(first.id, first.id.matches("create:[0-9a-f]{32}"));
-        assertEquals(first.id, again.id);
+        assertTrue(first.getId(), first.getId().matches("create:[0-9a-f]{32}"));
+        assertEquals(first.getId(), again.getId());
     }
 
     @Test
@@ -35,15 +35,15 @@ public class EmiRecipeMapperTest {
         Recipe sticks = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
         Recipe torches = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(TORCH)), List.of(TORCH), List.of());
 
-        assertNotEquals(sticks.id, torches.id);
+        assertNotEquals(sticks.getId(), torches.getId());
     }
 
     @Test
     public void anIdFromEmiIsKeptAsItIsSyntheticOnesIncluded() {
         assertEquals("minecraft:torch",
-                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH), List.of()).id);
+                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH), List.of()).getId());
         assertEquals("emi:/brewing/x",
-                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH), List.of()).id);
+                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH), List.of()).getId());
     }
 
     @Test
@@ -52,8 +52,8 @@ public class EmiRecipeMapperTest {
                 List.of(List.of(WATER), List.of(WATER, STICK)),
                 List.of(WATER, TORCH), List.of());
 
-        assertEquals(List.of(new Slot.Builder().stacks(List.of(wire("minecraft:stick", 1))).build()), recipe.inputs);
-        assertEquals(List.of(wire("minecraft:torch", 4)), recipe.results);
+        assertEquals(List.of(Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build()), recipe.getInputsList());
+        assertEquals(List.of(wire("minecraft:torch", 4)), recipe.getResultsList());
     }
 
     @Test
@@ -61,7 +61,7 @@ public class EmiRecipeMapperTest {
         Recipe recipe = EmiRecipeMapper.map("x:y", "x:z",
                 List.of(), List.of(new EmiRecipeMapper.Stack("minecraft:torch", 5_000_000_000L)), List.of());
 
-        assertEquals(List.of(wire("minecraft:torch", Integer.MAX_VALUE)), recipe.results);
+        assertEquals(List.of(wire("minecraft:torch", Integer.MAX_VALUE)), recipe.getResultsList());
     }
 
     @Test
@@ -71,10 +71,10 @@ public class EmiRecipeMapperTest {
                 List.of(List.of(STICK), List.of(WATER), List.of(TORCH)));
 
         assertEquals(List.of(
-                        new Slot.Builder().stacks(List.of(wire("minecraft:stick", 1))).build(),
-                        new Slot.Builder().build(),
-                        new Slot.Builder().stacks(List.of(wire("minecraft:torch", 4))).build()),
-                recipe.layout_stacks);
+                        Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build(),
+                        Slot.newBuilder().build(),
+                        Slot.newBuilder().addAllStacks(List.of(wire("minecraft:torch", 4))).build()),
+                recipe.getLayoutStacksList());
     }
 
     @Test
@@ -83,6 +83,6 @@ public class EmiRecipeMapperTest {
         Recipe with = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH),
                 List.of(List.of(STICK), List.of(TORCH)));
 
-        assertEquals(without.id, with.id);
+        assertEquals(without.getId(), with.getId());
     }
 }

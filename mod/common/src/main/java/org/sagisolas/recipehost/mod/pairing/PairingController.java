@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import okio.ByteString;
+import com.google.protobuf.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,6 +19,8 @@ kotlinx-coroutines = "1.11.0"
 architecturyLoom = "1.9-SNAPSHOT"
 architecturyPlugin = "3.4-SNAPSHOT"
 wire = "7.1.2"
+protobuf = "4.29.3"
+protobufPlugin = "0.9.5"
 qrcodegen = "1.8.0"
 sqldelight = "2.4.1"
 playServices-codeScanner = "16.1.0"
@@ -44,6 +46,7 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -66,4 +69,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 architecturyLoom = { id = "dev.architectury.loom", version.ref = "architecturyLoom" }
 architecturyPlugin = { id = "architectury-plugin", version.ref = "architecturyPlugin" }
 wire = { id = "com.squareup.wire", version.ref = "wire" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
