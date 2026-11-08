@@ -58,7 +58,7 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
   - `inputs` come from `getInputs()`, `results` from `getOutputs()`, item stacks only.
   - `id` is `getId()`. A null id becomes `<category ns>:<hash of the encoded body>`, and synthetic `ns:/path` ids are kept as they are.
 
-  The vanilla dispatch isn't used when EMI is loaded.
+  Recipes of EMI's `emi:tag` category are left out: they only list a tag's members, which Slots already expand. The vanilla dispatch isn't used when EMI is loaded.
 - **Capture:** `CapturingWidgetHolder implements WidgetHolder` (`getWidth`, `getHeight`, `add`) collects the widgets from `addWidgets`. Then, for each widget:
   - `SlotWidget` (Jemi slots and tanks included) becomes a `RecipeSlot` from `getBounds()`. Its role is `OUTPUT` if `getRecipe() != null`. `CATALYST` comes from the protected `catalyst` field, read through a small subclass check or left as `INPUT` if unreadable (the implementer decides). Its stacks are the item stacks of `getStack()`.
 

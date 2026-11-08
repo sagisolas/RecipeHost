@@ -28,6 +28,12 @@ import java.util.Set;
 public final class EmiRecipeSource implements RecipeSource {
 
     private static final Logger LOG = LogUtils.getLogger();
+    /**
+     * EMI's own categories that aren't recipes: {@code emi:tag} lists a tag's members,
+     * which the Snapshot already expands into every Slot.
+     */
+    private static final Set<ResourceLocation> SKIPPED_CATEGORIES =
+            Set.of(ResourceLocation.fromNamespaceAndPath("emi", "tag"));
 
     private final RenderThreadScheduler renderThreadScheduler;
     /** Categories already logged, so each failure is logged once per category. */
@@ -40,7 +46,9 @@ public final class EmiRecipeSource implements RecipeSource {
 
     @Override
     public Recipes collect() {
-        List<EmiRecipe> all = List.copyOf(EmiApi.getRecipeManager().getRecipes());
+        List<EmiRecipe> all = EmiApi.getRecipeManager().getRecipes().stream()
+                .filter(recipe -> !SKIPPED_CATEGORIES.contains(recipe.getCategory().getId()))
+                .toList();
         List<Optional<CapturingWidgetHolder.Capture>> captures = captureAll(all);
 
         List<Recipe> recipes = new ArrayList<>();

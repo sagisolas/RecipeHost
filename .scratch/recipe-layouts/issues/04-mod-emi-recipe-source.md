@@ -13,7 +13,8 @@ Spec: ../spec.md
   - `inputs` come from `getInputs()`, item stacks only, with tags expanded;
   - `results` come from `getOutputs()`;
   - `id` is `getId()`, and synthetic `ns:/path` ids are kept;
-  - a null id becomes `<category ns>:<hash of the encoded body>`.
+  - a null id becomes `<category ns>:<hash of the encoded body>`;
+  - recipes of EMI's `emi:tag` category are left out: they only list a tag's members, which Slots already expand.
 - `ModInfos` picks up the namespaces as usual (ADR 0011).
 
 ## Acceptance
