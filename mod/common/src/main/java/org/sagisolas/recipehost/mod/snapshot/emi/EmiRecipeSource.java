@@ -29,13 +29,14 @@ public final class EmiRecipeSource implements RecipeSource {
 
     private static final Logger LOG = LogUtils.getLogger();
     /**
-     * EMI's own categories that aren't recipes: {@code emi:tag} lists a tag's members,
-     * which the Snapshot already expands into every Slot.
+     * Categories that aren't recipes: {@code emi:tag} lists a tag's members, which the
+     * Snapshot already expands into every Slot, and {@code emi:fuel} lists burn times.
      */
     private static final Set<ResourceLocation> SKIPPED_CATEGORIES =
             Set.of(ResourceLocation.fromNamespaceAndPath("emi", "tag"),
-                    ResourceLocation.fromNamespaceAndPath("emi", "fuel"),
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "tag_recipes"));
+                    ResourceLocation.fromNamespaceAndPath("emi", "fuel"));
+    /** JEI's tag listings, one category per registry ({@code minecraft:tag_recipes/item}, ...). */
+    private static final String JEI_TAG_CATEGORY_PREFIX = "tag_recipes/";
 
     private final RenderThreadScheduler renderThreadScheduler;
     /** Categories already logged, so each failure is logged once per category. */
@@ -49,7 +50,7 @@ public final class EmiRecipeSource implements RecipeSource {
     @Override
     public Recipes collect() {
         List<EmiRecipe> all = EmiApi.getRecipeManager().getRecipes().stream()
-                .filter(recipe -> !SKIPPED_CATEGORIES.contains(recipe.getCategory().getId()))
+                .filter(recipe -> !isSkippedCategory(recipe.getCategory().getId()))
                 .toList();
         List<Optional<CapturingWidgetHolder.Capture>> captures = captureAll(all);
 
@@ -92,6 +93,11 @@ public final class EmiRecipeSource implements RecipeSource {
             capture.map(c -> new EmiLayoutDrawer(c).job(categoryId.toString(), wire.getId())).ifPresent(layouts::add);
         }
         return new Recipes(recipes, layouts, namespaces);
+    }
+
+    static boolean isSkippedCategory(ResourceLocation category) {
+        return SKIPPED_CATEGORIES.contains(category)
+                || category.getNamespace().equals("minecraft") && category.getPath().startsWith(JEI_TAG_CATEGORY_PREFIX);
     }
 
     /**
