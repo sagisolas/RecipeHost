@@ -1,12 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import okio.ByteString;
 import org.sagisolas.recipehost.mod.Platform;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
@@ -37,15 +34,12 @@ import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
-import org.sagisolas.recipehost.mod.snapshot.vanilla.RecipeMapper;
-import org.sagisolas.recipehost.mod.snapshot.vanilla.VanillaLayouts;
 import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
 
 /**
- * Minecraft-backed {@link SnapshotSource}. Holds a live {@link ClientLevel} and
- * does nothing on construction; the first {@link #handshake()} call triggers an
- * eager pass over {@code BuiltInRegistries.ITEM} and the client's
- * {@link net.minecraft.world.item.crafting.RecipeManager}. Icons are rendered
+ * Minecraft-backed {@link SnapshotSource}. Does nothing on construction; the first
+ * {@link #handshake()} call triggers an eager pass over {@code BuiltInRegistries.ITEM}
+ * and the {@link RecipeSource} (vanilla, or EMI when it's loaded). Icons are rendered
  * lazily on the render thread, one {@link IconRenderer} sheet per batch within
  * a time budget, sharing a single renderer held for the source's lifetime
  * (ADR 0003). Each sheet goes out whole as one Icon atlas (ADR 0014); its PNG
@@ -65,7 +59,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Render-thread time one icon or layout batch may take, so streaming them doesn't drop frames. */
     private static final long RENDER_BUDGET_NANOS = 3_000_000L;
 
-    private final ClientLevel level;
+    private final RecipeSource recipeSource;
     private final Minecraft minecraft;
 
     private boolean snapshotMaterialized;
@@ -80,8 +74,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private volatile IconRenderer iconRenderer;
     private volatile LayoutRenderer layoutRenderer;
 
-    public MinecraftSnapshotSource(ClientLevel level) {
-        this.level = level;
+    public MinecraftSnapshotSource(RecipeSource recipeSource) {
+        this.recipeSource = recipeSource;
         this.minecraft = Minecraft.getInstance();
     }
 
@@ -147,20 +141,11 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         this.items = mapped.wireItems();
         this.itemIds = mapped.ids();
 
-        RegistryAccess registryAccess = level.registryAccess();
-        List<org.sagisolas.recipehost.protocol.Recipe> wireRecipes = new ArrayList<>();
-        List<LayoutJob> jobs = new ArrayList<>();
-        RecipeMapper recipeMapper = new RecipeMapper(new VanillaLayouts(minecraft));
+        RecipeSource.Recipes collected = recipeSource.collect();
+        this.recipes = collected.recipes();
+        this.layoutJobs = collected.layouts();
         Set<String> ownerNamespaces = new HashSet<>(mapped.namespacesWithItems());
-        for (RecipeHolder<?> holder : level.getRecipeManager().getRecipes()) {
-            RecipeMapper.Mapped recipe = recipeMapper.map(holder, registryAccess);
-            wireRecipes.add(recipe.recipe());
-            recipe.layout().ifPresent(jobs::add);
-            ownerNamespaces.add(holder.id().getNamespace());
-        }
-        this.recipes = Collections.unmodifiableList(wireRecipes);
-        // TODO(recipe-layouts issue 05): with EMI loaded, its layout capture supplies the jobs instead.
-        this.layoutJobs = Collections.unmodifiableList(jobs);
+        ownerNamespaces.addAll(collected.namespaces());
 
         this.mods = Collections.unmodifiableList(ModInfos.assemble(Platform.listMods(), ownerNamespaces));
 

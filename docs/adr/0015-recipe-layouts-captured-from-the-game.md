@@ -9,7 +9,7 @@ Drawing each recipe type by hand in the app was rejected: modded and datapack ty
 - **EMI loaded**: every recipe EMI knows (vanilla included, and JEI-only ones through EMI's Jemi layer) is captured by passing our own `WidgetHolder` to `EmiRecipe.addWidgets`. Slot widgets are drawn with `drawBackground` only; their bounds and role become Recipe slots. Every other widget, text included, is drawn into the image — one code path, no special-casing of text. Filling arrows show their empty frame; other animated textures show whatever frame is current. Generated slots are sampled once. A recipe whose widgets throw offscreen ships without a layout, logged once per type.
 - **EMI absent**: the companion mod draws its own layouts for the vanilla-dispatch types (ADR 0008) from the vanilla container screens themselves: each screen's background, drawn with an empty menu and cropped to the recipe's slots (the stonecutter, whose screen has no result slot, is drawn by hand from vanilla textures). This is a separate renderer, not an emulation of EMI's widgets.
 
-If EMI is loaded but has not finished loading its recipes, opening the QR screen is refused with a chat message, rather than silently snapshotting with the vanilla path and replacing the Instance's EMI recipes.
+With EMI loaded, the Snapshot never falls back to the vanilla path. Whether EMI has finished loading its recipes is not checked: the only signal (`EmiReloadManager.isLoaded()`) is internal and outside EMI's API jar, and reaching it through reflection isn't worth it. Pairing while EMI is still loading snapshots whatever EMI has so far.
 
 ## Sharing and transport
 

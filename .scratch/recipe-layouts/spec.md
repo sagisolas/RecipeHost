@@ -52,7 +52,7 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
 ### Mod: EMI source (soft dependency)
 
 - `compileOnly` the EMI API (the xplat Mojmap artifact) in `:mod:common`. All EMI-touching classes sit behind a check that EMI is loaded (via `Platform` mod list), so the mod loads without EMI.
-- **Readiness:** if EMI is loaded but `EmiReloadManager.isLoaded()` (internal API, guarded) is false, the QR screen doesn't open. A chat message ("Recipes are still loading, try again in a moment") is shown instead.
+- **Readiness:** not checked. `EmiReloadManager.isLoaded()` is internal and outside EMI's API jar; reaching it would need reflection. Pairing while EMI is still loading snapshots what EMI has so far.
 - **Recipes:** every recipe from `EmiApi.getRecipeManager().getRecipes()` becomes a wire `Recipe`:
   - `type_id` is the category id.
   - `inputs` come from `getInputs()`, `results` from `getOutputs()`, item stacks only.
@@ -106,7 +106,6 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
 - **Manual (user):**
   - vanilla without EMI: crafting 2×2 and 3×3, furnace, smithing, stonecutter, with a resource pack;
   - with EMI: vanilla recipes, a Create pack (heat, fluids), a JEI-only mod;
-  - opening the QR screen right after a resource reload with EMI shows the chat message;
   - a large modpack: time from connect to commit, and from commit to the last layout.
 
 ## Issues
@@ -114,7 +113,7 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
 1. Wire: `RecipeLayout`, `RecipeSlot`, `LayoutBatch`, the new `Recipe` fields (amending protocol 2).
 2. Mod: `LayoutRenderer` pipeline (sheet packing, readback, PNG, keys, render budget after Icons) and streaming `LayoutBatch`.
 3. Mod: vanilla layouts when EMI is absent.
-4. Mod: EMI as recipe source (soft dependency, readiness chat message, id fallback).
+4. Mod: EMI as recipe source (soft dependency, id fallback).
 5. Mod: EMI layout capture (`CapturingWidgetHolder`, slot roles, baked fluids, failures).
 6. App: Catalog storage and ingest of layouts.
 7. App: captured `RecipeLayout` rendering in the item screen.

@@ -1,11 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
+import org.sagisolas.recipehost.mod.snapshot.Hashes;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 import java.nio.ByteBuffer;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -13,8 +11,6 @@ import java.util.List;
  * once. Layout sources that know their key up front (vanilla) name it themselves.
  */
 final class LayoutKeys {
-
-    private static final int KEY_BYTES = 16;
 
     private LayoutKeys() {}
 
@@ -33,15 +29,6 @@ final class LayoutKeys {
         for (RecipeSlot slot : slots) {
             buffer.putInt(slot.x).putInt(slot.y).putInt(slot.width).putInt(slot.height).putInt(slot.role.getValue());
         }
-        byte[] digest = sha256().digest(buffer.array());
-        return HexFormat.of().formatHex(digest, 0, KEY_BYTES);
-    }
-
-    private static MessageDigest sha256() {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("every JVM ships SHA-256", e);
-        }
+        return Hashes.truncatedSha256Hex(buffer.array());
     }
 }
