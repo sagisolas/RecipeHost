@@ -8,6 +8,13 @@ architectury {
     fabric()
 }
 
+// The shipped jar: recipehost-fabric-<mod version>+<Minecraft version>.jar
+version = "${providers.gradleProperty("mod_version").get()}+${providers.gradleProperty("mod_minecraft_version").get()}"
+// Set on the archive tasks, not base.archivesName: a plugin overrides that one.
+tasks.withType<AbstractArchiveTask>().configureEach {
+    archiveBaseName = "recipehost-fabric"
+}
+
 loom {
     silentMojangMappingsLicense()
 }

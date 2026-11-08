@@ -8,6 +8,13 @@ architectury {
     neoForge()
 }
 
+// The shipped jar: recipehost-neoforge-<mod version>+<Minecraft version>.jar
+version = "${providers.gradleProperty("mod_version").get()}+${providers.gradleProperty("mod_minecraft_version").get()}"
+// Set on the archive tasks, not base.archivesName: a plugin overrides that one.
+tasks.withType<AbstractArchiveTask>().configureEach {
+    archiveBaseName = "recipehost-neoforge"
+}
+
 repositories {
     maven {
         name = "NeoForged"
