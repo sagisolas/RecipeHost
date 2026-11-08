@@ -66,6 +66,20 @@ tasks.withType<JavaCompile>().configureEach {
     options.release = 21
 }
 
+// The shipped jar must hold :mod:common's classes too. Architectury's template packs them with
+// the Shadow plugin; a plain Jar does the same: this module's classes plus common's production
+// output (shadowBundle), which remapJar then remaps into the shipped jar.
+val bundledJar = tasks.register<Jar>("bundledJar") {
+    archiveClassifier = "dev-bundled"
+    from(zipTree(tasks.jar.flatMap { it.archiveFile }))
+    from(shadowBundle.elements.map { files -> files.map { zipTree(it) } })
+    exclude("architectury.common.json", "META-INF/MANIFEST.MF")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+tasks.remapJar {
+    inputFile = bundledJar.flatMap { it.archiveFile }
+}
+
 tasks.processResources {
     inputs.property("version", project.version)
     filesMatching("META-INF/neoforge.mods.toml") {
