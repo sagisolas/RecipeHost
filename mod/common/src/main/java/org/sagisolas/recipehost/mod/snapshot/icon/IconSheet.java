@@ -18,7 +18,7 @@ public final class IconSheet {
      * @param count number of cells actually drawn, starting at index 0
      * @param argb  top-down, row-major pixels of the whole sheet; width is {@code columns * cell}
      */
-    IconSheet(int columns, int cell, int count, int[] argb) {
+    public IconSheet(int columns, int cell, int count, int[] argb) {
         this.columns = columns;
         this.cell = cell;
         this.count = count;

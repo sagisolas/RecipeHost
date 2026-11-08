@@ -12,9 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Walks {@code BuiltInRegistries.ITEM} once and produces the three parallel
- * views the snapshot stream needs: wire {@link org.sagisolas.recipehost.protocol.Item}s,
- * their ids (in the same order, for the icon stream), and the set of namespaces
+ * Walks {@code BuiltInRegistries.ITEM} once and produces the two views the
+ * snapshot stream needs: wire {@link org.sagisolas.recipehost.protocol.Item}s and the set of namespaces
  * that contributed at least one item (one input to the {@link org.sagisolas.recipehost.mod.snapshot.ModInfos} list).
  */
 public final class ItemMapper {
@@ -23,7 +22,6 @@ public final class ItemMapper {
 
     public static Result map() {
         List<org.sagisolas.recipehost.protocol.Item> wireItems = new ArrayList<>();
-        List<String> ids = new ArrayList<>();
         Set<String> namespacesWithItems = new HashSet<>();
         for (var entry : BuiltInRegistries.ITEM.entrySet()) {
             ResourceLocation key = entry.getKey().location();
@@ -33,17 +31,14 @@ public final class ItemMapper {
                     .setId(id)
                     .setDisplayName(I18n.get(item.getDescriptionId()))
                     .build());
-            ids.add(id);
             namespacesWithItems.add(key.getNamespace());
         }
         return new Result(
                 Collections.unmodifiableList(wireItems),
-                Collections.unmodifiableList(ids),
                 Collections.unmodifiableSet(namespacesWithItems));
     }
 
     public record Result(
             List<org.sagisolas.recipehost.protocol.Item> wireItems,
-            List<String> ids,
             Set<String> namespacesWithItems) {}
 }

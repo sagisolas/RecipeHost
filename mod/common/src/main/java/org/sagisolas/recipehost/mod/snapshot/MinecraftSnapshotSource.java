@@ -4,148 +4,95 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.mod.Platform;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
-import org.sagisolas.recipehost.mod.net.WireProtocol;
+import org.sagisolas.recipehost.mod.snapshot.icon.IconRenderer;
+import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
+import org.sagisolas.recipehost.mod.snapshot.item.ItemMapper;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
+import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.function.Function;
-import org.sagisolas.recipehost.mod.snapshot.icon.IconRenderer;
-import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
-import org.sagisolas.recipehost.mod.snapshot.item.ItemMapper;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
-import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
-import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 
 /**
- * Minecraft-backed {@link SnapshotSource}. Does nothing on construction; the first
- * {@link #handshake()} call triggers an eager pass over {@code BuiltInRegistries.ITEM}
- * and the {@link RecipeSource} (vanilla, or EMI when it's loaded). Icons are rendered
- * lazily on the render thread, one {@link IconRenderer} sheet per batch within
- * a time budget, sharing a single renderer held for the source's lifetime
- * (ADR 0003). Each sheet goes out whole as one Icon atlas (ADR 0014); its PNG
- * encoding runs on the calling (sender) thread.
+ * The {@link Snapshot} of the running game: reads the item registry, the {@link RecipeSource}
+ * (through the {@link RecipeAssembly}), the mod list and the game's settings, and draws Icons and
+ * layouts with GL renderers on the {@link RenderThread} (ADR 0003, 0015). Does nothing on
+ * construction; the game is read when the Snapshot is first asked for.
  *
- * <p>Recipe layouts follow the same pattern with a {@link LayoutRenderer}: they are
- * rendered only once the sender asks for them, after the last Icon batch, one
- * sheet per batch within the same time budget ({@link LayoutBatches}).
- *
- * <p>GL resources are released by {@link #close()}, posted to the render thread.
- * The caller (Session lifecycle) owns the close.
+ * <p>The renderers are created on first use and held for the source's lifetime; their GL
+ * resources are released by {@link #close()}, posted to the render thread. The caller (Session
+ * lifecycle) owns the close.
  */
 public final class MinecraftSnapshotSource implements SnapshotSource, AutoCloseable {
 
-    private static final int ITEM_BATCH_SIZE = 256;
-    private static final int RECIPE_BATCH_SIZE = 256;
     private final RecipeSource recipeSource;
-    private final RenderThread renderThreadScheduler;
+    private final RenderThread renderThread;
     private final Minecraft minecraft;
-
-    private boolean snapshotMaterialized;
-    private List<org.sagisolas.recipehost.protocol.Item> items;
-    private List<String> itemIds;
-    private List<org.sagisolas.recipehost.protocol.Recipe> recipes;
-    private List<ModInfo> mods;
-    private String locale;
-    private String instanceName;
-    private List<LayoutJob> layoutJobs;
+    private final Snapshot snapshot;
 
     private volatile IconRenderer iconRenderer;
     private volatile LayoutRenderer layoutRenderer;
 
-    public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThread renderThreadScheduler) {
+    public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThread renderThread) {
         this.recipeSource = recipeSource;
-        this.renderThreadScheduler = renderThreadScheduler;
+        this.renderThread = renderThread;
         this.minecraft = Minecraft.getInstance();
+        this.snapshot = new Snapshot(this::read, this::renderIconSheet, this::renderLayoutSheet);
     }
 
-    @Override
-    public synchronized Handshake handshake() {
-        materializeSnapshot();
-        return Handshake.newBuilder()
-                .setProtocolVersion(WireProtocol.PROTOCOL_VERSION)
-                .setMinecraftVersion(Platform.minecraftVersion())
-                .setLocale(locale)
-                .addAllMods(mods)
-                .setInstanceName(instanceName)
-                .setTotalItems(items.size())
-                .setTotalRecipes(recipes.size())
-                .build();
+    @Override public Handshake handshake() { return snapshot.handshake(); }
+    @Override public Iterator<ItemBatch> itemBatches() { return snapshot.itemBatches(); }
+    @Override public Iterator<RecipeBatch> recipeBatches() { return snapshot.recipeBatches(); }
+    @Override public Iterator<IconBatch> iconBatches() { return snapshot.iconBatches(); }
+    @Override public Iterator<LayoutBatch> layoutBatches() { return snapshot.layoutBatches(); }
+
+    /** Runs on the sender thread, on the Snapshot's first use. */
+    private Snapshot.Contents read() {
+        ItemMapper.Result items = ItemMapper.map();
+        RecipeAssembly.Assembled recipes = new RecipeAssembly(renderThread).assemble(recipeSource.candidates());
+        Set<String> ownerNamespaces = new HashSet<>(items.namespacesWithItems());
+        ownerNamespaces.addAll(recipes.namespaces());
+        return new Snapshot.Contents(
+                Platform.minecraftVersion(),
+                minecraft.options.languageCode,
+                InstanceName.of(minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists),
+                ModInfos.assemble(Platform.listMods(), ownerNamespaces),
+                items.wireItems(),
+                recipes.recipes(),
+                recipes.layouts());
     }
 
-    @Override
-    public synchronized Iterator<ItemBatch> itemBatches() {
-        materializeSnapshot();
-        return batched(items, ITEM_BATCH_SIZE,
-                chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
-    }
-
-    @Override
-    public synchronized Iterator<RecipeBatch> recipeBatches() {
-        materializeSnapshot();
-        return batched(recipes, RECIPE_BATCH_SIZE,
-                chunk -> RecipeBatch.newBuilder().addAllRecipes(chunk).build());
-    }
-
-    @Override
-    public synchronized Iterator<IconBatch> iconBatches() {
-        materializeSnapshot();
-        return new IconBatchIterator(new ArrayList<>(itemIds), new PngEncoder());
-    }
-
-    @Override
-    public synchronized Iterator<LayoutBatch> layoutBatches() {
-        materializeSnapshot();
-        return new LayoutBatches(layoutJobs, this::renderLayoutSheet, new PngEncoder());
-    }
-
-    /**
-     * Runs on the sender thread, which blocks until the render thread is done, so
-     * {@code pending} isn't touched while the sheet is drawn.
-     */
-    private LayoutSheet renderLayoutSheet(List<LayoutJob> pending) {
-        return renderThreadScheduler.call(deadline -> {
-            if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
-            return layoutRenderer.render(pending, deadline);
+    /** Blocks the sender thread until the render thread has drawn the sheet. */
+    private IconSheet renderIconSheet(List<String> pending) {
+        return renderThread.call(deadline -> {
+            if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
+            List<ItemStack> stacks = new ArrayList<>(pending.size());
+            for (String id : pending) {
+                stacks.add(new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(id))));
+            }
+            return iconRenderer.render(stacks, deadline);
         });
     }
 
-    private void materializeSnapshot() {
-        if (snapshotMaterialized) return;
-
-        locale = minecraft.options.languageCode;
-        instanceName = InstanceName.of(minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists);
-
-        ItemMapper.Result mapped = ItemMapper.map();
-        this.items = mapped.wireItems();
-        this.itemIds = mapped.ids();
-
-        RecipeAssembly.Assembled collected = new RecipeAssembly(renderThreadScheduler).assemble(recipeSource.candidates());
-        this.recipes = collected.recipes();
-        this.layoutJobs = collected.layouts();
-        Set<String> ownerNamespaces = new HashSet<>(mapped.namespacesWithItems());
-        ownerNamespaces.addAll(collected.namespaces());
-
-        this.mods = Collections.unmodifiableList(ModInfos.assemble(Platform.listMods(), ownerNamespaces));
-
-        this.snapshotMaterialized = true;
+    /** Blocks the sender thread until the render thread has drawn the sheet, so {@code pending} isn't touched meanwhile. */
+    private LayoutSheet renderLayoutSheet(List<LayoutJob> pending) {
+        return renderThread.call(deadline -> {
+            if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
+            return layoutRenderer.render(pending, deadline);
+        });
     }
 
     /** Release GL resources on the render thread. Safe to call repeatedly. */
@@ -153,66 +100,9 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     public void close() {
         IconRenderer icons = iconRenderer;
         iconRenderer = null;
-        if (icons != null) {
-            renderThreadScheduler.post(icons::close);
-        }
+        if (icons != null) renderThread.post(icons::close);
         LayoutRenderer layouts = layoutRenderer;
         layoutRenderer = null;
-        if (layouts != null) {
-            renderThreadScheduler.post(layouts::close);
-        }
-    }
-
-    private static <T, B> Iterator<B> batched(List<T> src, int size, Function<List<T>, B> build) {
-        return new Iterator<>() {
-            int i = 0;
-            @Override public boolean hasNext() { return i < src.size(); }
-            @Override public B next() {
-                if (!hasNext()) throw new NoSuchElementException();
-                int end = Math.min(i + size, src.size());
-                B b = build.apply(new ArrayList<>(src.subList(i, end)));
-                i = end;
-                return b;
-            }
-        };
-    }
-
-    private final class IconBatchIterator implements Iterator<IconBatch> {
-        private final List<String> remaining;
-        private final PngEncoder encoder;
-
-        IconBatchIterator(List<String> remaining, PngEncoder encoder) {
-            this.remaining = remaining;
-            this.encoder = encoder;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return !remaining.isEmpty();
-        }
-
-        @Override
-        public IconBatch next() {
-            if (!hasNext()) throw new NoSuchElementException();
-            List<String> candidates = new ArrayList<>(
-                    remaining.subList(0, Math.min(IconRenderer.CAPACITY, remaining.size())));
-
-            IconSheet sheet = renderThreadScheduler.call(deadline -> {
-                if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
-                List<ItemStack> stacks = new ArrayList<>(candidates.size());
-                for (String id : candidates) {
-                    stacks.add(new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(id))));
-                }
-                return iconRenderer.render(stacks, deadline);
-            });
-            List<String> drawn = new ArrayList<>(candidates.subList(0, sheet.count()));
-            remaining.subList(0, sheet.count()).clear();
-            return IconBatch.newBuilder()
-                    .setPng(ByteString.copyFrom(encoder.encode(sheet.image())))
-                    .setCellSize(sheet.cell())
-                    .setColumns(sheet.columns())
-                    .addAllItemIds(drawn)
-                    .build();
-        }
+        if (layouts != null) renderThread.post(layouts::close);
     }
 }
