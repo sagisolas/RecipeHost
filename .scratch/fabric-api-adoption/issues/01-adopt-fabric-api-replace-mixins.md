@@ -1,6 +1,6 @@
 # 01 — Allow fabric-api and replace custom mixins with fabric-api calls
 
-Status: claimed
+Status: done
 Type: task
 
 ## Why
@@ -52,12 +52,17 @@ Remove the TODO comments that say "without fabric-api".
 ## Acceptance criteria
 - [x] `CLAUDE.md` no longer bans fabric-api, and ADR 0009 explains the change.
 - [x] `:mod:fabric` depends on fabric-api, and `fabric.mod.json` declares it.
-- [ ] No custom Mixins are left in `mod/fabric`, unless a hook has no fabric-api equivalent (note any exceptions here).
-- [ ] `onWorldJoin`, `onClientStarted` and `registerKeybinding` all work on Fabric. None of them throw.
-- [ ] `:mod:common` has no fabric-api imports.
-- [ ] The dev harness (world-join listener and probe CLI) still triggers on joining a singleplayer world and a server.
+- [x] No custom Mixins are left in `mod/fabric`, unless a hook has no fabric-api equivalent (note any exceptions here).
+- [x] `onWorldJoin`, `onClientStarted` and `registerKeybinding` all work on Fabric. None of them throw.
+- [x] `:mod:common` has no fabric-api imports.
+- [x] The dev harness (world-join listener and probe CLI) still triggers on joining a singleplayer world and a server.
 
 ## Comments
 
 - Scope 1–2 done: `fabric-api` `0.116.18+1.21.1`, ADR 0009, and the CLAUDE.md rule. Mixin replacement (scope 3–4) is deferred on purpose. The mixins include the new `InventoryScreenInitMixin` and `MinecraftClearLevelMixin` from the qr-pairing work; `ScreenEvents.AFTER_INIT` and `ClientPlayConnectionEvents.DISCONNECT` are their likely replacements.
 - `MinecraftClearLevelMixin` is already gone: it didn't fire on singleplayer exit, so `onWorldLeave` now uses `ClientPlayConnectionEvents.DISCONNECT`. Remaining mixins: `InventoryScreenInitMixin`, `MinecraftSetLevelMixin`.
+- Scope 3–4 done. No Mixins are left in `mod/fabric`; `recipehost.mixins.json` and the `"mixins"` entry are gone. `InventoryScreenInitMixin` was replaced by `ScreenEvents.AFTER_INIT` in the QR-button change.
+- `onWorldJoin` uses `ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE` (lifecycle-events, present in `0.116.18+1.21.1`), not `ClientPlayConnectionEvents.JOIN`. Checked against fabric-api's 1.21.1 sources: `MinecraftClientMixin` fires it at the TAIL of `Minecraft#setLevel` and skips null levels, the same point and guard as the old mixin. It fires on joining a world or server and on dimension changes (a same-dimension respawn keeps its level, so neither fires), and it avoids JOIN's possibly-null `client.level`. Unlike `WorldJoinDispatcher`, which kept only the last callback, every registered callback fires, as `onScreenInit` and `onWorldLeave` already do.
+- `onClientStarted` → `ClientLifecycleEvents.CLIENT_STARTED`; `registerKeybinding` → `KeyBindingHelper.registerKeyBinding`.
+- The dev harness was deleted in the qr-pairing work, and nothing calls `onWorldJoin`, `onClientStarted` or `registerKeybinding` yet, so the last criterion is checked in-game: pairing still works and leaving a world still closes the listener.
+- In-game check passed: pairing works and leaving a world closes the listener.

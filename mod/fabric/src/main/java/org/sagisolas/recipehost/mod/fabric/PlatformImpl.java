@@ -2,6 +2,9 @@ package org.sagisolas.recipehost.mod.fabric;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -17,7 +20,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @Environment(EnvType.CLIENT)
 public final class PlatformImpl {
@@ -37,14 +39,12 @@ public final class PlatformImpl {
         return FabricLoader.getInstance().getConfigDir();
     }
 
-    // TODO: client-started lifecycle hook without fabric-api (Mixin into Minecraft#<init> or #run).
     public static void onClientStarted(Runnable callback) {
-        throw new UnsupportedOperationException("onClientStarted: wire a Mixin instead of fabric-api");
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> callback.run());
     }
 
-    // TODO: keybinding registration without fabric-api (Mixin into KeyMapping.ALL or Options).
     public static void registerKeybinding(KeyMapping keyMapping) {
-        throw new UnsupportedOperationException("registerKeybinding: wire a Mixin instead of fabric-api");
+        KeyBindingHelper.registerKeyBinding(keyMapping);
     }
 
     public static String minecraftVersion() {
@@ -52,7 +52,9 @@ public final class PlatformImpl {
     }
 
     public static void onWorldJoin(Consumer<ClientLevel> callback) {
-        WorldJoinDispatcher.register(callback);
+        // fabric-api fires this at the TAIL of Minecraft#setLevel, non-null levels only: on joining a
+        // world or server and on changing dimension (a same-dimension respawn keeps its level).
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, level) -> callback.accept(level));
     }
 
     public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
