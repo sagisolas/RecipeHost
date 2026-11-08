@@ -33,7 +33,9 @@ public final class EmiRecipeSource implements RecipeSource {
      * which the Snapshot already expands into every Slot.
      */
     private static final Set<ResourceLocation> SKIPPED_CATEGORIES =
-            Set.of(ResourceLocation.fromNamespaceAndPath("emi", "tag"));
+            Set.of(ResourceLocation.fromNamespaceAndPath("emi", "tag"),
+                    ResourceLocation.fromNamespaceAndPath("emi", "fuel"),
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "tag_recipes"));
 
     private final RenderThreadScheduler renderThreadScheduler;
     /** Categories already logged, so each failure is logged once per category. */
