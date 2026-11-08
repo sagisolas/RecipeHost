@@ -3,7 +3,7 @@ package org.sagisolas.recipehost.mod;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 
 import java.nio.file.Path;
@@ -53,11 +53,11 @@ public final class Platform {
     }
 
     /**
-     * Fires after the survival {@link InventoryScreen} has initialised its widgets
-     * (on open and on resize). The second argument adds a widget to that screen.
+     * Fires after any {@link Screen} has initialised its widgets (on open and on resize).
+     * The second argument adds a widget to that screen.
      */
     @ExpectPlatform
-    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
+    public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
 

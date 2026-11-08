@@ -3,7 +3,7 @@ package org.sagisolas.recipehost.mod.neoforge;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -57,12 +57,9 @@ public final class PlatformImpl {
         // No-op on NeoForge until the loader slice lands. Dev harness is Fabric-only for now.
     }
 
-    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
-        NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post.class, event -> {
-            if (event.getScreen() instanceof InventoryScreen screen) {
-                callback.accept(screen, event::addListener);
-            }
-        });
+    public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
+        NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post.class,
+                event -> callback.accept(event.getScreen(), event::addListener));
     }
 
     public static void onWorldLeave(Runnable callback) {

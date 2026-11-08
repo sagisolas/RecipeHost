@@ -26,7 +26,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 ### Platform (ADR 0005): two new `@ExpectPlatform` methods
 
-- `onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> cb)`. The callback receives the screen and an "add widget" sink.
+- `onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> cb)`. The callback receives every initialised screen and an "add widget" sink; `PairingButtonInstaller` keeps only the survival and creative inventories.
   - Fabric: a mixin on `InventoryScreen#init()` TAIL dispatches through a static sink, like `WorldJoinDispatcher`. The mixin class extends `AbstractContainerScreen` so it can call the protected `addRenderableWidget`.
   - NeoForge: `NeoForge.EVENT_BUS` `ScreenEvent.Init.Post`, filtered to `InventoryScreen`, using `event::addListener`.
 - `onWorldLeave(Runnable cb)`.
@@ -38,7 +38,7 @@ Vanilla has no API for this. Mods hook screen init and position their widgets ag
 
 - `PairingButtonInstaller` (an instance, constructed with the `PairingController` by `RecipeHost.init`) places the button in the **top-left corner of the whole screen**, at (4, 4), not inside the inventory window.
   - If an existing widget overlaps that spot, it steps right 22 px to the first free slot. This uses Minecraft's widget API (`screen.children()`) and runs once, at init. Resizing re-runs init.
-- The button is a vanilla `ImageButton` (20×20). It draws only the sprite, with no button background; the icon's own transparent background shows the screen behind it. Its sprite is `recipehost:pairing_button`, from `common/src/main/resources/assets/recipehost/textures/gui/sprites/pairing_button.png`. The label `Pair with RecipeHost app` is used for narration and the tooltip.
+- The button is a vanilla `Button` (20×20) labelled `QR`, styled like EMI's bottom-left buttons. It sits in the bottom-left corner (x=2, y=height-22), or at x=46 right of EMI's config and recipe-tree buttons when EMI is loaded. The tooltip and narration read `Pair with RecipeHost app`.
 - No unit tests; the in-game check covers it.
 - `PairingScreen extends Screen`:
   - Title `Component.literal("RecipeHost pairing")`. Takes `parent` and a `QrCode`.

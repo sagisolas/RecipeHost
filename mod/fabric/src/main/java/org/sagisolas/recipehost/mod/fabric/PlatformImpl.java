@@ -3,11 +3,13 @@ package org.sagisolas.recipehost.mod.fabric;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.sagisolas.recipehost.mod.ModDescriptor;
 
@@ -53,8 +55,9 @@ public final class PlatformImpl {
         WorldJoinDispatcher.register(callback);
     }
 
-    public static void onInventoryInit(BiConsumer<InventoryScreen, Consumer<AbstractWidget>> callback) {
-        InventoryInitDispatcher.register(callback);
+    public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
+        ScreenEvents.AFTER_INIT.register((client, screen, width, height) ->
+                callback.accept(screen, Screens.getButtons(screen)::add));
     }
 
     public static void onWorldLeave(Runnable callback) {

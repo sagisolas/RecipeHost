@@ -23,21 +23,22 @@ public final class RecipeHost {
     private RecipeHost() {}
 
     public static void init() {
+        boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
         RenderThreadScheduler renderThreadScheduler = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
-                new MinecraftListenerFactory(recipeSources(renderThreadScheduler), renderThreadScheduler),
+                new MinecraftListenerFactory(recipeSources(emiLoaded, renderThreadScheduler), renderThreadScheduler),
                 new ExecutorScheduler("recipehost-pairing-timer"),
                 new SecureTokens(),
                 HostAddresses::all);
-        PairingButtonInstaller buttons = new PairingButtonInstaller(pairing);
+        PairingButtonInstaller buttons = new PairingButtonInstaller(pairing, emiLoaded);
 
-        Platform.onInventoryInit(buttons::install);
+        Platform.onScreenInit(buttons::install);
         Platform.onWorldLeave(pairing::worldLeft);
     }
 
     /** EMI when it's loaded (ADR 0008); its classes are only reached in that branch. */
-    private static Function<ClientLevel, RecipeSource> recipeSources(RenderThreadScheduler renderThreadScheduler) {
-        boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
+    private static Function<ClientLevel, RecipeSource> recipeSources(
+            boolean emiLoaded, RenderThreadScheduler renderThreadScheduler) {
         return emiLoaded ? level -> new EmiRecipeSource(renderThreadScheduler) : VanillaRecipeSource::new;
     }
 }
