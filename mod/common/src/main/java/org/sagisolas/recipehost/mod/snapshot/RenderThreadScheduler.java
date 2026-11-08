@@ -11,15 +11,12 @@ import java.util.function.LongFunction;
  * so producing a Snapshot doesn't drop frames. The calling (sender) thread blocks for
  * each slice's result.
  */
-public final class RenderThreadScheduler {
+public final class RenderThreadScheduler implements RenderThread {
 
     /** Render-thread time one slice may take. */
     private static final long BUDGET_NANOS = 3_000_000L;
 
-    /**
-     * Runs {@code work} on the render thread and blocks for its result. {@code work}
-     * gets the {@code System.nanoTime()} deadline it should stop by.
-     */
+    @Override
     public <T> T call(LongFunction<T> work) {
         CompletableFuture<T> future = new CompletableFuture<>();
         Minecraft.getInstance().execute(() -> {
@@ -41,7 +38,7 @@ public final class RenderThreadScheduler {
         }
     }
 
-    /** Runs {@code work} on the render thread without waiting for it. */
+    @Override
     public void post(Runnable work) {
         Minecraft.getInstance().execute(work);
     }

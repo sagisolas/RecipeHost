@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.mod.net.SessionListener;
 import org.sagisolas.recipehost.mod.snapshot.MinecraftSnapshotSource;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
-import org.sagisolas.recipehost.mod.snapshot.RenderThreadScheduler;
+import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -20,10 +20,10 @@ public final class MinecraftListenerFactory implements PairingController.Listene
     private static final Logger LOG = LogUtils.getLogger();
 
     private final Function<ClientLevel, RecipeSource> recipeSources;
-    private final RenderThreadScheduler renderThreadScheduler;
+    private final RenderThread renderThreadScheduler;
 
     /** @param recipeSources gives the recipe source for the level being paired */
-    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources, RenderThreadScheduler renderThreadScheduler) {
+    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources, RenderThread renderThreadScheduler) {
         this.recipeSources = recipeSources;
         this.renderThreadScheduler = renderThreadScheduler;
     }

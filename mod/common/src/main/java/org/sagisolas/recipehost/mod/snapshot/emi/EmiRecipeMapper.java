@@ -23,12 +23,9 @@ final class EmiRecipeMapper {
     /**
      * @param id         the recipe's id as EMI gives it, or null
      * @param categoryId the id of the recipe's EMI category, which becomes its {@code type_id}
-     * @param inputs       each input's alternatives, in order
-     * @param layoutStacks what each `Recipe slot` of the recipe's layout shows, in slot order;
-     *                     empty when it has no layout
+     * @param inputs     each input's alternatives, in order
      */
-    static Recipe map(@Nullable String id, String categoryId, List<List<Stack>> inputs, List<Stack> outputs,
-                      List<List<Stack>> layoutStacks) {
+    static Recipe map(@Nullable String id, String categoryId, List<List<Stack>> inputs, List<Stack> outputs) {
         List<Slot> slots = new ArrayList<>(inputs.size());
         for (List<Stack> input : inputs) {
             List<ItemStack> items = itemStacks(input);
@@ -40,16 +37,19 @@ final class EmiRecipeMapper {
                 .addAllInputs(slots)
                 .addAllResults(itemStacks(outputs))
                 .build();
-        // A slot that shows no item (a fluid tank) keeps its entry, so entries line up with slots.
-        List<Slot> layoutSlots = new ArrayList<>(layoutStacks.size());
-        for (List<Stack> stacks : layoutStacks) {
+        return body.toBuilder().setId(id != null ? id : fabricatedId(categoryId, body)).build();
+    }
+
+    /**
+     * What each `Recipe slot` of a layout shows, in slot order. A slot that shows no item (a fluid
+     * tank) keeps an empty entry, so entries line up with slots.
+     */
+    static List<Slot> layoutStacks(List<List<Stack>> slotStacks) {
+        List<Slot> layoutSlots = new ArrayList<>(slotStacks.size());
+        for (List<Stack> stacks : slotStacks) {
             layoutSlots.add(Slot.newBuilder().addAllStacks(itemStacks(stacks)).build());
         }
-        // Hashed without layout_stacks, so a recipe's id doesn't depend on whether its layout drew.
-        return body.toBuilder()
-                .setId(id != null ? id : fabricatedId(categoryId, body))
-                .addAllLayoutStacks(layoutSlots)
-                .build();
+        return layoutSlots;
     }
 
     private static List<ItemStack> itemStacks(List<Stack> stacks) {

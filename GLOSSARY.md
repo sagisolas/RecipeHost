@@ -100,3 +100,9 @@ The one `Mod release` currently chosen for each mod; what the item grid and reci
 **Platform (class)**:
 The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:neoforge`). Exposes the narrow set of operations the companion mod can't do portably against Mojmap-named Minecraft APIs: mod list, config dir, client-started callback, keybinding registration. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
 _Avoid_: PlatformHooks, PlatformBridge
+
+**Recipe candidate**:
+One recipe as a recipe source (the vanilla dispatch, or EMI) finds it, before it is read. It only knows how to read its wire `Recipe` and lay out its `Recipe layout`; whether it ships is the `Recipe assembly`'s call.
+
+**Recipe assembly**:
+The module that turns `Recipe candidate`s into a `Snapshot`'s recipes and owns the rules every source shares: tag listings and fuel are skipped, a recipe that fails to read is left out, one whose layout fails ships without it, an id is sent once, and the id's namespace owns the recipe.

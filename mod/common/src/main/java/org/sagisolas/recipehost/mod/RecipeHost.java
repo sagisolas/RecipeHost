@@ -26,7 +26,7 @@ public final class RecipeHost {
         boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
         RenderThreadScheduler renderThreadScheduler = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
-                new MinecraftListenerFactory(recipeSources(emiLoaded, renderThreadScheduler), renderThreadScheduler),
+                new MinecraftListenerFactory(recipeSources(emiLoaded), renderThreadScheduler),
                 new ExecutorScheduler("recipehost-pairing-timer"),
                 new SecureTokens(),
                 HostAddresses::all);
@@ -37,8 +37,7 @@ public final class RecipeHost {
     }
 
     /** EMI when it's loaded (ADR 0008); its classes are only reached in that branch. */
-    private static Function<ClientLevel, RecipeSource> recipeSources(
-            boolean emiLoaded, RenderThreadScheduler renderThreadScheduler) {
-        return emiLoaded ? level -> new EmiRecipeSource(renderThreadScheduler) : VanillaRecipeSource::new;
+    private static Function<ClientLevel, RecipeSource> recipeSources(boolean emiLoaded) {
+        return emiLoaded ? level -> new EmiRecipeSource() : VanillaRecipeSource::new;
     }
 }

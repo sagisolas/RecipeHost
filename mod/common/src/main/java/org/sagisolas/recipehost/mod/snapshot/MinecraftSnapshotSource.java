@@ -32,6 +32,7 @@ import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
 import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
+import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 
 /**
  * Minecraft-backed {@link SnapshotSource}. Does nothing on construction; the first
@@ -54,7 +55,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private static final int ITEM_BATCH_SIZE = 256;
     private static final int RECIPE_BATCH_SIZE = 256;
     private final RecipeSource recipeSource;
-    private final RenderThreadScheduler renderThreadScheduler;
+    private final RenderThread renderThreadScheduler;
     private final Minecraft minecraft;
 
     private boolean snapshotMaterialized;
@@ -69,7 +70,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private volatile IconRenderer iconRenderer;
     private volatile LayoutRenderer layoutRenderer;
 
-    public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThreadScheduler renderThreadScheduler) {
+    public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThread renderThreadScheduler) {
         this.recipeSource = recipeSource;
         this.renderThreadScheduler = renderThreadScheduler;
         this.minecraft = Minecraft.getInstance();
@@ -136,7 +137,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         this.items = mapped.wireItems();
         this.itemIds = mapped.ids();
 
-        RecipeSource.Recipes collected = recipeSource.collect();
+        RecipeAssembly.Assembled collected = new RecipeAssembly(renderThreadScheduler).assemble(recipeSource.candidates());
         this.recipes = collected.recipes();
         this.layoutJobs = collected.layouts();
         Set<String> ownerNamespaces = new HashSet<>(mapped.namespacesWithItems());

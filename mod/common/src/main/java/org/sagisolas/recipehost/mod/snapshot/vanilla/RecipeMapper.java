@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
 import org.sagisolas.recipehost.mod.snapshot.item.Ids;
 
 /**
@@ -35,8 +35,8 @@ public final class RecipeMapper {
     /** The crafting table's grid is 3×3. */
     private static final int GRID_SIDE = 3;
 
-    /** A wire recipe, and the job that renders its layout when it has one. */
-    public record Mapped(org.sagisolas.recipehost.protocol.Recipe recipe, Optional<LayoutJob> layout) {}
+    /** A wire recipe without {@code layout_stacks}, and its layout when it has one. */
+    record Mapped(org.sagisolas.recipehost.protocol.Recipe recipe, Optional<LaidOut> layout) {}
 
     private final VanillaLayouts layouts;
 
@@ -44,7 +44,7 @@ public final class RecipeMapper {
         this.layouts = layouts;
     }
 
-    public Mapped map(RecipeHolder<?> holder, RegistryAccess registryAccess) {
+    Mapped map(RecipeHolder<?> holder, RegistryAccess registryAccess) {
         Recipe<?> recipe = holder.value();
         String id = holder.id().toString();
         String typeId = typeIdOf(recipe);
@@ -135,7 +135,7 @@ public final class RecipeMapper {
         return stacks;
     }
 
-    private static String typeIdOf(Recipe<?> recipe) {
+    static String typeIdOf(Recipe<?> recipe) {
         ResourceLocation key = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
         // A modded RecipeType that isn't registered through the vanilla registry
         // returns null; ship the shell anyway with a synthetic id so US11 still
@@ -174,9 +174,8 @@ public final class RecipeMapper {
                 .addAllInputs(inputs)
                 .addResults(resultStack)
                 .putAllExtras(extras)
-                .addAllLayoutStacks(layout == null ? List.of()
-                        : layoutStacks(layout.slots(), layoutInputs, Slot.newBuilder().addStacks(resultStack).build()))
                 .build();
-        return new Mapped(wire, Optional.ofNullable(layout).map(l -> l.job(typeId, id)));
+        return new Mapped(wire, Optional.ofNullable(layout).map(l -> new LaidOut(l.job(typeId, id),
+                layoutStacks(l.slots(), layoutInputs, Slot.newBuilder().addStacks(resultStack).build()))));
     }
 }

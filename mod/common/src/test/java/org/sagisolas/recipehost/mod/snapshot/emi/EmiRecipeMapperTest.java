@@ -23,8 +23,8 @@ public class EmiRecipeMapperTest {
 
     @Test
     public void aRecipeWithoutAnIdGetsTheSameFabricatedIdForTheSameBody() {
-        Recipe first = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
-        Recipe again = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
+        Recipe first = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH));
+        Recipe again = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH));
 
         assertTrue(first.getId(), first.getId().matches("create:[0-9a-f]{32}"));
         assertEquals(first.getId(), again.getId());
@@ -32,8 +32,8 @@ public class EmiRecipeMapperTest {
 
     @Test
     public void aDifferentBodyGetsADifferentFabricatedId() {
-        Recipe sticks = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
-        Recipe torches = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(TORCH)), List.of(TORCH), List.of());
+        Recipe sticks = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH));
+        Recipe torches = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(TORCH)), List.of(TORCH));
 
         assertNotEquals(sticks.getId(), torches.getId());
     }
@@ -41,16 +41,16 @@ public class EmiRecipeMapperTest {
     @Test
     public void anIdFromEmiIsKeptAsItIsSyntheticOnesIncluded() {
         assertEquals("minecraft:torch",
-                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH), List.of()).getId());
+                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH)).getId());
         assertEquals("emi:/brewing/x",
-                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH), List.of()).getId());
+                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH)).getId());
     }
 
     @Test
     public void onlyItemStacksAreKeptAndAnInputWithNoItemsIsDropped() {
         Recipe recipe = EmiRecipeMapper.map("create:mixing/x", "create:mixing",
                 List.of(List.of(WATER), List.of(WATER, STICK)),
-                List.of(WATER, TORCH), List.of());
+                List.of(WATER, TORCH));
 
         assertEquals(List.of(Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build()), recipe.getInputsList());
         assertEquals(List.of(wire("minecraft:torch", 4)), recipe.getResultsList());
@@ -59,30 +59,19 @@ public class EmiRecipeMapperTest {
     @Test
     public void anAmountTooLargeForTheWireCountIsCappedRatherThanWrapped() {
         Recipe recipe = EmiRecipeMapper.map("x:y", "x:z",
-                List.of(), List.of(new EmiRecipeMapper.Stack("minecraft:torch", 5_000_000_000L)), List.of());
+                List.of(), List.of(new EmiRecipeMapper.Stack("minecraft:torch", 5_000_000_000L)));
 
         assertEquals(List.of(wire("minecraft:torch", Integer.MAX_VALUE)), recipe.getResultsList());
     }
 
     @Test
     public void everyLayoutSlotGetsAnEntryWithItsItemsAndAFluidSlotStaysEmpty() {
-        Recipe recipe = EmiRecipeMapper.map("create:mixing/x", "create:mixing",
-                List.of(List.of(STICK)), List.of(TORCH),
-                List.of(List.of(STICK), List.of(WATER), List.of(TORCH)));
+        List<Slot> stacks = EmiRecipeMapper.layoutStacks(List.of(List.of(STICK), List.of(WATER), List.of(TORCH)));
 
         assertEquals(List.of(
                         Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build(),
                         Slot.newBuilder().build(),
                         Slot.newBuilder().addAllStacks(List.of(wire("minecraft:torch", 4))).build()),
-                recipe.getLayoutStacksList());
-    }
-
-    @Test
-    public void layoutStacksDontChangeAFabricatedId() {
-        Recipe without = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH), List.of());
-        Recipe with = EmiRecipeMapper.map(null, "create:mixing", List.of(List.of(STICK)), List.of(TORCH),
-                List.of(List.of(STICK), List.of(TORCH)));
-
-        assertEquals(without.getId(), with.getId());
+                stacks);
     }
 }
