@@ -7,6 +7,7 @@ import okio.ByteString;
 import org.sagisolas.recipehost.mod.net.SessionListener;
 import org.sagisolas.recipehost.mod.snapshot.MinecraftSnapshotSource;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
+import org.sagisolas.recipehost.mod.snapshot.RenderThreadScheduler;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -19,10 +20,12 @@ public final class MinecraftListenerFactory implements PairingController.Listene
     private static final Logger LOG = LogUtils.getLogger();
 
     private final Function<ClientLevel, RecipeSource> recipeSources;
+    private final RenderThreadScheduler renderThreadScheduler;
 
     /** @param recipeSources gives the recipe source for the level being paired */
-    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources) {
+    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources, RenderThreadScheduler renderThreadScheduler) {
         this.recipeSources = recipeSources;
+        this.renderThreadScheduler = renderThreadScheduler;
     }
 
     @Override
@@ -31,7 +34,7 @@ public final class MinecraftListenerFactory implements PairingController.Listene
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) throw new IOException("no client level — open pairing from in-world only");
 
-        MinecraftSnapshotSource source = new MinecraftSnapshotSource(recipeSources.apply(level));
+        MinecraftSnapshotSource source = new MinecraftSnapshotSource(recipeSources.apply(level), renderThreadScheduler);
         SessionListener listener;
         int[] port = {0}; // known only after bind; read by the termination log
         try {

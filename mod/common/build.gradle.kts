@@ -29,6 +29,7 @@ dependencies {
     compileOnly("dev.emi:emi-xplat-mojmap:${providers.gradleProperty("mod_emi_version").get()}:api")
 
     testImplementation(libs.junit)
+    testImplementation("dev.emi:emi-xplat-mojmap:${providers.gradleProperty("mod_emi_version").get()}:api")
 }
 
 tasks.test {

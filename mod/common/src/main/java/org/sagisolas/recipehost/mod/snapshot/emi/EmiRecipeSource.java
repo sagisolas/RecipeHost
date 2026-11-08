@@ -8,39 +8,58 @@ import dev.emi.emi.api.stack.EmiStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
+import org.sagisolas.recipehost.mod.snapshot.RenderThreadScheduler;
 import org.sagisolas.recipehost.mod.snapshot.item.Ids;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
- * Every recipe EMI knows, vanilla and JEI-only ones included (ADR 0008). Only constructed
- * when EMI is loaded, so EMI's classes are never reached without it.
+ * Every recipe EMI knows, vanilla and JEI-only ones included (ADR 0008), each with the
+ * layout captured from its widgets (ADR 0015). Only constructed when EMI is loaded, so
+ * EMI's classes are never reached without it.
  */
 public final class EmiRecipeSource implements RecipeSource {
 
     private static final Logger LOG = LogUtils.getLogger();
 
+    private final RenderThreadScheduler renderThreadScheduler;
+    /** Categories already logged, so each failure is logged once per category. */
+    private final Set<ResourceLocation> failedCaptures = new HashSet<>();
+    private final Set<ResourceLocation> failedReads = new HashSet<>();
+
+    public EmiRecipeSource(RenderThreadScheduler renderThreadScheduler) {
+        this.renderThreadScheduler = renderThreadScheduler;
+    }
+
     @Override
     public Recipes collect() {
+        List<EmiRecipe> all = List.copyOf(EmiApi.getRecipeManager().getRecipes());
+        List<Optional<CapturingWidgetHolder.Capture>> captures = captureAll(all);
+
         List<Recipe> recipes = new ArrayList<>();
+        List<LayoutJob> layouts = new ArrayList<>();
         Set<String> namespaces = new HashSet<>();
-        Set<ResourceLocation> failedCategories = new HashSet<>();
-        for (EmiRecipe recipe : EmiApi.getRecipeManager().getRecipes()) {
+        for (int i = 0; i < all.size(); i++) {
+            EmiRecipe recipe = all.get(i);
+            // A recipe with no layout ships no layout_stacks either.
+            Optional<CapturingWidgetHolder.Capture> capture = captures.get(i).filter(c -> c.width() > 0 && c.height() > 0);
             ResourceLocation categoryId = recipe.getCategory().getId();
             ResourceLocation id;
             Recipe wire;
             try {
                 id = recipe.getId();
                 wire = EmiRecipeMapper.map(id == null ? null : id.toString(), categoryId.toString(),
-                        inputsOf(recipe), stacksOf(recipe.getOutputs()));
+                        inputsOf(recipe), stacksOf(recipe.getOutputs()), layoutStacksOf(capture));
             } catch (RuntimeException e) {
                 // A mod's broken recipe costs only that recipe, not the Snapshot.
-                if (failedCategories.add(categoryId)) {
+                if (failedReads.add(categoryId)) {
                     LOG.warn("[recipehost] skipping EMI recipes of {} that fail to read", categoryId, e);
                 }
                 continue;
@@ -48,18 +67,63 @@ public final class EmiRecipeSource implements RecipeSource {
             recipes.add(wire);
             // A recipe without an id gets one in its category's namespace.
             namespaces.add((id != null ? id : categoryId).getNamespace());
+            capture.map(c -> new EmiLayoutDrawer(c).job(categoryId.toString(), wire.id)).ifPresent(layouts::add);
         }
-        // TODO(recipe-layouts issue 05): EMI layout capture supplies the layout jobs.
-        return new Recipes(recipes, List.of(), namespaces);
+        return new Recipes(recipes, layouts, namespaces);
+    }
+
+    /**
+     * Captures every recipe's widgets on the render thread, where mods expect
+     * {@code addWidgets} to run, a budgeted slice at a time.
+     */
+    private List<Optional<CapturingWidgetHolder.Capture>> captureAll(List<EmiRecipe> all) {
+        List<Optional<CapturingWidgetHolder.Capture>> captures = new ArrayList<>(all.size());
+        while (captures.size() < all.size()) {
+            int from = captures.size();
+            captures.addAll(renderThreadScheduler.call(deadline -> {
+                List<Optional<CapturingWidgetHolder.Capture>> slice = new ArrayList<>();
+                // At least one per slice, so the loop always makes progress.
+                do {
+                    slice.add(capture(all.get(from + slice.size())));
+                } while (from + slice.size() < all.size() && System.nanoTime() < deadline);
+                return slice;
+            }));
+        }
+        return captures;
+    }
+
+    /** The recipe's widgets, or empty if its {@code addWidgets} throws: it then ships without a layout. */
+    private Optional<CapturingWidgetHolder.Capture> capture(EmiRecipe recipe) {
+        try {
+            CapturingWidgetHolder holder = new CapturingWidgetHolder(
+                    recipe.getDisplayWidth(), recipe.getDisplayHeight(), recipe.getCatalysts());
+            recipe.addWidgets(holder);
+            return Optional.of(holder.capture());
+        } catch (RuntimeException | LinkageError e) {
+            // LinkageError: a mod's widgets compiled against an API that isn't there.
+            ResourceLocation category = recipe.getCategory().getId();
+            if (failedCaptures.add(category)) {
+                LOG.warn("[recipehost] EMI recipes of {} fail to add their widgets; they ship without a layout", category, e);
+            }
+            return Optional.empty();
+        }
     }
 
     private static List<List<EmiRecipeMapper.Stack>> inputsOf(EmiRecipe recipe) {
         List<List<EmiRecipeMapper.Stack>> inputs = new ArrayList<>();
         for (EmiIngredient ingredient : recipe.getInputs()) {
-            // getEmiStacks() expands tags into their items.
-            inputs.add(stacksOf(ingredient.getEmiStacks()));
+            inputs.add(stacksOf(ingredient));
         }
         return inputs;
+    }
+
+    private static List<List<EmiRecipeMapper.Stack>> layoutStacksOf(Optional<CapturingWidgetHolder.Capture> capture) {
+        return capture.map(c -> c.slots().stream().map(slot -> stacksOf(slot.stack())).toList()).orElse(List.of());
+    }
+
+    /** getEmiStacks() expands tags into their items. */
+    private static List<EmiRecipeMapper.Stack> stacksOf(EmiIngredient ingredient) {
+        return stacksOf(ingredient.getEmiStacks());
     }
 
     private static List<EmiRecipeMapper.Stack> stacksOf(List<EmiStack> stacks) {

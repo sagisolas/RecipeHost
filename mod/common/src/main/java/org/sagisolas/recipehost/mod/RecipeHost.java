@@ -7,6 +7,7 @@ import org.sagisolas.recipehost.mod.pairing.MinecraftListenerFactory;
 import org.sagisolas.recipehost.mod.pairing.PairingController;
 import org.sagisolas.recipehost.mod.pairing.SecureTokens;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
+import org.sagisolas.recipehost.mod.snapshot.RenderThreadScheduler;
 import org.sagisolas.recipehost.mod.snapshot.emi.EmiRecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.vanilla.VanillaRecipeSource;
 import org.sagisolas.recipehost.mod.ui.PairingButtonInstaller;
@@ -22,8 +23,9 @@ public final class RecipeHost {
     private RecipeHost() {}
 
     public static void init() {
+        RenderThreadScheduler renderThreadScheduler = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
-                new MinecraftListenerFactory(recipeSources()),
+                new MinecraftListenerFactory(recipeSources(renderThreadScheduler), renderThreadScheduler),
                 new ExecutorScheduler("recipehost-pairing-timer"),
                 new SecureTokens(),
                 HostAddresses::all);
@@ -34,8 +36,8 @@ public final class RecipeHost {
     }
 
     /** EMI when it's loaded (ADR 0008); its classes are only reached in that branch. */
-    private static Function<ClientLevel, RecipeSource> recipeSources() {
+    private static Function<ClientLevel, RecipeSource> recipeSources(RenderThreadScheduler renderThreadScheduler) {
         boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
-        return emiLoaded ? level -> new EmiRecipeSource() : VanillaRecipeSource::new;
+        return emiLoaded ? level -> new EmiRecipeSource(renderThreadScheduler) : VanillaRecipeSource::new;
     }
 }

@@ -7,7 +7,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 
@@ -110,14 +110,13 @@ public final class LayoutRenderer implements AutoCloseable {
     }
 
     /**
-     * Draws one job with its own {@link GuiGraphics}, so a draw that throws midway
-     * can't leave pushed poses behind for the next. Whatever it buffered is flushed
-     * inside its scissor, so it stays inside its own rectangle.
+     * Draws one job with its own {@link JobGuiGraphics}, so a draw that throws midway
+     * can't leave pushed poses or scissors behind for the next. Whatever it buffered is
+     * flushed inside its clip, so it stays inside its own rectangle.
      */
     private void draw(LayoutJob job, int x, int y) {
-        GuiGraphics graphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
-        // GL scissor boxes start at the bottom-left; the sheet's GUI y runs down from the top.
-        RenderSystem.enableScissor(x, SIZE - y - job.height(), job.width(), job.height());
+        JobGuiGraphics graphics = new JobGuiGraphics(minecraft, SIZE, new ScreenRectangle(x, y, job.width(), job.height()));
+        graphics.clipToJob();
         try {
             graphics.pose().translate(x, y, 0f);
             job.drawer().draw(graphics, NO_MOUSE, NO_MOUSE);

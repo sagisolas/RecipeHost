@@ -1,6 +1,6 @@
 # Mod: EMI layout capture
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02, 04
 Spec: ../spec.md
 
@@ -14,7 +14,9 @@ Spec: ../spec.md
     - Stacks: the item stacks of `getStack()` go into `layout_stacks`.
   - **`GeneratedSlotWidget`**: `getStack()` is sampled once.
   - **`FillingArrowWidget`**: only the empty arrow is drawn.
-  - **Everything else** renders as it is, text and other animated textures included.
+  - **Other animated textures** (a furnace's flame) aren't drawn, so the static texture under them shows: they follow the wall clock, and equal layouts would differ.
+  - **Everything else** renders as it is, text included, on the GUI's light panel grey (`0xFFC6C6C6`), with a 4 GUI px border of it around the recipe's display area; slots are shifted to match.
+- Slots are read once `addWidgets` returns, not in `add`: EMI configures a slot after adding it (`addSlot(...).large(true).recipeContext(this)`).
 - `LayoutRenderer` clips each job with a raw GL scissor in sheet pixels. A widget that calls `GuiGraphics.enableScissor` gets a box computed from the window's GUI scale, and its `disableScissor` turns the job's clip off. Handle that here, for example by wrapping the `GuiGraphics` passed to widgets.
 - If `addWidgets` throws, or a widget throws while drawing, the recipe has no layout. The failure is logged once per category.
 

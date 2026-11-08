@@ -65,7 +65,9 @@ Decisions are in ADR 0015, which amends ADR 0008. Vocabulary is in `GLOSSARY.md`
     Only `drawBackground` is drawn into the image, except for non-item stacks (fluids, chemicals): there `drawStack` is drawn too, so their contents are baked in.
   - `GeneratedSlotWidget`: `getStack()` is sampled once.
   - `FillingArrowWidget`: only the empty arrow is drawn.
-  - Every other widget, text and other animated textures included, renders as it is.
+  - Other animated textures (a furnace's flame) aren't drawn, so the static texture under them shows: they follow the wall clock, and equal layouts would differ.
+  - Every other widget, text included, renders as it is, on the GUI's light panel grey (`0xFFC6C6C6`), with a 4 GUI px border of it around the recipe's display area; slots are shifted to match.
+  - Slots are read once `addWidgets` returns: EMI configures a slot after adding it (`addSlot(...).large(true).recipeContext(this)`).
 
 ### Mobile app
 

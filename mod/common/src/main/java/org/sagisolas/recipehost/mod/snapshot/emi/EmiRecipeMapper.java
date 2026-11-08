@@ -23,9 +23,12 @@ final class EmiRecipeMapper {
     /**
      * @param id         the recipe's id as EMI gives it, or null
      * @param categoryId the id of the recipe's EMI category, which becomes its {@code type_id}
-     * @param inputs     each input's alternatives, in order
+     * @param inputs       each input's alternatives, in order
+     * @param layoutStacks what each `Recipe slot` of the recipe's layout shows, in slot order;
+     *                     empty when it has no layout
      */
-    static Recipe map(@Nullable String id, String categoryId, List<List<Stack>> inputs, List<Stack> outputs) {
+    static Recipe map(@Nullable String id, String categoryId, List<List<Stack>> inputs, List<Stack> outputs,
+                      List<List<Stack>> layoutStacks) {
         List<Slot> slots = new ArrayList<>(inputs.size());
         for (List<Stack> input : inputs) {
             List<ItemStack> items = itemStacks(input);
@@ -37,7 +40,16 @@ final class EmiRecipeMapper {
                 .inputs(slots)
                 .results(itemStacks(outputs))
                 .build();
-        return body.newBuilder().id(id != null ? id : fabricatedId(categoryId, body)).build();
+        // A slot that shows no item (a fluid tank) keeps its entry, so entries line up with slots.
+        List<Slot> layoutSlots = new ArrayList<>(layoutStacks.size());
+        for (List<Stack> stacks : layoutStacks) {
+            layoutSlots.add(new Slot.Builder().stacks(itemStacks(stacks)).build());
+        }
+        // Hashed without layout_stacks, so a recipe's id doesn't depend on whether its layout drew.
+        return body.newBuilder()
+                .id(id != null ? id : fabricatedId(categoryId, body))
+                .layout_stacks(layoutSlots)
+                .build();
     }
 
     private static List<ItemStack> itemStacks(List<Stack> stacks) {

@@ -23,10 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.sagisolas.recipehost.mod.snapshot.icon.IconRenderer;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.mod.snapshot.item.ItemMapper;
@@ -56,10 +53,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
 
     private static final int ITEM_BATCH_SIZE = 256;
     private static final int RECIPE_BATCH_SIZE = 256;
-    /** Render-thread time one icon or layout batch may take, so streaming them doesn't drop frames. */
-    private static final long RENDER_BUDGET_NANOS = 3_000_000L;
-
     private final RecipeSource recipeSource;
+    private final RenderThreadScheduler renderThreadScheduler;
     private final Minecraft minecraft;
 
     private boolean snapshotMaterialized;
@@ -74,8 +69,9 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private volatile IconRenderer iconRenderer;
     private volatile LayoutRenderer layoutRenderer;
 
-    public MinecraftSnapshotSource(RecipeSource recipeSource) {
+    public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThreadScheduler renderThreadScheduler) {
         this.recipeSource = recipeSource;
+        this.renderThreadScheduler = renderThreadScheduler;
         this.minecraft = Minecraft.getInstance();
     }
 
@@ -124,8 +120,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
      * {@code pending} isn't touched while the sheet is drawn.
      */
     private LayoutSheet renderLayoutSheet(List<LayoutJob> pending) {
-        return onRenderThread(() -> {
-            long deadline = System.nanoTime() + RENDER_BUDGET_NANOS;
+        return renderThreadScheduler.call(deadline -> {
             if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
             return layoutRenderer.render(pending, deadline);
         });
@@ -158,34 +153,12 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         IconRenderer icons = iconRenderer;
         iconRenderer = null;
         if (icons != null) {
-            minecraft.execute(icons::close);
+            renderThreadScheduler.post(icons::close);
         }
         LayoutRenderer layouts = layoutRenderer;
         layoutRenderer = null;
         if (layouts != null) {
-            minecraft.execute(layouts::close);
-        }
-    }
-
-    /** Runs {@code work} on the render thread and blocks the calling thread for its result. */
-    private <T> T onRenderThread(Supplier<T> work) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        minecraft.execute(() -> {
-            try {
-                future.complete(work.get());
-            } catch (Throwable t) {
-                future.completeExceptionally(t);
-            }
-        });
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException re) throw re;
-            throw new RuntimeException(cause);
+            renderThreadScheduler.post(layouts::close);
         }
     }
 
@@ -223,8 +196,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
             List<String> candidates = new ArrayList<>(
                     remaining.subList(0, Math.min(IconRenderer.CAPACITY, remaining.size())));
 
-            IconSheet sheet = onRenderThread(() -> {
-                long deadline = System.nanoTime() + RENDER_BUDGET_NANOS;
+            IconSheet sheet = renderThreadScheduler.call(deadline -> {
                 if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
                 List<ItemStack> stacks = new ArrayList<>(candidates.size());
                 for (String id : candidates) {
