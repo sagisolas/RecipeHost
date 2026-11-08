@@ -11,6 +11,9 @@ import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
@@ -21,6 +24,8 @@ import java.util.Iterator;
  * a trailing Error frame and rethrows as {@link IOException}.
  */
 public final class SnapshotSender {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SnapshotSender.class);
 
     private SnapshotSender() {}
 
@@ -34,6 +39,8 @@ public final class SnapshotSender {
             drainIcons(out, source.iconBatches());
             drainLayouts(out, source.layoutBatches());
         } catch (RuntimeException | IOException ex) {
+            // The app only learns "source failure"; the cause is only ever seen here.
+            LOG.error("[recipehost] Snapshot failed while streaming; sending an Error frame", ex);
             Error error = Error.newBuilder().setCode(ErrorCode.SOURCE_FAILURE).build();
             EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setError(error).build());
             out.flush();

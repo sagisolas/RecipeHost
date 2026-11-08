@@ -56,6 +56,9 @@ public final class EmiRecipeSource implements RecipeSource {
         List<Recipe> recipes = new ArrayList<>();
         List<LayoutJob> layouts = new ArrayList<>();
         Set<String> namespaces = new HashSet<>();
+        // A Snapshot names each recipe once: the app keys recipes by id (ADR 0011).
+        Set<String> ids = new HashSet<>();
+        Set<ResourceLocation> duplicateCategories = new HashSet<>();
         for (int i = 0; i < all.size(); i++) {
             EmiRecipe recipe = all.get(i);
             // A recipe with no layout ships no layout_stacks either.
@@ -71,6 +74,15 @@ public final class EmiRecipeSource implements RecipeSource {
                 // A mod's broken recipe costs only that recipe, not the Snapshot.
                 if (failedReads.add(categoryId)) {
                     LOG.warn("[recipehost] skipping EMI recipes of {} that fail to read", categoryId, e);
+                }
+                continue;
+            }
+            // Two recipes can share an id: a mod registered both under one, or two recipes without
+            // one have the same body once fluids are left out. The first is kept.
+            if (!ids.add(wire.getId())) {
+                if (duplicateCategories.add(categoryId)) {
+                    LOG.warn("[recipehost] EMI recipes of {} repeat the id {}; only the first is sent (logged once per category)",
+                            categoryId, wire.getId());
                 }
                 continue;
             }

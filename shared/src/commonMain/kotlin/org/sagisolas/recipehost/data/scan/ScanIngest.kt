@@ -85,6 +85,8 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
         emit(ScanProgress.Done)
     }.catch { cause ->
         if (cause is CancellationException) throw cause
+        // The screen only shows a reason; the cause is only ever seen here (logcat / Xcode console).
+        println("[recipehost] Scan failed: ${cause.stackTraceToString()}")
         // A drop keeps the layouts that arrived, but its commit may still have orphaned old ones.
         runCatching { deleteUnreferencedLayouts() }
         emit(ScanProgress.Failed(cause))

@@ -10,6 +10,7 @@ import dev.emi.emi.api.widget.GeneratedSlotWidget;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.Widget;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
@@ -91,7 +92,10 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
                 boolean bake = showsNonItem(slotStacks.get(nextSlot++)) && !(slot instanceof GeneratedSlotWidget);
                 if (bake) slot.drawStack(graphics, mouseX, mouseY, NO_DELTA);
             } else {
-                widget.render(graphics, mouseX, mouseY, NO_DELTA);
+                // Called through Minecraft's Renderable, which Widget implements: in production
+                // render is Renderable's intermediary method, and the remapper only renames the
+                // call when its owner is a Minecraft class (EMI's hierarchy isn't on its classpath).
+                ((Renderable) widget).render(graphics, mouseX, mouseY, NO_DELTA);
             }
         }
     }

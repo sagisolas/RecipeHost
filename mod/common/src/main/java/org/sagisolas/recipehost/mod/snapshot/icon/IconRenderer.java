@@ -6,13 +6,19 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
+import org.slf4j.Logger;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
@@ -33,6 +39,7 @@ import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 public final class IconRenderer implements AutoCloseable {
 
     /** Size of one item in GUI units, the coordinates {@code renderItem} draws in. */
+    private static final Logger LOG = LogUtils.getLogger();
     private static final int ITEM = 16;
     /** Framebuffer pixels per GUI unit. */
     static final int SCALE = 2;
@@ -51,6 +58,9 @@ public final class IconRenderer implements AutoCloseable {
 
     private final Minecraft minecraft;
     private final RenderTarget target;
+
+    /** Namespaces whose Icons failed, so each is logged once. Touched only on the render thread. */
+    private final Set<String> failedNamespaces = new HashSet<>();
 
     public IconRenderer(Minecraft minecraft) {
         this.minecraft = minecraft;
@@ -90,12 +100,10 @@ public final class IconRenderer implements AutoCloseable {
         int limit = Math.min(CAPACITY, stacks.size());
         int drawn = 0;
         try {
-            GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
             do {
-                guiGraphics.renderItem(stacks.get(drawn), (drawn % COLUMNS) * ITEM, (drawn / COLUMNS) * ITEM);
+                draw(stacks.get(drawn), (drawn % COLUMNS) * ITEM, (drawn / COLUMNS) * ITEM);
                 drawn++;
             } while (drawn < limit && System.nanoTime() < deadlineNanos);
-            guiGraphics.flush();
         } finally {
             modelView.popMatrix();
             RenderSystem.applyModelViewMatrix();
@@ -110,6 +118,26 @@ public final class IconRenderer implements AutoCloseable {
         } finally {
             target.unbindWrite();
             main.bindWrite(true);
+        }
+    }
+
+    /**
+     * Draws one stack with its own {@link GuiGraphics}, so a renderer that throws midway
+     * can't leave a pushed pose behind for the next. A stack whose renderer throws (an
+     * exception, or a linkage error from a mod built against another API) keeps a blank
+     * cell, and the Snapshot goes on; it is logged once per namespace.
+     */
+    private void draw(ItemStack stack, int x, int y) {
+        GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
+        try {
+            guiGraphics.renderItem(stack, x, y);
+        } catch (RuntimeException | LinkageError e) {
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            if (failedNamespaces.add(id.getNamespace())) {
+                LOG.warn("[recipehost] Couldn't draw the Icon of {}; it ships blank (logged once per namespace)", id, e);
+            }
+        } finally {
+            guiGraphics.flush();
         }
     }
 
