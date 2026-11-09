@@ -4,12 +4,15 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.flow.Flow
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
+import org.sagisolas.recipehost.domain.throttleLatest
 import kotlin.coroutines.CoroutineContext
 
 /**
  * The `Item`s of the `Version selection`, searched by text and optionally limited to one mod.
  * Order: minecraft first, then the mods in their latest `Scan`'s order, then display name.
- * The flows re-emit whenever the `Catalog` changes, so arriving `Icon`s show up live.
+ * The flows re-emit when the `Catalog` changes, at most once per [CATALOG_REFRESH_PERIOD], so
+ * arriving `Icon`s show up live without re-running the query for every IconBatch.
  *
  * [context] runs the queries; `AppGraph` passes an I/O dispatcher.
  */
@@ -27,6 +30,7 @@ internal class ItemSearch(
         val search = parseSearchText(text)
         return catalog.itemQueries.selected(modId, search.modPrefix, search.nameMatch, ::catalogItemOf)
             .asFlow()
+            .throttleLatest(CATALOG_REFRESH_PERIOD)
             .mapToList(context)
     }
 }

@@ -76,7 +76,7 @@ internal data class StackUi(val itemId: String, val count: Int, val item: Catalo
 internal class ItemViewModel(
     itemId: String,
     itemRecipes: (String, RecipeDirection) -> Flow<List<RecipeGroup>>,
-    private val resolveStack: (String) -> Flow<StackResolution>,
+    private val resolveStacks: (List<String>) -> Flow<Map<String, StackResolution>>,
 ) : ViewModel() {
 
     private val tab = MutableStateFlow(ItemTab.Recipes)
@@ -120,7 +120,7 @@ internal class ItemViewModel(
         }
     }
 
-    private val header: Flow<StackUi> = resolveStack(itemId).map { StackUi(itemId, count = 1, item = itemOf(it)) }
+    private val header: Flow<StackUi> = resolveStacks(listOf(itemId)).map { StackUi(itemId, count = 1, item = it[itemId]?.let(::itemOf)) }
 
     val state: StateFlow<ItemUiState> = combine(header, resolved, ticks) { header, resolved, tick ->
         ItemUiState(header, resolved.tab, resolved.sections.map { sectionOf(it, resolved.items, tick) })
@@ -153,7 +153,7 @@ internal class ItemViewModel(
         if (ids.isEmpty()) {
             flowOf(emptyMap())
         } else {
-            combine(ids.map(resolveStack)) { resolutions -> ids.zip(resolutions.map(::itemOf)).toMap() }
+            resolveStacks(ids).map { resolutions -> ids.associateWith { id -> resolutions[id]?.let(::itemOf) } }
         }
 }
 

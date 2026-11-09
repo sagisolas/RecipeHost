@@ -79,3 +79,11 @@ DELETE FROM item;
 -- Whether the Catalog holds anything; an empty one starts the app at Welcome.
 count:
 SELECT COUNT(*) FROM item;
+
+-- Each of :itemIds in every selected release that has it, with the mod of that release: an id
+-- resolves to the row whose mod is its namespace's.
+selectedOfAll:
+SELECT version_selection.mod_id, item.release_id, item.item_id, item.display_name, item.atlas_id, item.cell, item.columns, item.cell_size
+FROM version_selection
+JOIN item_with_icon AS item ON item.release_id = version_selection.release_id
+WHERE item.item_id IN :itemIds;

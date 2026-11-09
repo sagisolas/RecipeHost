@@ -13,6 +13,7 @@ import org.sagisolas.recipehost.domain.CatalogFixture.Companion.jei
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
+import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -99,6 +100,9 @@ class ItemSearchTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { search.items("").toList(emissions) }
 
         catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"), icons = listOf("minecraft:stick"))
+        // A change right after the last emission waits out the refresh period.
+        testScheduler.advanceTimeBy(CATALOG_REFRESH_PERIOD)
+        testScheduler.runCurrent()
 
         assertNull(emissions.first().single().icon)
         assertEquals(IconRegion(atlasId = 1, x = 0, y = 0, size = 16), emissions.last().single().icon)

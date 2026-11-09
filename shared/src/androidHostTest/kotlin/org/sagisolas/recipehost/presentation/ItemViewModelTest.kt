@@ -45,7 +45,7 @@ class ItemViewModelTest {
         val viewModel = ItemViewModel(
             itemId = itemId,
             itemRecipes = { _, direction -> if (direction == RecipeDirection.Recipes) recipes else uses },
-            resolveStack = { id -> MutableStateFlow(resolutionOf(id)) },
+            resolveStacks = { ids -> MutableStateFlow(ids.associateWith(::resolutionOf)) },
         )
         // The state is shared while the screen collects it, as the UI does.
         backgroundScope.launch { viewModel.state.collect {} }

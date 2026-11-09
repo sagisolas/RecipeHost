@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
+import org.sagisolas.recipehost.domain.throttleLatest
 import org.sagisolas.recipehost.data.catalog.MINECRAFT
 import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.protocol.ItemStack
@@ -26,7 +28,7 @@ internal enum class RecipeDirection {
 /**
  * An Item's recipes or uses among those owned by the `Version selection` (ADR 0011), grouped by
  * type, each with its `Instance` variants decoded into how they are drawn. The flow re-emits when
- * the `Catalog` changes.
+ * the `Catalog` changes, at most once per [CATALOG_REFRESH_PERIOD].
  *
  * [context] runs the queries; `AppGraph` passes an I/O dispatcher.
  */
@@ -39,7 +41,7 @@ internal class ItemRecipes(
             RecipeDirection.Recipes -> catalog.recipeQueries.selectedProducing(itemId, ::InstanceRecipe)
             RecipeDirection.Uses -> catalog.recipeQueries.selectedConsuming(itemId, ::InstanceRecipe)
         }
-        return query.asFlow().mapToList(context).map { it.toGroups() }
+        return query.asFlow().throttleLatest(CATALOG_REFRESH_PERIOD).mapToList(context).map { it.toGroups() }
     }
 }
 

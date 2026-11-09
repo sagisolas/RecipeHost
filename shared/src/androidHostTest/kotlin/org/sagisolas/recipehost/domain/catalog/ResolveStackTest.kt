@@ -29,7 +29,7 @@ class ResolveStackTest {
             StackResolution.Resolved(
                 CatalogItem(catalog.releaseId(minecraft), "minecraft:stick", "Stick", IconRegion(atlasId = 1, x = 0, y = 0, size = 16)),
             ),
-            resolve("minecraft:stick").first(),
+            resolveOne("minecraft:stick"),
         )
     }
 
@@ -37,7 +37,7 @@ class ResolveStackTest {
     fun anItemOfAModWithNoReleaseIsUnresolved() = runTest {
         catalog.scan("ATM9", minecraft, items = listOf("minecraft:stick" to "Stick"))
 
-        assertEquals(StackResolution.Unresolved("create:cogwheel"), resolve("create:cogwheel").first())
+        assertEquals(StackResolution.Unresolved("create:cogwheel"), resolveOne("create:cogwheel"))
     }
 
     @Test
@@ -45,13 +45,29 @@ class ResolveStackTest {
         catalog.scan("Old", minecraft, create5, items = listOf("create:andesite_alloy" to "Andesite Alloy"))
         catalog.scan("New", minecraft, create6, items = listOf("create:cogwheel" to "Cogwheel"))
 
-        assertEquals(StackResolution.Unresolved("create:andesite_alloy"), resolve("create:andesite_alloy").first())
+        assertEquals(StackResolution.Unresolved("create:andesite_alloy"), resolveOne("create:andesite_alloy"))
 
         modList.select("create", catalog.releaseId(create5))
 
         assertEquals(
             StackResolution.Resolved(CatalogItem(catalog.releaseId(create5), "create:andesite_alloy", "Andesite Alloy", null)),
-            resolve("create:andesite_alloy").first(),
+            resolveOne("create:andesite_alloy"),
         )
     }
+
+    @Test
+    fun severalIdsResolveTogetherEachAgainstItsOwnModsSelectedRelease() = runTest {
+        catalog.scan("ATM9", minecraft, create6, items = listOf("minecraft:stick" to "Stick", "create:cogwheel" to "Cogwheel"))
+
+        assertEquals(
+            mapOf(
+                "minecraft:stick" to StackResolution.Resolved(CatalogItem(catalog.releaseId(minecraft), "minecraft:stick", "Stick", null)),
+                "create:cogwheel" to StackResolution.Resolved(CatalogItem(catalog.releaseId(create6), "create:cogwheel", "Cogwheel", null)),
+                "gadgets:widget" to StackResolution.Unresolved("gadgets:widget"),
+            ),
+            resolve(listOf("minecraft:stick", "create:cogwheel", "gadgets:widget")).first(),
+        )
+    }
+
+    private suspend fun resolveOne(itemId: String) = resolve(listOf(itemId)).first().getValue(itemId)
 }

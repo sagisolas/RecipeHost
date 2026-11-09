@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.sagisolas.recipehost.data.scan.ScanProgress
@@ -16,6 +17,7 @@ import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
 import kotlin.coroutines.EmptyCoroutineContext
+import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -83,6 +85,8 @@ class ModListViewModelTest {
         assertEquals("Cogwheel", grid.state.value.items.single { it.itemId == "create:cogwheel" }.displayName)
 
         modList.select("create", catalog.releaseId(create5))
+        // The grid's query re-runs at most once per refresh period.
+        advanceTimeBy(CATALOG_REFRESH_PERIOD)
         runCurrent()
 
         assertEquals(catalog.releaseId(create5), modList.state.value.mods.single { it.modId == "create" }.selectedReleaseId)

@@ -44,7 +44,7 @@ class ClearCatalogTest {
         assertEquals(emptyList(), modList.mods.first())
         assertEquals(emptyList(), search.items("").first())
         assertEquals(emptyList(), search.items("stick").first())
-        assertEquals(StackResolution.Unresolved("minecraft:stick"), resolve("minecraft:stick").first())
+        assertEquals(StackResolution.Unresolved("minecraft:stick"), resolve(listOf("minecraft:stick")).first().getValue("minecraft:stick"))
         assertEquals(emptyList(), itemRecipes("create:cogwheel", RecipeDirection.Recipes).first())
         assertEquals(emptyList(), itemRecipes("minecraft:stick", RecipeDirection.Uses).first())
         assertEquals(0L, catalog.database.iconQueries.atlasCount().executeAsOne())
