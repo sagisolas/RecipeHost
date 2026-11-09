@@ -3,39 +3,41 @@ package org.sagisolas.recipehost.mod.snapshot;
 import net.minecraft.client.Minecraft;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.LongFunction;
 
 /**
  * Runs Snapshot work on Minecraft's render thread in slices that fit a per-frame budget,
- * so producing a Snapshot doesn't drop frames. The calling (sender) thread blocks for
- * each slice's result.
+ * so producing a Snapshot doesn't drop frames. The budget is shared by the slices that run in
+ * one frame: Minecraft runs every queued task between two frames, so a slice queued while the
+ * last one was still running would otherwise get a whole budget of its own.
  */
 public final class RenderThreadScheduler implements RenderThread {
 
-    /** Render-thread time one slice may take. */
+    /** Render-thread time the slices of one frame may take together. */
     private static final long BUDGET_NANOS = 3_000_000L;
+    /** A slice that starts this soon after the last one ended runs in the same frame. */
+    private static final long SAME_FRAME_NANOS = 2_000_000L;
+
+    /** Touched only on the render thread. */
+    private long lastSliceEnd = Long.MIN_VALUE / 2;
+    private long spentThisFrame;
 
     @Override
-    public <T> T call(LongFunction<T> work) {
+    public <T> CompletableFuture<T> submit(LongFunction<T> work) {
         CompletableFuture<T> future = new CompletableFuture<>();
         Minecraft.getInstance().execute(() -> {
+            long start = System.nanoTime();
+            if (start - lastSliceEnd > SAME_FRAME_NANOS) spentThisFrame = 0;
             try {
-                future.complete(work.apply(System.nanoTime() + BUDGET_NANOS));
+                future.complete(work.apply(start + Math.max(0, BUDGET_NANOS - spentThisFrame)));
             } catch (Throwable t) {
                 future.completeExceptionally(t);
+            } finally {
+                lastSliceEnd = System.nanoTime();
+                spentThisFrame += lastSliceEnd - start;
             }
         });
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException re) throw re;
-            throw new RuntimeException(cause);
-        }
+        return future;
     }
 
     @Override

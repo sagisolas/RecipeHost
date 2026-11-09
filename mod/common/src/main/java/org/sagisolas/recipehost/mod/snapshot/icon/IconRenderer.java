@@ -44,8 +44,8 @@ public final class IconRenderer implements AutoCloseable {
     /** Framebuffer pixels per GUI unit. */
     static final int SCALE = 2;
     static final int CELL = ITEM * SCALE;
-    static final int COLUMNS = 8;
-    static final int ROWS = 4;
+    static final int COLUMNS = 16;
+    static final int ROWS = 8;
     public static final int CAPACITY = COLUMNS * ROWS;
 
     private static final int WIDTH = COLUMNS * CELL;

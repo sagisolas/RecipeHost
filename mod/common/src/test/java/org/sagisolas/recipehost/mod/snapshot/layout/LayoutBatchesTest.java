@@ -42,7 +42,14 @@ public class LayoutBatchesTest {
         }
 
         @Override
-        public LayoutSheet render(List<LayoutJob> pending) {
+        public java.util.concurrent.CompletableFuture<LayoutSheet> render(List<LayoutJob> pending) {
+            requests++;
+            return java.util.concurrent.CompletableFuture.completedFuture(draw(pending));
+        }
+
+        int requests;
+
+        private LayoutSheet draw(List<LayoutJob> pending) {
             List<LayoutJob> taken = pending.subList(0, Math.min(perSheet, pending.size()));
             int width = taken.stream().mapToInt(LayoutJob::width).sum();
             int height = taken.stream().mapToInt(LayoutJob::height).max().orElse(0);
@@ -86,6 +93,16 @@ public class LayoutBatchesTest {
         assertEquals(4, image.getWidth());
         assertEquals(3, image.getHeight());
         return image.getRGB(3, 2);
+    }
+
+    @Test
+    public void theNextSheetIsRequestedBeforeTheCurrentBatchIsHandedBack() {
+        FakeSheets sheets = new FakeSheets(1, Map.of("r:a", RED, "r:b", BLUE));
+        LayoutBatches batches = new LayoutBatches(List.of(hashed("r:a"), hashed("r:b")), sheets, new PngEncoder());
+
+        batches.next();
+
+        assertEquals(2, sheets.requests);
     }
 
     @Test

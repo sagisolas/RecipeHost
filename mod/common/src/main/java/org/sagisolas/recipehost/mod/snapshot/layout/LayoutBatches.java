@@ -1,6 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import com.google.protobuf.ByteString;
+import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 
 /**
@@ -28,17 +30,24 @@ import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
  * {@code type_id}.
  *
  * <p>Cropping, hashing and PNG encoding run on the calling (sender) thread; only
- * {@link SheetRenderer#render} touches the render thread.
+ * {@link SheetRenderer#render} touches the render thread. The next sheet is requested as soon as
+ * the current one is drawn, so it is drawn while the current one is cropped, encoded and sent.
  */
 public final class LayoutBatches implements Iterator<LayoutBatch> {
 
     private static final Logger LOG = LoggerFactory.getLogger(LayoutBatches.class);
 
-    /** Renders one sheet from the front of {@code pending}, taking at least one job. */
+    /**
+     * Renders one sheet from the front of {@code pending}, taking at least one job, without
+     * blocking the caller; the future completes with the sheet.
+     */
     @FunctionalInterface
     public interface SheetRenderer {
-        LayoutSheet render(List<LayoutJob> pending);
+        CompletableFuture<LayoutSheet> render(List<LayoutJob> pending);
     }
+
+    /** How many jobs from the front a sheet is offered: more than fit on one. */
+    private static final int OFFERED_PER_SHEET = 512;
 
     private final List<LayoutJob> pending;
     private final SheetRenderer renderer;
@@ -46,6 +55,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     private final Set<String> sentKeys = new HashSet<>();
     private final Set<String> loggedTypes = new HashSet<>();
     private LayoutBatch next;
+    /** The sheet being drawn for the front of {@code pending}, or null when none is requested. */
+    private CompletableFuture<LayoutSheet> inFlight;
 
     public LayoutBatches(List<LayoutJob> jobs, SheetRenderer renderer, PngEncoder encoder) {
         this.pending = mergeParameterKeys(jobs);
@@ -72,9 +83,11 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
 
     /** The entries of the next sheet; empty if all of its jobs failed. */
     private List<RecipeLayout> nextLayouts() {
-        LayoutSheet sheet = renderer.render(Collections.unmodifiableList(pending));
+        LayoutSheet sheet = RenderThread.join(inFlight != null ? inFlight : requestSheet());
+        inFlight = null;
         if (sheet.taken() < 1) throw new IllegalStateException("a layout sheet must take at least one job");
         pending.subList(0, sheet.taken()).clear();
+        if (!pending.isEmpty()) inFlight = requestSheet();
 
         sheet.failed().forEach(failed -> logOncePerType(failed.job(), failed.cause()));
         List<RecipeLayout> layouts = new ArrayList<>();
@@ -91,6 +104,11 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
             layouts.add(sentKeys.add(key) ? withImage(key, job, pixels) : recipeIdsOnly(key, job));
         }
         return layouts;
+    }
+
+    /** Asks for the sheet of the front of {@code pending}, given as a copy the render thread can read. */
+    private CompletableFuture<LayoutSheet> requestSheet() {
+        return renderer.render(List.copyOf(pending.subList(0, Math.min(OFFERED_PER_SHEET, pending.size()))));
     }
 
     /**

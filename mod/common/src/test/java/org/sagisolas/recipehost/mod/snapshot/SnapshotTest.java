@@ -44,7 +44,7 @@ public class SnapshotTest {
     private Snapshot snapshotOf(Supplier<Snapshot.Contents> contents) {
         return new Snapshot(contents,
                 // Draws a whole 8×4 sheet of 1 px cells.
-                pending -> new IconSheet(8, 1, Math.min(32, pending.size()), new int[8 * 4]),
+                pending -> java.util.concurrent.CompletableFuture.completedFuture(new IconSheet(8, 1, Math.min(32, pending.size()), new int[8 * 4])),
                 pending -> { throw new AssertionError("no layouts expected"); });
     }
 

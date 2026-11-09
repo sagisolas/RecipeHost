@@ -24,7 +24,7 @@ public class IconBatchesTest {
             int count = Math.min(perSheet, pending.size());
             int[] argb = new int[COLUMNS * CELL * 2 * CELL];
             java.util.Arrays.fill(argb, 0xFF00FF00);
-            return new IconSheet(COLUMNS, CELL, count, argb);
+            return java.util.concurrent.CompletableFuture.completedFuture(new IconSheet(COLUMNS, CELL, count, argb));
         };
     }
 
@@ -52,6 +52,18 @@ public class IconBatchesTest {
         assertEquals(COLUMNS, batch.getColumns());
         assertEquals(COLUMNS * CELL, atlas.getWidth());
         assertEquals(CELL, atlas.getHeight());
+    }
+
+    @Test
+    public void theNextSheetIsRequestedBeforeTheCurrentBatchIsHandedBack() {
+        List<List<String>> requested = new ArrayList<>();
+        IconBatches.SheetRenderer drawing = drawingAtMost(1);
+        IconBatches batches = new IconBatches(List.of("minecraft:a", "minecraft:b"),
+                pending -> { requested.add(List.copyOf(pending)); return drawing.render(pending); }, new PngEncoder());
+
+        batches.next();
+
+        assertEquals(List.of(List.of("minecraft:a", "minecraft:b"), List.of("minecraft:b")), requested);
     }
 
     @Test(expected = IllegalStateException.class)

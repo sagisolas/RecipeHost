@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The {@link Snapshot} of the running game: reads the item registry, the {@link RecipeSource}
@@ -69,9 +70,9 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
                 recipes);
     }
 
-    /** Blocks the sender thread until the render thread has drawn the sheet. */
-    private IconSheet renderIconSheet(List<String> pending) {
-        return renderThread.call(deadline -> {
+    /** Queues the sheet on the render thread; {@code pending} is a copy the sender won't touch. */
+    private CompletableFuture<IconSheet> renderIconSheet(List<String> pending) {
+        return renderThread.submit(deadline -> {
             if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
             List<ItemStack> stacks = new ArrayList<>(pending.size());
             for (String id : pending) {
@@ -81,9 +82,9 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         });
     }
 
-    /** Blocks the sender thread until the render thread has drawn the sheet, so {@code pending} isn't touched meanwhile. */
-    private LayoutSheet renderLayoutSheet(List<LayoutJob> pending) {
-        return renderThread.call(deadline -> {
+    /** Queues the sheet on the render thread; {@code pending} is a copy the sender won't touch. */
+    private CompletableFuture<LayoutSheet> renderLayoutSheet(List<LayoutJob> pending) {
+        return renderThread.submit(deadline -> {
             if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
             return layoutRenderer.render(pending, deadline);
         });

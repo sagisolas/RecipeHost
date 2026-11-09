@@ -69,7 +69,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     val pairing = PairingEntry(scans, qrScanner)
 
     /** Decoded `Icon atlas`es for every screen that shows Icons; loads and decodes on I/O. */
-    internal val iconAtlases = IconAtlasCache(appScope, IconAtlases(catalog, Dispatchers.IO)::png)
+    internal val iconAtlases = IconAtlasCache(appScope, IconAtlases(catalog, Dispatchers.IO)::png, capacity = ICON_ATLASES_KEPT)
 
     /** Decoded `Recipe layout` images for the Item screen; loads and decodes on I/O. */
     internal val layoutImages = LayoutImageCache(appScope, LayoutImages(catalog, Dispatchers.IO)::png)
@@ -102,3 +102,6 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal fun itemViewModel(itemId: String) =
         ItemViewModel(itemId, itemRecipes::invoke, resolveStack::invoke)
 }
+
+/** Decoded Icon atlases kept: 64 sheets of 16×8 32 px cells, about 32 MB (ADR 0014). */
+private const val ICON_ATLASES_KEPT = 64
