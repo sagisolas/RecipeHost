@@ -1,12 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
 import org.junit.Test;
+import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
+import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.Item;
-import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.Recipe;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,7 +29,8 @@ public class SnapshotTest {
 
     private static Snapshot snapshotOf(Supplier<Snapshot.Contents> contents) {
         return new Snapshot(contents,
-                pending -> { throw new AssertionError("no Icons expected"); },
+                // Draws a whole 8×4 sheet of 1 px cells.
+                pending -> new IconSheet(8, 1, Math.min(32, pending.size()), new int[8 * 4]),
                 pending -> { throw new AssertionError("no layouts expected"); });
     }
 
@@ -40,16 +41,20 @@ public class SnapshotTest {
     }
 
     @Test
-    public void theHandshakeAnnouncesWhatTheBatchesCarry() {
-        Snapshot snapshot = snapshotOf(() -> contents(300, 257));
+    public void theHandshakeComesFirstAndAnnouncesWhatTheBatchesCarry() {
+        List<Envelope> frames = drain(snapshotOf(() -> contents(300, 257)).frames());
 
-        Handshake handshake = snapshot.handshake();
-
+        Handshake handshake = frames.get(0).getHandshake();
         assertEquals(300, handshake.getTotalItems());
         assertEquals(257, handshake.getTotalRecipes());
         assertEquals("My pack", handshake.getInstanceName());
-        assertEquals(List.of(256, 44), drain(snapshot.itemBatches()).stream().map(ItemBatch::getItemsCount).toList());
-        assertEquals(List.of(256, 1), drain(snapshot.recipeBatches()).stream().map(RecipeBatch::getRecipesCount).toList());
+        assertEquals(List.of(256, 44), frames.stream().filter(Envelope::hasItemBatch).map(f -> f.getItemBatch().getItemsCount()).toList());
+        assertEquals(List.of(256, 1), frames.stream().filter(Envelope::hasRecipeBatch).map(f -> f.getRecipeBatch().getRecipesCount()).toList());
+        assertEquals(List.of(Envelope.PayloadCase.HANDSHAKE, Envelope.PayloadCase.ITEM_BATCH, Envelope.PayloadCase.ITEM_BATCH,
+                        Envelope.PayloadCase.RECIPE_BATCH, Envelope.PayloadCase.RECIPE_BATCH),
+                frames.stream().map(Envelope::getPayloadCase).limit(5).toList());
+        assertEquals(10, frames.stream().filter(Envelope::hasIconBatch).count());
+        assertEquals(Envelope.PayloadCase.ICON_BATCH, frames.get(frames.size() - 1).getPayloadCase());
     }
 
     @Test
@@ -57,13 +62,11 @@ public class SnapshotTest {
         AtomicInteger reads = new AtomicInteger();
         Snapshot snapshot = snapshotOf(() -> {
             reads.incrementAndGet();
-            return contents(1, 1);
+            return contents(0, 1);
         });
         assertEquals(0, reads.get());
 
-        snapshot.handshake();
-        drain(snapshot.itemBatches());
-        drain(snapshot.recipeBatches());
+        drain(snapshot.frames());
 
         assertEquals(1, reads.get());
     }

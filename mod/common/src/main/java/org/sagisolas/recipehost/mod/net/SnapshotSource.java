@@ -1,22 +1,17 @@
 package org.sagisolas.recipehost.mod.net;
 
-import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.IconBatch;
-import org.sagisolas.recipehost.protocol.ItemBatch;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
+import org.sagisolas.recipehost.protocol.Envelope;
 
 import java.util.Iterator;
 
 /**
- * Pulls the data a {@link SnapshotSender} streams to the mobile app.
- * Pure — no Minecraft types in the signatures, so test fakes can live in
- * {@code :mod:common}'s test source set without a Minecraft runtime.
+ * The `Snapshot` a {@link SnapshotSender} streams to the mobile app, as its frames in wire order:
+ * the {@code Handshake}, then the batches. The sender adds the closing {@code Done} or
+ * {@code Error}. Pulling a frame may block (rendering) or throw (a failing source).
+ * Pure — no Minecraft types in the signature, so test fakes can live in {@code :mod:common}'s test
+ * source set without a Minecraft runtime.
  */
+@FunctionalInterface
 public interface SnapshotSource {
-    Handshake handshake();
-    Iterator<ItemBatch> itemBatches();
-    Iterator<RecipeBatch> recipeBatches();
-    Iterator<IconBatch> iconBatches();
-    Iterator<LayoutBatch> layoutBatches();
+    Iterator<Envelope> frames();
 }

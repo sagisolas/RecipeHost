@@ -98,7 +98,7 @@ The one `Mod release` currently chosen for each mod; what the item grid and reci
 ### Mod internals
 
 **Platform (class)**:
-The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:neoforge`). Exposes the narrow set of operations the companion mod can't do portably against Mojmap-named Minecraft APIs: mod list, config dir, client-started callback, keybinding registration. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
+The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:neoforge`). Exposes only the operations the companion mod uses and can't do portably against Mojmap-named Minecraft APIs: mod list, Minecraft version, screen-init and world-leave events. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
 _Avoid_: PlatformHooks, PlatformBridge
 
 **Recipe candidate**:

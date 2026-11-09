@@ -13,11 +13,7 @@ import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
-import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.IconBatch;
-import org.sagisolas.recipehost.protocol.ItemBatch;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
+import org.sagisolas.recipehost.protocol.Envelope;
 
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -53,11 +49,10 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         this.snapshot = new Snapshot(this::read, this::renderIconSheet, this::renderLayoutSheet);
     }
 
-    @Override public Handshake handshake() { return snapshot.handshake(); }
-    @Override public Iterator<ItemBatch> itemBatches() { return snapshot.itemBatches(); }
-    @Override public Iterator<RecipeBatch> recipeBatches() { return snapshot.recipeBatches(); }
-    @Override public Iterator<IconBatch> iconBatches() { return snapshot.iconBatches(); }
-    @Override public Iterator<LayoutBatch> layoutBatches() { return snapshot.layoutBatches(); }
+    @Override
+    public Iterator<Envelope> frames() {
+        return snapshot.frames();
+    }
 
     /** Runs on the sender thread, on the Snapshot's first use. */
     private Snapshot.Contents read() {

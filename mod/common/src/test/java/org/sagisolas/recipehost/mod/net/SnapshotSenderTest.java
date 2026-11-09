@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 public class SnapshotSenderTest {
 
     @Test
-    public void streamsHandshakeThenBatchesThenLayoutsThenDone() throws Exception {
+    public void streamsTheSourcesFramesInOrderThenDone() throws Exception {
         Handshake handshake = Handshake.newBuilder()
                 .setProtocolVersion(1)
                 .setMinecraftVersion("1.21.1")
@@ -62,12 +62,12 @@ public class SnapshotSenderTest {
                         .build()))
                 .build();
 
-        FakeSource source = new FakeSource(
-                handshake,
-                Collections.singletonList(items),
-                Collections.singletonList(recipes),
-                Collections.singletonList(icons),
-                Collections.singletonList(layouts));
+        SnapshotSource source = framesOf(
+                Envelope.newBuilder().setHandshake(handshake).build(),
+                Envelope.newBuilder().setItemBatch(items).build(),
+                Envelope.newBuilder().setRecipeBatch(recipes).build(),
+                Envelope.newBuilder().setIconBatch(icons).build(),
+                Envelope.newBuilder().setLayoutBatch(layouts).build());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         SnapshotSender.send(out, source);
@@ -83,14 +83,9 @@ public class SnapshotSenderTest {
     }
 
     @Test
-    public void emptySourceStillSendsHandshakeAndDone() throws Exception {
+    public void aSnapshotWithNoBatchesIsHandshakeThenDone() throws Exception {
         Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
-        FakeSource source = new FakeSource(
-                handshake,
-                Collections.<ItemBatch>emptyList(),
-                Collections.<RecipeBatch>emptyList(),
-                Collections.<IconBatch>emptyList(),
-                Collections.<LayoutBatch>emptyList());
+        SnapshotSource source = framesOf(Envelope.newBuilder().setHandshake(handshake).build());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         SnapshotSender.send(out, source);
@@ -104,17 +99,14 @@ public class SnapshotSenderTest {
     @Test
     public void writesErrorFrameAndRethrowsIfSourceThrows() throws Exception {
         Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
-        SnapshotSource exploding = new SnapshotSource() {
-            @Override public Handshake handshake() { return handshake; }
-            @Override public Iterator<ItemBatch> itemBatches() {
-                return new Iterator<ItemBatch>() {
-                    @Override public boolean hasNext() { return true; }
-                    @Override public ItemBatch next() { throw new RuntimeException("boom"); }
-                };
+        SnapshotSource exploding = () -> new Iterator<>() {
+            boolean sentHandshake;
+            @Override public boolean hasNext() { return true; }
+            @Override public Envelope next() {
+                if (sentHandshake) throw new RuntimeException("boom");
+                sentHandshake = true;
+                return Envelope.newBuilder().setHandshake(handshake).build();
             }
-            @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
-            @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
-            @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
         };
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -142,24 +134,7 @@ public class SnapshotSenderTest {
         return frames;
     }
 
-    private static final class FakeSource implements SnapshotSource {
-        private final Handshake handshake;
-        private final List<ItemBatch> items;
-        private final List<RecipeBatch> recipes;
-        private final List<IconBatch> icons;
-        private final List<LayoutBatch> layouts;
-
-        FakeSource(Handshake h, List<ItemBatch> i, List<RecipeBatch> r, List<IconBatch> ic, List<LayoutBatch> l) {
-            this.handshake = h;
-            this.items = new ArrayList<>(i);
-            this.recipes = new ArrayList<>(r);
-            this.icons = new ArrayList<>(ic);
-            this.layouts = new ArrayList<>(l);
-        }
-        @Override public Handshake handshake() { return handshake; }
-        @Override public Iterator<ItemBatch> itemBatches() { return items.iterator(); }
-        @Override public Iterator<RecipeBatch> recipeBatches() { return recipes.iterator(); }
-        @Override public Iterator<IconBatch> iconBatches() { return icons.iterator(); }
-        @Override public Iterator<LayoutBatch> layoutBatches() { return layouts.iterator(); }
+    private static SnapshotSource framesOf(Envelope... frames) {
+        return () -> Arrays.asList(frames).iterator();
     }
 }

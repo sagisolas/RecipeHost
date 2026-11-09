@@ -6,6 +6,7 @@ import org.sagisolas.recipehost.mod.snapshot.icon.IconBatches;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
 import org.sagisolas.recipehost.protocol.Item;
@@ -15,6 +16,7 @@ import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -22,7 +24,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * A `Snapshot` as batches: the {@link Handshake}, then items and recipes in fixed-size batches,
+ * A `Snapshot` as its frames: the {@link Handshake}, then items and recipes in fixed-size batches,
  * then one Icon atlas per Icon sheet, then the layouts. The game is read once, through
  * {@code contents}, when the Snapshot is first asked for; Icons and layouts are drawn by the two
  * sheet renderers as their batches are pulled.
@@ -60,8 +62,37 @@ public final class Snapshot implements SnapshotSource {
         this.layouts = layouts;
     }
 
+    /**
+     * The frames in wire order. Each part is started only when the one before it is drained, so
+     * nothing is rendered before the recipes are out.
+     */
     @Override
-    public synchronized Handshake handshake() {
+    public Iterator<Envelope> frames() {
+        List<Supplier<Iterator<Envelope>>> parts = List.of(
+                () -> List.of(Envelope.newBuilder().setHandshake(handshake()).build()).iterator(),
+                () -> map(itemBatches(), batch -> Envelope.newBuilder().setItemBatch(batch).build()),
+                () -> map(recipeBatches(), batch -> Envelope.newBuilder().setRecipeBatch(batch).build()),
+                () -> map(iconBatches(), batch -> Envelope.newBuilder().setIconBatch(batch).build()),
+                () -> map(layoutBatches(), batch -> Envelope.newBuilder().setLayoutBatch(batch).build()));
+        return new Iterator<>() {
+            private int part = 0;
+            private Iterator<Envelope> current = Collections.emptyIterator();
+
+            @Override
+            public boolean hasNext() {
+                while (!current.hasNext() && part < parts.size()) current = parts.get(part++).get();
+                return current.hasNext();
+            }
+
+            @Override
+            public Envelope next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                return current.next();
+            }
+        };
+    }
+
+    private synchronized Handshake handshake() {
         Contents c = contents();
         return Handshake.newBuilder()
                 .setProtocolVersion(WireProtocol.PROTOCOL_VERSION)
@@ -74,29 +105,32 @@ public final class Snapshot implements SnapshotSource {
                 .build();
     }
 
-    @Override
-    public synchronized Iterator<ItemBatch> itemBatches() {
+    private synchronized Iterator<ItemBatch> itemBatches() {
         return batched(contents().items(), ITEM_BATCH_SIZE, chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
     }
 
-    @Override
-    public synchronized Iterator<RecipeBatch> recipeBatches() {
+    private synchronized Iterator<RecipeBatch> recipeBatches() {
         return batched(contents().recipes(), RECIPE_BATCH_SIZE, chunk -> RecipeBatch.newBuilder().addAllRecipes(chunk).build());
     }
 
-    @Override
-    public synchronized Iterator<IconBatch> iconBatches() {
+    private synchronized Iterator<IconBatch> iconBatches() {
         return new IconBatches(contents().items().stream().map(Item::getId).toList(), icons, new PngEncoder());
     }
 
-    @Override
-    public synchronized Iterator<LayoutBatch> layoutBatches() {
+    private synchronized Iterator<LayoutBatch> layoutBatches() {
         return new LayoutBatches(contents().layoutJobs(), layouts, new PngEncoder());
     }
 
     private Contents contents() {
         if (contents == null) contents = read.get();
         return contents;
+    }
+
+    private static <T, R> Iterator<R> map(Iterator<T> it, Function<T, R> f) {
+        return new Iterator<>() {
+            @Override public boolean hasNext() { return it.hasNext(); }
+            @Override public R next() { return f.apply(it.next()); }
+        };
     }
 
     private static <T, B> Iterator<B> batched(List<T> src, int size, Function<List<T>, B> build) {

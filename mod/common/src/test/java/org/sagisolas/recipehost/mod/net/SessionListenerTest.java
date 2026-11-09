@@ -8,10 +8,6 @@ import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
 import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.IconBatch;
-import org.sagisolas.recipehost.protocol.ItemBatch;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -21,7 +17,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -150,9 +145,13 @@ public class SessionListenerTest {
     public void midStreamSourceFailureDoesNotFireOnSnapshotDelivered() throws Exception {
         byte[] token = tokenOf(8);
         AtomicInteger delivered = new AtomicInteger();
-        SnapshotSource failing = new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build()) {
-            @Override public Iterator<ItemBatch> itemBatches() { throw new IllegalStateException("boom"); }
-        };
+        Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
+        SnapshotSource failing = () -> List.of(Envelope.newBuilder().setHandshake(handshake).build(), (Envelope) null).stream()
+                .map(frame -> {
+                    if (frame == null) throw new IllegalStateException("boom");
+                    return frame;
+                })
+                .iterator();
 
         listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), failing, delivered::incrementAndGet, () -> {});
         listener.start();
@@ -236,15 +235,13 @@ public class SessionListenerTest {
         final CountDownLatch consumed = new CountDownLatch(1);
         final java.util.concurrent.atomic.AtomicInteger handshakeCalls = new java.util.concurrent.atomic.AtomicInteger(0);
         EmptySource(Handshake h) { this.handshake = h; }
-        @Override public Handshake handshake() {
-            handshakeCalls.incrementAndGet();
-            consumed.countDown();
-            return handshake;
+        @Override public Iterator<Envelope> frames() {
+            return List.of(handshake).stream().map(h -> {
+                handshakeCalls.incrementAndGet();
+                consumed.countDown();
+                return Envelope.newBuilder().setHandshake(h).build();
+            }).iterator();
         }
-        @Override public Iterator<ItemBatch> itemBatches() { return Collections.<ItemBatch>emptyIterator(); }
-        @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
-        @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
-        @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
     }
 
     private static final class BlockingSource implements SnapshotSource {
@@ -252,14 +249,12 @@ public class SessionListenerTest {
         final CountDownLatch entered = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
         BlockingSource(Handshake h) { this.handshake = h; }
-        @Override public Handshake handshake() {
-            entered.countDown();
-            try { release.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-            return handshake;
+        @Override public Iterator<Envelope> frames() {
+            return List.of(handshake).stream().map(h -> {
+                entered.countDown();
+                try { release.await(); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                return Envelope.newBuilder().setHandshake(h).build();
+            }).iterator();
         }
-        @Override public Iterator<ItemBatch> itemBatches() { return Collections.<ItemBatch>emptyIterator(); }
-        @Override public Iterator<RecipeBatch> recipeBatches() { return Collections.<RecipeBatch>emptyIterator(); }
-        @Override public Iterator<IconBatch> iconBatches() { return Collections.<IconBatch>emptyIterator(); }
-        @Override public Iterator<LayoutBatch> layoutBatches() { return Collections.<LayoutBatch>emptyIterator(); }
     }
 }

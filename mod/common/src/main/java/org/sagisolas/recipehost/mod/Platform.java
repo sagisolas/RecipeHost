@@ -1,12 +1,9 @@
 package org.sagisolas.recipehost.mod;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.ClientLevel;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -28,27 +25,7 @@ public final class Platform {
     }
 
     @ExpectPlatform
-    public static Path configDir() {
-        throw new AssertionError("@ExpectPlatform not wired");
-    }
-
-    @ExpectPlatform
-    public static void onClientStarted(Runnable callback) {
-        throw new AssertionError("@ExpectPlatform not wired");
-    }
-
-    @ExpectPlatform
-    public static void registerKeybinding(KeyMapping keyMapping) {
-        throw new AssertionError("@ExpectPlatform not wired");
-    }
-
-    @ExpectPlatform
     public static String minecraftVersion() {
-        throw new AssertionError("@ExpectPlatform not wired");
-    }
-
-    @ExpectPlatform
-    public static void onWorldJoin(Consumer<ClientLevel> callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
 

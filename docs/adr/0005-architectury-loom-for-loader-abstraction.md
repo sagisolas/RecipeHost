@@ -7,3 +7,5 @@ The **Architectury API** runtime jar was rejected. Its event/registry/networking
 A **fully hand-rolled** common+platform split (plain Gradle subprojects with a `PlatformHooks` interface injected at startup) was rejected for the opposite reason: Architectury Loom's source-set wiring, mapping unification, and mod-jar packaging are non-trivial to reproduce correctly, and reinventing them earns nothing. The loom plugin pulls in no runtime dependency on the API jar.
 
 The trade-off: adding a future loader (Forge, Quilt) means one more source set and a `PlatformImpl` with four static methods — not a rewrite. NeoForge is the planned next loader after Fabric.
+
+**Amendment:** `Platform` holds only what `:mod:common` calls (mod list, Minecraft version, screen-init and world-leave events). Unused methods (config dir, client-started callback, keybinding, world join) were dropped so a new loader implements only those; add one back when a feature needs it.
