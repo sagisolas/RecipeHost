@@ -57,8 +57,6 @@ public final class Snapshot implements SnapshotSource {
     private final IconBatches.SheetRenderer icons;
     private final LayoutBatches.SheetRenderer layouts;
     private Contents contents;
-    /** The jobs of the recipes laid out so far; complete once the recipe batches are drained. */
-    private final List<LayoutJob> layoutJobs = new ArrayList<>();
 
     public Snapshot(Supplier<Contents> read, IconBatches.SheetRenderer icons, LayoutBatches.SheetRenderer layouts) {
         this.read = read;
@@ -72,12 +70,14 @@ public final class Snapshot implements SnapshotSource {
      */
     @Override
     public Iterator<Envelope> frames() {
+        // This session's layouts, gathered as its recipe batches are laid out.
+        List<LayoutJob> layoutJobs = new ArrayList<>();
         List<Supplier<Iterator<Envelope>>> parts = List.of(
                 () -> List.of(Envelope.newBuilder().setHandshake(handshake()).build()).iterator(),
                 () -> map(itemBatches(), batch -> Envelope.newBuilder().setItemBatch(batch).build()),
-                () -> map(recipeBatches(), batch -> Envelope.newBuilder().setRecipeBatch(batch).build()),
+                () -> map(recipeBatches(layoutJobs), batch -> Envelope.newBuilder().setRecipeBatch(batch).build()),
                 () -> map(iconBatches(), batch -> Envelope.newBuilder().setIconBatch(batch).build()),
-                () -> map(layoutBatches(), batch -> Envelope.newBuilder().setLayoutBatch(batch).build()));
+                () -> map(layoutBatches(layoutJobs), batch -> Envelope.newBuilder().setLayoutBatch(batch).build()));
         return new Iterator<>() {
             private int part = 0;
             private Iterator<Envelope> current = Collections.emptyIterator();
@@ -113,8 +113,11 @@ public final class Snapshot implements SnapshotSource {
         return batched(contents().items(), ITEM_BATCH_SIZE, chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
     }
 
-    /** Lays out each batch's recipes as it is pulled, so their layouts are captured while recipes stream. */
-    private synchronized Iterator<RecipeBatch> recipeBatches() {
+    /**
+     * Lays out each batch's recipes as it is pulled, so their layouts are captured while recipes
+     * stream, and adds their jobs to {@code layoutJobs}.
+     */
+    private synchronized Iterator<RecipeBatch> recipeBatches(List<LayoutJob> layoutJobs) {
         RecipeAssembly.Prepared recipes = contents().recipes();
         return new Iterator<>() {
             int i = 0;
@@ -124,9 +127,7 @@ public final class Snapshot implements SnapshotSource {
                 int end = Math.min(i + RECIPE_BATCH_SIZE, recipes.count());
                 RecipeAssembly.LaidOutRecipes laidOut = recipes.layOut(i, end);
                 i = end;
-                synchronized (Snapshot.this) {
-                    layoutJobs.addAll(laidOut.layouts());
-                }
+                layoutJobs.addAll(laidOut.layouts());
                 return SharedSlots.batchOf(laidOut.recipes());
             }
         };
@@ -136,7 +137,7 @@ public final class Snapshot implements SnapshotSource {
         return new IconBatches(contents().items().stream().map(Item::getId).toList(), icons, new PngEncoder());
     }
 
-    private synchronized Iterator<LayoutBatch> layoutBatches() {
+    private synchronized Iterator<LayoutBatch> layoutBatches(List<LayoutJob> layoutJobs) {
         return new LayoutBatches(List.copyOf(layoutJobs), layouts, new PngEncoder());
     }
 

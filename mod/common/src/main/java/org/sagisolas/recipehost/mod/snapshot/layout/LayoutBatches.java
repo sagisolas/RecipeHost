@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
@@ -50,6 +50,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     private static final int OFFERED_PER_SHEET = 512;
 
     private final List<LayoutJob> pending;
+    /** How many jobs from the front of {@code pending} are drawn; the rest are still to come. */
+    private int done;
     private final SheetRenderer renderer;
     private final PngEncoder encoder;
     private final Set<String> sentKeys = new HashSet<>();
@@ -66,7 +68,7 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
 
     @Override
     public boolean hasNext() {
-        while (next == null && !pending.isEmpty()) {
+        while (next == null && done < pending.size()) {
             List<RecipeLayout> layouts = nextLayouts();
             if (!layouts.isEmpty()) next = LayoutBatch.newBuilder().addAllLayouts(layouts).build();
         }
@@ -86,8 +88,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
         LayoutSheet sheet = RenderThread.join(inFlight != null ? inFlight : requestSheet());
         inFlight = null;
         if (sheet.taken() < 1) throw new IllegalStateException("a layout sheet must take at least one job");
-        pending.subList(0, sheet.taken()).clear();
-        if (!pending.isEmpty()) inFlight = requestSheet();
+        done += sheet.taken();
+        if (done < pending.size()) inFlight = requestSheet();
 
         sheet.failed().forEach(failed -> logOncePerType(failed.job(), failed.cause()));
         List<RecipeLayout> layouts = new ArrayList<>();
@@ -106,9 +108,9 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
         return layouts;
     }
 
-    /** Asks for the sheet of the front of {@code pending}, given as a copy the render thread can read. */
+    /** Asks for the sheet of the jobs still to come, given as a copy the render thread can read. */
     private CompletableFuture<LayoutSheet> requestSheet() {
-        return renderer.render(List.copyOf(pending.subList(0, Math.min(OFFERED_PER_SHEET, pending.size()))));
+        return renderer.render(List.copyOf(pending.subList(done, Math.min(done + OFFERED_PER_SHEET, pending.size()))));
     }
 
     /**
@@ -145,7 +147,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
         image.setRGB(0, 0, job.width(), job.height(), pixels, 0, job.width());
         return RecipeLayout.newBuilder()
                 .setKey(key)
-                .setPng(ByteString.copyFrom(encoder.encode(image)))
+                // The encoder's array is never touched again, so it is wrapped rather than copied.
+                .setPng(UnsafeByteOperations.unsafeWrap(encoder.encode(image)))
                 .setWidth(job.width())
                 .setHeight(job.height())
                 .addAllSlots(job.slots())

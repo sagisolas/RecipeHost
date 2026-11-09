@@ -41,6 +41,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private final Snapshot snapshot;
 
     private volatile IconRenderer iconRenderer;
+    /** Set by {@link #close()}: a sheet still queued then must not create a renderer nobody closes. */
+    private volatile boolean closed;
     private volatile LayoutRenderer layoutRenderer;
 
     public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThread renderThread) {
@@ -73,6 +75,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Queues the sheet on the render thread; {@code pending} is a copy the sender won't touch. */
     private CompletableFuture<IconSheet> renderIconSheet(List<String> pending) {
         return renderThread.submit(deadline -> {
+            if (closed) throw new IllegalStateException("the Snapshot source is closed");
             if (iconRenderer == null) iconRenderer = new IconRenderer(minecraft);
             List<ItemStack> stacks = new ArrayList<>(pending.size());
             for (String id : pending) {
@@ -85,6 +88,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Queues the sheet on the render thread; {@code pending} is a copy the sender won't touch. */
     private CompletableFuture<LayoutSheet> renderLayoutSheet(List<LayoutJob> pending) {
         return renderThread.submit(deadline -> {
+            if (closed) throw new IllegalStateException("the Snapshot source is closed");
             if (layoutRenderer == null) layoutRenderer = new LayoutRenderer(minecraft);
             return layoutRenderer.render(pending, deadline);
         });
@@ -93,6 +97,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Release GL resources on the render thread. Safe to call repeatedly. */
     @Override
     public void close() {
+        closed = true;
         IconRenderer icons = iconRenderer;
         iconRenderer = null;
         if (icons != null) renderThread.post(icons::close);

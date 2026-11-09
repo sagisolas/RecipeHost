@@ -49,46 +49,46 @@ public final class RecipeMapper {
         String id = holder.id().toString();
         String typeId = typeIdOf(recipe);
 
-        if (recipe instanceof ShapedRecipe shaped) {
-            Map<String, String> extras = new LinkedHashMap<>();
-            extras.put("width", String.valueOf(shaped.getWidth()));
-            extras.put("height", String.valueOf(shaped.getHeight()));
-            List<Slot> inputs = slotsOf(shaped.getIngredients());
-            // A modded subclass may be larger than the crafting table's grid; it gets no layout.
-            boolean fits = shaped.getWidth() <= GRID_SIDE && shaped.getHeight() <= GRID_SIDE;
-            return mapped(id, typeId, inputs, shaped.getResultItem(registryAccess), extras,
-                    fits ? layouts.crafting() : null,
-                    fits ? craftingGrid(inputs, shaped.getWidth(), shaped.getHeight()) : List.of());
-        }
-
-        if (recipe instanceof ShapelessRecipe shapeless) {
-            List<Slot> inputs = slotsOf(shapeless.getIngredients());
-            boolean fits = inputs.size() <= GRID_SIDE * GRID_SIDE;
-            return mapped(id, typeId, inputs, shapeless.getResultItem(registryAccess), Map.of(),
-                    fits ? layouts.crafting() : null, inputs);
-        }
-
-        if (recipe instanceof AbstractCookingRecipe cooking) {
-            // 1.21.1 doesn't expose a public input() accessor; getIngredients() returns a size-1 list.
-            Map<String, String> extras = new LinkedHashMap<>();
-            extras.put("cook_time", String.valueOf(cooking.getCookingTime()));
-            extras.put("xp", String.valueOf(cooking.getExperience()));
-            List<Slot> inputs = slotsOf(cooking.getIngredients());
-            return mapped(id, typeId, inputs, cooking.getResultItem(registryAccess), extras,
-                    layouts.cooking(typeId, cooking.getCookingTime(), cooking.getExperience()), inputs);
-        }
-
-        if (recipe instanceof SmithingTransformRecipe smithing) {
-            // template/base/addition fields are package-private in 1.21.1; getIngredients()
-            // is the override that returns them in that documented order.
-            List<Slot> inputs = slotsOf(smithing.getIngredients());
-            return mapped(id, typeId, inputs, smithing.getResultItem(registryAccess), Map.of(), layouts.smithing(), inputs);
-        }
-
-        if (recipe instanceof StonecutterRecipe stonecutter) {
-            // Same accessor-visibility caveat as AbstractCookingRecipe.
-            List<Slot> inputs = slotsOf(stonecutter.getIngredients());
-            return mapped(id, typeId, inputs, stonecutter.getResultItem(registryAccess), Map.of(), layouts.stonecutter(), inputs);
+        switch (recipe) {
+            case ShapedRecipe shaped -> {
+                Map<String, String> extras = new LinkedHashMap<>();
+                extras.put("width", String.valueOf(shaped.getWidth()));
+                extras.put("height", String.valueOf(shaped.getHeight()));
+                List<Slot> inputs = slotsOf(shaped.getIngredients());
+                // A modded subclass may be larger than the crafting table's grid; it gets no layout.
+                boolean fits = shaped.getWidth() <= GRID_SIDE && shaped.getHeight() <= GRID_SIDE;
+                return mapped(id, typeId, inputs, shaped.getResultItem(registryAccess), extras,
+                        fits ? layouts.crafting() : null,
+                        fits ? craftingGrid(inputs, shaped.getWidth(), shaped.getHeight()) : List.of());
+            }
+            case ShapelessRecipe shapeless -> {
+                List<Slot> inputs = slotsOf(shapeless.getIngredients());
+                boolean fits = inputs.size() <= GRID_SIDE * GRID_SIDE;
+                return mapped(id, typeId, inputs, shapeless.getResultItem(registryAccess), Map.of(),
+                        fits ? layouts.crafting() : null, inputs);
+            }
+            case AbstractCookingRecipe cooking -> {
+                // 1.21.1 doesn't expose a public input() accessor; getIngredients() returns a size-1 list.
+                Map<String, String> extras = new LinkedHashMap<>();
+                extras.put("cook_time", String.valueOf(cooking.getCookingTime()));
+                extras.put("xp", String.valueOf(cooking.getExperience()));
+                List<Slot> inputs = slotsOf(cooking.getIngredients());
+                return mapped(id, typeId, inputs, cooking.getResultItem(registryAccess), extras,
+                        layouts.cooking(typeId, cooking.getCookingTime(), cooking.getExperience()), inputs);
+            }
+            case SmithingTransformRecipe smithing -> {
+                // template/base/addition fields are package-private in 1.21.1; getIngredients()
+                // is the override that returns them in that documented order.
+                List<Slot> inputs = slotsOf(smithing.getIngredients());
+                return mapped(id, typeId, inputs, smithing.getResultItem(registryAccess), Map.of(), layouts.smithing(), inputs);
+            }
+            case StonecutterRecipe stonecutter -> {
+                // Same accessor-visibility caveat as AbstractCookingRecipe.
+                List<Slot> inputs = slotsOf(stonecutter.getIngredients());
+                return mapped(id, typeId, inputs, stonecutter.getResultItem(registryAccess), Map.of(), layouts.stonecutter(), inputs);
+            }
+            default -> {
+            }
         }
 
         // Shell for unknown types: no inputs, so no layout.

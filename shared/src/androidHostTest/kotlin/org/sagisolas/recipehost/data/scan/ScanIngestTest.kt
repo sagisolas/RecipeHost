@@ -33,6 +33,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -152,6 +153,18 @@ class ScanIngestTest {
 
         assertEquals(listOf("minecraft:stick"), database.recipeQueries.outputsOf(pk).executeAsList())
         assertEquals(listOf("minecraft:birch_planks", "minecraft:oak_planks"), database.recipeQueries.inputsOf(pk).executeAsList())
+    }
+
+    @Test
+    fun aRescanKeysItsRecipesAfterEveryKeyUsedBeforeNeverReusingOne() = runTest {
+        scan("ATM9", minecraft, stickRecipe, torchRecipe)
+        val before = database.recipeQueries.ofInstance("ATM9").executeAsList().map { it.id }
+
+        scan("ATM9", minecraft, stickRecipe, torchRecipe)
+        val after = database.recipeQueries.ofInstance("ATM9").executeAsList().map { it.id }
+
+        assertEquals(2, after.distinct().size)
+        assertTrue(after.min() > before.max(), "keys $after reuse one of $before")
     }
 
     @Test

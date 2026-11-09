@@ -20,12 +20,12 @@ public final class MinecraftListenerFactory implements PairingController.Listene
     private static final Logger LOG = LogUtils.getLogger();
 
     private final Function<ClientLevel, RecipeSource> recipeSources;
-    private final RenderThread renderThreadScheduler;
+    private final RenderThread renderThread;
 
     /** @param recipeSources gives the recipe source for the level being paired */
-    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources, RenderThread renderThreadScheduler) {
+    public MinecraftListenerFactory(Function<ClientLevel, RecipeSource> recipeSources, RenderThread renderThread) {
         this.recipeSources = recipeSources;
-        this.renderThreadScheduler = renderThreadScheduler;
+        this.renderThread = renderThread;
     }
 
     @Override
@@ -34,7 +34,7 @@ public final class MinecraftListenerFactory implements PairingController.Listene
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) throw new IOException("no client level — open pairing from in-world only");
 
-        MinecraftSnapshotSource source = new MinecraftSnapshotSource(recipeSources.apply(level), renderThreadScheduler);
+        MinecraftSnapshotSource source = new MinecraftSnapshotSource(recipeSources.apply(level), renderThread);
         SessionListener listener;
         int[] port = {0}; // known only after bind; read by the termination log
         try {

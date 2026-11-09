@@ -51,6 +51,12 @@ deleteOf:
 DELETE FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId;
 
 insert:
+INSERT INTO recipe(release_id, recipe_id, instance_id, type_id, body, body_hash)
+VALUES (:releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
+
+-- A recipe with its key chosen by the caller: a Scan's commit lets AUTOINCREMENT key its first
+-- recipe and numbers the rest after it, so no key is ever reused and SQLite isn't asked each time.
+insertWithPk:
 INSERT INTO recipe(id, release_id, recipe_id, instance_id, type_id, body, body_hash)
 VALUES (:pk, :releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
 
@@ -59,10 +65,8 @@ linkLayout:
 UPDATE recipe SET layout_key = :layoutKey
 WHERE instance_id = :instanceId AND release_id = :releaseId AND recipe_id = :recipeId;
 
--- The key the next inserted recipe gets: a Scan's commit numbers its recipes from here itself,
--- rather than asking SQLite after each insert.
-nextPk:
-SELECT COALESCE(MAX(id), 0) + 1 FROM recipe;
+lastInsertedId:
+SELECT last_insert_rowid();
 
 insertOutput:
 INSERT OR IGNORE INTO recipe_output(recipe_pk, item_id) VALUES (:recipePk, :itemId);

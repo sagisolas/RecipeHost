@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 class ResolveStackTest {
 
     private val catalog = CatalogFixture()
-    private val resolve = ResolveStack(catalog.database, EmptyCoroutineContext)
+    private val resolve = ResolveStacks(catalog.database, EmptyCoroutineContext)
     private val modList = ModList(catalog.database, EmptyCoroutineContext)
 
     @AfterTest

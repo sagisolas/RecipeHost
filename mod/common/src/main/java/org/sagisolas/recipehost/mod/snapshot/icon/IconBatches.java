@@ -1,6 +1,6 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
-import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.protocol.IconBatch;
@@ -59,7 +59,8 @@ public final class IconBatches implements Iterator<IconBatch> {
         for (int i = 0; i < sheet.count(); i++) drawn.add(pending.removeFirst());
         if (!pending.isEmpty()) inFlight = requestSheet();
         return IconBatch.newBuilder()
-                .setPng(ByteString.copyFrom(encoder.encode(sheet.image())))
+                // The encoder's array is never touched again, so it is wrapped rather than copied.
+                .setPng(UnsafeByteOperations.unsafeWrap(encoder.encode(sheet.image())))
                 .setCellSize(sheet.cell())
                 .setColumns(sheet.columns())
                 .addAllItemIds(drawn)

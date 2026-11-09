@@ -18,7 +18,7 @@ import org.sagisolas.recipehost.domain.catalog.ClearCatalog
 import org.sagisolas.recipehost.domain.catalog.IconAtlases
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
-import org.sagisolas.recipehost.domain.catalog.ResolveStack
+import org.sagisolas.recipehost.domain.catalog.ResolveStacks
 import org.sagisolas.recipehost.domain.recipes.LayoutImages
 import org.sagisolas.recipehost.domain.recipes.ItemRecipes
 import org.sagisolas.recipehost.platform.QrScanner
@@ -59,7 +59,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal val itemSearch = ItemSearch(catalog, Dispatchers.IO)
     internal val modList = ModList(catalog, Dispatchers.IO)
     internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
-    internal val resolveStack = ResolveStack(catalog, Dispatchers.IO)
+    internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
     internal val clearCatalog = ClearCatalog(catalog, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
@@ -100,7 +100,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
 
     internal fun itemViewModel(itemId: String) =
-        ItemViewModel(itemId, itemRecipes::invoke, resolveStack::invoke)
+        ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke)
 }
 
 /** Decoded Icon atlases kept: 64 sheets of 16×8 32 px cells, about 32 MB (ADR 0014). */

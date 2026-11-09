@@ -1,7 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.function.LongFunction;
 
 /**
@@ -24,14 +24,20 @@ public interface RenderThread {
         return join(submit(work));
     }
 
-    /** The future's result, rethrowing its failure as it was thrown. */
+    /**
+     * Waits for the future's result, rethrowing its failure as it was thrown. An interrupted wait
+     * (the Session is being torn down) gives up with the thread's interrupt flag set.
+     */
     static <T> T join(CompletableFuture<T> future) {
         try {
-            return future.join();
-        } catch (CompletionException e) {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while waiting for the render thread", e);
+        } catch (ExecutionException e) {
             if (e.getCause() instanceof RuntimeException re) throw re;
             if (e.getCause() instanceof Error error) throw error;
-            throw e;
+            throw new IllegalStateException(e.getCause());
         }
     }
 }

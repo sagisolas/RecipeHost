@@ -197,22 +197,21 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
                 deleteInputsOf(instanceId, releaseId)
                 deleteOf(instanceId, releaseId)
             }
-            var recipePk = nextPk().executeAsOne()
+            var nextPk: Long? = null
             recipes.forEach { recipe ->
                 val body = Recipe.ADAPTER.encodeByteString(recipe)
-                insert(
-                    pk = recipePk,
-                    releaseId = releaseIds.releaseOf(recipe.id),
-                    recipeId = recipe.id,
-                    instanceId = instanceId,
-                    typeId = recipe.type_id,
-                    body = body.toByteArray(),
-                    bodyHash = body.sha256().toByteArray(),
-                )
+                val releaseId = releaseIds.releaseOf(recipe.id)
+                val bodyHash = body.sha256().toByteArray()
+                val recipePk = nextPk?.also { pk ->
+                    insertWithPk(pk, releaseId, recipe.id, instanceId, recipe.type_id, body.toByteArray(), bodyHash)
+                } ?: run {
+                    insert(releaseId, recipe.id, instanceId, recipe.type_id, body.toByteArray(), bodyHash)
+                    lastInsertedId().executeAsOne()
+                }
                 recipe.results.mapTo(HashSet()) { it.item_id }.forEach { insertOutput(recipePk, it) }
                 // An item in several Slots, or twice in one, is one row.
                 recipe.inputs.flatMapTo(HashSet()) { slot -> slot.stacks.map { it.item_id } }.forEach { insertInput(recipePk, it) }
-                recipePk++
+                nextPk = recipePk + 1
             }
         }
 

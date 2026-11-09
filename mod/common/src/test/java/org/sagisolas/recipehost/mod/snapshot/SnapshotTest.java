@@ -2,6 +2,7 @@ package org.sagisolas.recipehost.mod.snapshot;
 
 import org.junit.Test;
 import org.sagisolas.recipehost.mod.snapshot.icon.IconSheet;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeCandidate;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -79,6 +81,35 @@ public class SnapshotTest {
         assertEquals(0, laidOut.size());
         assertEquals(256, frames.next().getRecipeBatch().getRecipesCount());
         assertEquals(256, laidOut.size());
+    }
+
+    @Test
+    public void aLaterSessionOffersOnlyItsOwnLayoutsToTheRenderer() {
+        List<Integer> offered = new ArrayList<>();
+        Snapshot.Contents withOneLayout = new Snapshot.Contents("1.21.1", "en_us", "My pack", List.of(), List.of(),
+                new RecipeAssembly(new DirectRenderThread()).read(List.of(new RecipeCandidate() {
+                    @Override public String typeId() { return "minecraft:crafting"; }
+                    @Override public Recipe read() { return Recipe.newBuilder().setId("minecraft:stick").build(); }
+                    @Override public Optional<LaidOut> layOut(Recipe read) {
+                        return Optional.of(new LaidOut(LayoutJob.hashed("minecraft:crafting", 8, 8, List.of(), List.of(read.getId()), (g, x, y) -> {}), List.of()));
+                    }
+                })));
+        Snapshot snapshot = new Snapshot(() -> withOneLayout,
+                pending -> { throw new AssertionError("no Icons expected"); },
+                pending -> {
+                    offered.add(pending.size());
+                    return CompletableFuture.failedFuture(new IllegalStateException("stops the session"));
+                });
+
+        for (int session = 0; session < 2; session++) {
+            try {
+                drain(snapshot.frames());
+            } catch (IllegalStateException expected) {
+                // The renderer stops each session at its first layout sheet.
+            }
+        }
+
+        assertEquals(List.of(1, 1), offered);
     }
 
     @Test

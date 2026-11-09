@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Turns {@link RecipeCandidate}s into a Snapshot's recipes. It owns the rules every recipe source
@@ -54,7 +55,7 @@ public final class RecipeAssembly {
 
         private Prepared(List<Read> read) {
             this.read = List.copyOf(read);
-            this.namespaces = read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(java.util.stream.Collectors.toUnmodifiableSet());
+            this.namespaces = read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(Collectors.toUnmodifiableSet());
         }
 
         public int count() {

@@ -19,7 +19,7 @@ import kotlin.coroutines.CoroutineContext
  *
  * [context] runs the queries; `AppGraph` passes an I/O dispatcher.
  */
-internal class ResolveStack(
+internal class ResolveStacks(
     private val catalog: CatalogDatabase,
     private val context: CoroutineContext,
 ) {

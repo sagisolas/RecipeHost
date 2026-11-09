@@ -24,9 +24,9 @@ public final class RecipeHost {
 
     public static void init() {
         boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
-        RenderThreadScheduler renderThreadScheduler = new RenderThreadScheduler();
+        RenderThreadScheduler renderThread = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
-                new MinecraftListenerFactory(recipeSources(emiLoaded), renderThreadScheduler),
+                new MinecraftListenerFactory(recipeSources(emiLoaded), renderThread),
                 new ExecutorScheduler("recipehost-pairing-timer"),
                 new SecureTokens(),
                 HostAddresses::all);
