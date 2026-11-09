@@ -155,6 +155,44 @@ class ScanIngestTest {
     }
 
     @Test
+    fun aSharedSlotIsStoredAsTheSlotItStandsFor() = runTest {
+        val planks = Slot(stacks = listOf(ItemStack(item_id = "minecraft:oak_planks"), ItemStack(item_id = "minecraft:birch_planks")))
+        val shared = Slot(shared = 1)
+        val chest = Recipe(
+            id = "minecraft:chest",
+            type_id = "minecraft:crafting_shaped",
+            results = listOf(ItemStack(item_id = "minecraft:chest", count = 1)),
+            inputs = listOf(shared, shared),
+            layout_stacks = listOf(shared),
+        )
+        ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 0, recipes = 1),
+                Envelope(recipe_batch = RecipeBatch(recipes = listOf(chest), shared_slots = listOf(planks))),
+            ),
+        ).toList().also { assertEquals(ScanProgress.Done, it.last()) }
+
+        val stored = Recipe.ADAPTER.decode(bodiesOf("ATM9").getValue("minecraft:chest"))
+        assertEquals(listOf(planks, planks), stored.inputs)
+        assertEquals(listOf(planks), stored.layout_stacks)
+        val pk = database.recipeQueries.ofInstance("ATM9").executeAsOne().id
+        assertEquals(listOf("minecraft:birch_planks", "minecraft:oak_planks"), database.recipeQueries.inputsOf(pk).executeAsList())
+    }
+
+    @Test
+    fun aSharedSlotPastTheBatchsTableFailsTheScanAndWritesNothing() = runTest {
+        val progress = ingest.ingest(
+            flowOf(
+                handshake("ATM9", minecraft, items = 0, recipes = 1),
+                Envelope(recipe_batch = RecipeBatch(recipes = listOf(stickRecipe.copy(inputs = listOf(Slot(shared = 2)))))),
+            ),
+        ).toList()
+
+        assertIs<InvalidSharedSlotException>(assertIs<ScanProgress.Failed>(progress.last()).cause)
+        assertEquals(emptyList(), recipeIdsOf("ATM9"))
+    }
+
+    @Test
     fun aLaterScanOverwritesDisplayNamesAndOrdinals() = runTest {
         scan("ATM9", minecraft, items = listOf("minecraft:stone" to "Stone", "minecraft:stick" to "Stick"))
 

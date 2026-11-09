@@ -54,6 +54,7 @@ The generic wire representation of any crafting operation — vanilla, modded, o
 
 **Slot**:
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.
+On the wire a repeated Slot may travel once per `RecipeBatch` and be referred to by index (ADR 0016); the app expands it on receipt.
 _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 
 **Recipe layout**:

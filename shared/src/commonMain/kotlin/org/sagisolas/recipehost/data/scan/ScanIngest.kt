@@ -14,7 +14,9 @@ import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.LayoutBatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
+import org.sagisolas.recipehost.protocol.RecipeBatch
 import org.sagisolas.recipehost.protocol.RecipeLayout
+import org.sagisolas.recipehost.protocol.Slot
 import kotlin.time.Clock
 
 /**
@@ -61,7 +63,7 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
             }
             envelope.recipe_batch?.let { batch ->
                 val staged = scan.stillStaging("RecipeBatch")
-                staged.recipes += batch.recipes
+                staged.recipes += batch.expandedRecipes()
                 val total = staged.handshake.total_recipes
                 if (staged.recipes.size > total) throw RecipeCountExceededException(staged.recipes.size, total)
                 emit(ScanProgress.Recipes(staged.recipes.size, total))
@@ -251,6 +253,19 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
  */
 internal class UnknownNamespaceException(val namespace: String, val id: String) :
     IllegalStateException("no ModInfo in the Handshake for namespace '$namespace' of $id")
+
+/** A Slot pointing past its RecipeBatch's `shared_slots` (ADR 0016). */
+internal class InvalidSharedSlotException(val shared: Int, val tableSize: Int) :
+    IllegalStateException("Slot refers to shared slot $shared, but its RecipeBatch shares $tableSize")
+
+/** The batch's recipes with each shared Slot replaced by the Slot it stands for (ADR 0016). */
+private fun RecipeBatch.expandedRecipes(): List<Recipe> {
+    fun Slot.expanded(): Slot =
+        if (shared == 0) this else shared_slots.getOrNull(shared - 1) ?: throw InvalidSharedSlotException(shared, shared_slots.size)
+    return recipes.map { recipe ->
+        recipe.copy(inputs = recipe.inputs.map { it.expanded() }, layout_stacks = recipe.layout_stacks.map { it.expanded() })
+    }
+}
 
 /** An IconBatch whose geometry can't locate its cells. */
 internal class InvalidIconAtlasException(val columns: Int, val cellSize: Int) :

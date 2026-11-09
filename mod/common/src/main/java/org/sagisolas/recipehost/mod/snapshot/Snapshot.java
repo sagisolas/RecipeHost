@@ -7,6 +7,7 @@ import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
+import org.sagisolas.recipehost.mod.snapshot.recipe.SharedSlots;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
@@ -126,7 +127,7 @@ public final class Snapshot implements SnapshotSource {
                 synchronized (Snapshot.this) {
                     layoutJobs.addAll(laidOut.layouts());
                 }
-                return RecipeBatch.newBuilder().addAllRecipes(laidOut.recipes()).build();
+                return SharedSlots.batchOf(laidOut.recipes());
             }
         };
     }

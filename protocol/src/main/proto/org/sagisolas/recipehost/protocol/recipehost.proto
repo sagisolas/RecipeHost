@@ -55,6 +55,9 @@ message Item {
 
 message RecipeBatch {
   repeated Recipe recipes = 1;
+  // Slots that repeat in this batch's recipes (a tag's expansion), each sent once: a Slot whose
+  // `shared` is set stands for shared_slots[shared - 1]. See ADR 0016.
+  repeated Slot shared_slots = 2;
 }
 
 message Recipe {
@@ -70,6 +73,7 @@ message Recipe {
 
 message Slot {
   repeated ItemStack stacks = 1;   // expanded ingredient alternatives
+  uint32 shared = 2;               // when > 0, this Slot is its RecipeBatch's shared_slots[shared - 1] and has no stacks
 }
 
 message ItemStack {
