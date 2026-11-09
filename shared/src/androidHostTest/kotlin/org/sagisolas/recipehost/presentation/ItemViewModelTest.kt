@@ -16,6 +16,7 @@ import org.sagisolas.recipehost.domain.catalog.StackResolution
 import org.sagisolas.recipehost.domain.recipes.CatalogRecipe
 import org.sagisolas.recipehost.domain.recipes.DisplaySlot
 import org.sagisolas.recipehost.domain.recipes.DisplayStack
+import org.sagisolas.recipehost.domain.recipes.RecipeDirection
 import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
@@ -43,8 +44,7 @@ class ItemViewModelTest {
     private fun TestScope.viewModel(itemId: String = "minecraft:stick"): ItemViewModel {
         val viewModel = ItemViewModel(
             itemId = itemId,
-            recipesFor = { recipes },
-            usesOf = { uses },
+            itemRecipes = { _, direction -> if (direction == RecipeDirection.Recipes) recipes else uses },
             resolveStack = { id -> MutableStateFlow(resolutionOf(id)) },
         )
         // The state is shared while the screen collects it, as the UI does.

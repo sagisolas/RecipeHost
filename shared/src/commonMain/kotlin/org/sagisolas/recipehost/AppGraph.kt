@@ -20,8 +20,7 @@ import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.domain.catalog.ResolveStack
 import org.sagisolas.recipehost.domain.recipes.LayoutImages
-import org.sagisolas.recipehost.domain.recipes.RecipesFor
-import org.sagisolas.recipehost.domain.recipes.UsesOf
+import org.sagisolas.recipehost.domain.recipes.ItemRecipes
 import org.sagisolas.recipehost.platform.QrScanner
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
 import org.sagisolas.recipehost.presentation.ItemViewModel
@@ -59,8 +58,7 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
 
     internal val itemSearch = ItemSearch(catalog, Dispatchers.IO)
     internal val modList = ModList(catalog, Dispatchers.IO)
-    internal val recipesFor = RecipesFor(catalog, Dispatchers.IO)
-    internal val usesOf = UsesOf(catalog, Dispatchers.IO)
+    internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
     internal val resolveStack = ResolveStack(catalog, Dispatchers.IO)
     internal val clearCatalog = ClearCatalog(catalog, Dispatchers.IO)
 
@@ -102,5 +100,5 @@ class AppGraph(driver: SqlDriver, qrScanner: QrScanner) {
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
 
     internal fun itemViewModel(itemId: String) =
-        ItemViewModel(itemId, recipesFor::invoke, usesOf::invoke, resolveStack::invoke)
+        ItemViewModel(itemId, itemRecipes::invoke, resolveStack::invoke)
 }

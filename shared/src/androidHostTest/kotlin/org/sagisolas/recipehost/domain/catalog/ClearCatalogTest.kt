@@ -7,8 +7,8 @@ import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.shaped
-import org.sagisolas.recipehost.domain.recipes.RecipesFor
-import org.sagisolas.recipehost.domain.recipes.UsesOf
+import org.sagisolas.recipehost.domain.recipes.ItemRecipes
+import org.sagisolas.recipehost.domain.recipes.RecipeDirection
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -23,8 +23,7 @@ class ClearCatalogTest {
     private val modList = ModList(catalog.database, context)
     private val search = ItemSearch(catalog.database, context)
     private val resolve = ResolveStack(catalog.database, context)
-    private val recipesFor = RecipesFor(catalog.database, context)
-    private val usesOf = UsesOf(catalog.database, context)
+    private val itemRecipes = ItemRecipes(catalog.database, context)
 
     @AfterTest
     fun close() = catalog.close()
@@ -46,8 +45,8 @@ class ClearCatalogTest {
         assertEquals(emptyList(), search.items("").first())
         assertEquals(emptyList(), search.items("stick").first())
         assertEquals(StackResolution.Unresolved("minecraft:stick"), resolve("minecraft:stick").first())
-        assertEquals(emptyList(), recipesFor("create:cogwheel").first())
-        assertEquals(emptyList(), usesOf("minecraft:stick").first())
+        assertEquals(emptyList(), itemRecipes("create:cogwheel", RecipeDirection.Recipes).first())
+        assertEquals(emptyList(), itemRecipes("minecraft:stick", RecipeDirection.Uses).first())
         assertEquals(0L, catalog.database.iconQueries.atlasCount().executeAsOne())
     }
 
@@ -62,6 +61,6 @@ class ClearCatalogTest {
         val icon = assertNotNull(search.items("stick").first().single().icon)
         assertEquals(IconRegion(icon.atlasId, x = 16, y = 0, size = 16), icon)
         assertEquals(CatalogFixture.ATLAS_PNG, IconAtlases(catalog.database, EmptyCoroutineContext).png(icon.atlasId)?.toByteString())
-        assertEquals(listOf("create:cogwheel"), recipesFor("create:cogwheel").first().single().recipes.map { it.recipeId })
+        assertEquals(listOf("create:cogwheel"), itemRecipes("create:cogwheel", RecipeDirection.Recipes).first().single().recipes.map { it.recipeId })
     }
 }

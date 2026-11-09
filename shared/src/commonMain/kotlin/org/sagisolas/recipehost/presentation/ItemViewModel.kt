@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.update
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
 import org.sagisolas.recipehost.domain.recipes.DisplayStack
+import org.sagisolas.recipehost.domain.recipes.RecipeDirection
 import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
@@ -74,8 +75,7 @@ internal data class StackUi(val itemId: String, val count: Int, val item: Catalo
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ItemViewModel(
     itemId: String,
-    recipesFor: (String) -> Flow<List<RecipeGroup>>,
-    usesOf: (String) -> Flow<List<RecipeGroup>>,
+    itemRecipes: (String, RecipeDirection) -> Flow<List<RecipeGroup>>,
     private val resolveStack: (String) -> Flow<StackResolution>,
 ) : ViewModel() {
 
@@ -89,11 +89,11 @@ internal class ItemViewModel(
 
     /** The selected tab with its groups, so a tab switch never pairs one tab with the other's groups. */
     private val groups: Flow<Pair<ItemTab, List<RecipeGroup>>> = tab.flatMapLatest { tab ->
-        val source = when (tab) {
-            ItemTab.Recipes -> recipesFor(itemId)
-            ItemTab.Uses -> usesOf(itemId)
+        val direction = when (tab) {
+            ItemTab.Recipes -> RecipeDirection.Recipes
+            ItemTab.Uses -> RecipeDirection.Uses
         }
-        source.map { tab to it }
+        itemRecipes(itemId, direction).map { tab to it }
     }
 
     private val placed: Flow<Pair<ItemTab, List<PlacedSection>>> = combine(groups, positions) { (tab, groups), positions ->
