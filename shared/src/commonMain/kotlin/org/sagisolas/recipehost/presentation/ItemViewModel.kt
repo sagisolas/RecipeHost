@@ -17,9 +17,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
+import org.sagisolas.recipehost.domain.recipes.DisplayStack
+import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
-import org.sagisolas.recipehost.protocol.ItemStack
 import kotlin.time.Duration.Companion.milliseconds
 
 /** What the Item screen shows: the Item in its [header], and the [tab]'s sections. */
@@ -104,7 +105,7 @@ internal class ItemViewModel(
      * previous recipe until the new one's stacks resolve, so they never flash as unresolved.
      */
     private val resolved: Flow<Resolved> = placed.flatMapLatest { (tab, sections) ->
-        resolve(sections.flatMap { it.variant.stackIds() }.distinct()).map { Resolved(tab, sections, it) }
+        resolve(sections.flatMap { it.variant.display.itemIds }.distinct()).map { Resolved(tab, sections, it) }
     }
 
     /**
@@ -184,42 +185,30 @@ private fun sectionOf(placed: PlacedSection, items: Map<String, CatalogItem?>, t
     recipeId = placed.recipe.recipeId,
     variants = placed.recipe.variants.takeIf { it.size > 1 }?.map { it.instanceNames } ?: emptyList(),
     selectedVariant = placed.variantIndex,
-    layout = layoutOf(placed.variant, items, tick),
+    layout = layoutOf(placed.variant.display, items, tick),
 )
 
-/**
- * The layout [variant] is drawn in at [tick]: its stored layout when it has one, whose slots its
- * `layout_stacks` fill by index, and the generic one otherwise.
- */
-private fun layoutOf(variant: RecipeVariant, items: Map<String, CatalogItem?>, tick: Int): RecipeLayoutUi {
-    val recipe = variant.recipe
-    val layout = variant.layout ?: return RecipeLayoutUi.Generic(
-        inputs = recipe.inputs.map { slot -> slot.stacks.alternativeAt(tick)?.let { stackOf(it, items) } },
-        results = recipe.results.map { stackOf(it, items) },
+/** [display] at [tick]: each slot shows its alternative `tick % count`. */
+private fun layoutOf(display: RecipeDisplay, items: Map<String, CatalogItem?>, tick: Int): RecipeLayoutUi = when (display) {
+    is RecipeDisplay.Generic -> RecipeLayoutUi.Generic(
+        inputs = display.inputs.map { stacks -> stacks.alternativeAt(tick)?.let { stackOf(it, items) } },
+        results = display.results.map { stackOf(it, items) },
     )
-    return RecipeLayoutUi.Captured(
-        key = layout.key,
-        width = layout.width,
-        height = layout.height,
-        slots = layout.slots.mapIndexed { index, slot ->
-            // A slot past the recipe's stacks (a mismatched layout) stays empty.
-            val stack = recipe.layout_stacks.getOrNull(index)?.stacks?.alternativeAt(tick)?.let { stackOf(it, items) }
-            LayoutSlotUi(slot.x, slot.y, slot.width, slot.height, stack)
+    is RecipeDisplay.Captured -> RecipeLayoutUi.Captured(
+        key = display.key,
+        width = display.width,
+        height = display.height,
+        slots = display.slots.map { slot ->
+            LayoutSlotUi(slot.x, slot.y, slot.width, slot.height, slot.stacks.alternativeAt(tick)?.let { stackOf(it, items) })
         },
     )
 }
 
-private fun stackOf(stack: ItemStack, items: Map<String, CatalogItem?>) =
-    StackUi(stack.item_id, count = stack.count.coerceAtLeast(1), item = items[stack.item_id])
+private fun stackOf(stack: DisplayStack, items: Map<String, CatalogItem?>) =
+    StackUi(stack.itemId, count = stack.count, item = items[stack.itemId])
 
-/** Every item id [this] shows: each alternative of each slot of its layout, or of its inputs and results. */
-private fun RecipeVariant.stackIds(): List<String> {
-    val stacks = if (layout != null) recipe.layout_stacks.flatMap { it.stacks } else recipe.inputs.flatMap { it.stacks } + recipe.results
-    return stacks.map { it.item_id }
-}
-
-/** The alternative shown at [tick], or `null` for an empty Slot. */
-private fun List<ItemStack>.alternativeAt(tick: Int): ItemStack? = if (isEmpty()) null else this[tick % size]
+/** The alternative shown at [tick], or `null` for an empty slot. */
+private fun List<DisplayStack>.alternativeAt(tick: Int): DisplayStack? = if (isEmpty()) null else this[tick % size]
 
 private fun itemOf(resolution: StackResolution): CatalogItem? = (resolution as? StackResolution.Resolved)?.item
 

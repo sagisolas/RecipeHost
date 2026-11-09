@@ -20,16 +20,16 @@ internal data class CatalogRecipe(val releaseId: Long, val recipeId: String, val
 }
 
 /**
- * One body of a recipe and the `Instance`s that have it, most recently scanned first. [layout] is
- * the newest of those Instances' stored `Recipe layout`s, or null when none has one yet.
+ * One body of a recipe and the `Instance`s that have it, most recently scanned first. [display] is
+ * drawn in the newest of those Instances' stored `Recipe layout`s, or generically when none has one yet.
  */
-internal data class RecipeVariant(val recipe: Recipe, val instanceNames: List<String>, val layout: CatalogLayout?)
+internal data class RecipeVariant(val display: RecipeDisplay, val instanceNames: List<String>)
 
 /**
  * A stored `Recipe layout` without its image: [width] and [height] in GUI px, and the `Recipe slot`s
  * the recipe's `layout_stacks` fill by index. The image is loaded by [key].
  */
-internal data class CatalogLayout(val key: String, val width: Int, val height: Int, val slots: List<RecipeSlot>)
+internal data class StoredLayout(val key: String, val width: Int, val height: Int, val slots: List<RecipeSlot>)
 
 /** A recipe as one `Instance` has it: the row shape both recipe queries map to. */
 internal class InstanceRecipe(
@@ -45,8 +45,8 @@ internal class InstanceRecipe(
     layoutSlots: ByteArray?,
 ) {
     /** Null unless the recipe's layout is stored: the query's left join gives all four or none. */
-    val layout: CatalogLayout? = if (layoutKey != null && layoutWidth != null && layoutHeight != null && layoutSlots != null) {
-        CatalogLayout(layoutKey, layoutWidth.toInt(), layoutHeight.toInt(), RecipeLayout.ADAPTER.decode(layoutSlots).slots)
+    val layout: StoredLayout? = if (layoutKey != null && layoutWidth != null && layoutHeight != null && layoutSlots != null) {
+        StoredLayout(layoutKey, layoutWidth.toInt(), layoutHeight.toInt(), RecipeLayout.ADAPTER.decode(layoutSlots).slots)
     } else {
         null
     }
@@ -72,8 +72,7 @@ internal fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
 private fun List<InstanceRecipe>.toVariants(): List<RecipeVariant> =
     groupBy { it.bodyHash.toByteString() }.values.map { sameBody ->
         RecipeVariant(
-            recipe = Recipe.ADAPTER.decode(sameBody.first().body),
+            display = recipeDisplayOf(Recipe.ADAPTER.decode(sameBody.first().body), sameBody.firstNotNullOfOrNull { it.layout }),
             instanceNames = sameBody.map { it.instanceName },
-            layout = sameBody.firstNotNullOfOrNull { it.layout },
         )
     }

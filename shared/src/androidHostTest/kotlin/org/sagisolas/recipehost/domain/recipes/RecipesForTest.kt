@@ -9,8 +9,10 @@ import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.shaped
 import org.sagisolas.recipehost.domain.catalog.ModList
+import org.sagisolas.recipehost.protocol.ItemStack
 import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.RecipeSlot
+import org.sagisolas.recipehost.protocol.Slot
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -90,7 +92,7 @@ class RecipesForTest {
         val recipe = recipesFor("minecraft:stick").first().single().recipes.single()
 
         assertEquals(listOf(listOf("ATM9", "Vanilla")), recipe.variants.map { it.instanceNames })
-        assertEquals(stick, recipe.defaultVariant.recipe)
+        assertEquals(generic("minecraft:oak_planks"), recipe.defaultVariant.display)
     }
 
     @Test
@@ -104,10 +106,9 @@ class RecipesForTest {
         val recipe = recipesFor("minecraft:stick").first().single().recipes.single()
 
         assertEquals(
-            listOf(packStick to listOf("Skyblock", "ATM9"), vanillaStick to listOf("Vanilla")),
-            recipe.variants.map { it.recipe to it.instanceNames },
+            listOf(generic("minecraft:bamboo") to listOf("Skyblock", "ATM9"), generic("minecraft:oak_planks") to listOf("Vanilla")),
+            recipe.variants.map { it.display to it.instanceNames },
         )
-        assertEquals(packStick, recipe.defaultVariant.recipe)
     }
 
     @Test
@@ -127,10 +128,10 @@ class RecipesForTest {
     )
 
     @Test
-    fun aRecipeWithAStoredLayoutCarriesItsKeySizeAndSlots() = runTest {
+    fun aRecipeWithAStoredLayoutShowsItsLayoutStacksInItsSlots() = runTest {
         catalog.scan(
             "ATM9", minecraft,
-            recipes = listOf(stick),
+            recipes = listOf(stick.copy(layout_stacks = listOf(Slot(stacks = listOf(ItemStack("minecraft:oak_planks", 1))), Slot(stacks = listOf(ItemStack("minecraft:stick", 0)))))),
             layouts = listOf(
                 RecipeLayout(
                     key = "minecraft:crafting",
@@ -145,11 +146,34 @@ class RecipesForTest {
 
         val variant = recipesFor("minecraft:stick").first().single().recipes.single().defaultVariant
 
-        assertEquals(CatalogLayout(key = "minecraft:crafting", width = 128, height = 70, slots = craftingSlots), variant.layout)
+        assertEquals(
+            RecipeDisplay.Captured(
+                key = "minecraft:crafting", width = 128, height = 70,
+                slots = listOf(
+                    DisplaySlot(x = 29, y = 16, width = 18, height = 18, stacks = listOf(DisplayStack("minecraft:oak_planks", 1))),
+                    // A wire count of 0 means 1.
+                    DisplaySlot(x = 123, y = 34, width = 18, height = 18, stacks = listOf(DisplayStack("minecraft:stick", 1))),
+                ),
+            ),
+            variant.display,
+        )
     }
 
     @Test
-    fun aRecipeWhoseLayoutIsMissingStillLoadsWithANullLayout() = runTest {
+    fun aLayoutSlotPastTheRecipesLayoutStacksStaysEmpty() = runTest {
+        catalog.scan(
+            "ATM9", minecraft,
+            recipes = listOf(stick.copy(layout_stacks = listOf(Slot(stacks = listOf(ItemStack("minecraft:oak_planks", 1)))))),
+            layouts = listOf(RecipeLayout(key = "minecraft:crafting", png = "crafting-layout".encodeUtf8(), width = 128, height = 70, slots = craftingSlots, recipe_ids = listOf("minecraft:stick"))),
+        )
+
+        val display = recipesFor("minecraft:stick").first().single().recipes.single().defaultVariant.display
+
+        assertEquals(listOf(listOf("minecraft:oak_planks"), emptyList()), (display as RecipeDisplay.Captured).slots.map { slot -> slot.stacks.map { it.itemId } })
+    }
+
+    @Test
+    fun aRecipeWhoseLayoutImageIsMissingIsShownGenerically() = runTest {
         // Linked by a recipes-only entry to a key whose image never arrived.
         catalog.scan(
             "ATM9", minecraft,
@@ -159,7 +183,12 @@ class RecipesForTest {
 
         val variant = recipesFor("minecraft:stick").first().single().recipes.single().defaultVariant
 
-        assertEquals(stick, variant.recipe)
-        assertEquals(null, variant.layout)
+        assertEquals(generic("minecraft:oak_planks"), variant.display)
     }
+
+    /** How the fixture's one-input shaped stick recipe is drawn without a layout. */
+    private fun generic(input: String) = RecipeDisplay.Generic(
+        inputs = listOf(listOf(DisplayStack(input, 1))),
+        results = listOf(DisplayStack("minecraft:stick", 1)),
+    )
 }

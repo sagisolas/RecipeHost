@@ -13,14 +13,12 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
-import org.sagisolas.recipehost.domain.recipes.CatalogLayout
 import org.sagisolas.recipehost.domain.recipes.CatalogRecipe
+import org.sagisolas.recipehost.domain.recipes.DisplaySlot
+import org.sagisolas.recipehost.domain.recipes.DisplayStack
+import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
-import org.sagisolas.recipehost.protocol.ItemStack
-import org.sagisolas.recipehost.protocol.Recipe
-import org.sagisolas.recipehost.protocol.RecipeSlot
-import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -100,8 +98,8 @@ class ItemViewModelTest {
                 "minecraft:crafting_shaped",
                 recipe(
                     "minecraft:stick",
-                    listOf("Pack") to body("minecraft:stick", inputs = listOf(listOf("minecraft:bamboo"))),
-                    listOf("Vanilla", "Other") to body("minecraft:stick", inputs = listOf(listOf("minecraft:oak_planks"))),
+                    listOf("Pack") to display(inputs = listOf(listOf("minecraft:bamboo"))),
+                    listOf("Vanilla", "Other") to display(inputs = listOf(listOf("minecraft:oak_planks"))),
                 ),
             ),
             group("minecraft:stonecutting", recipe("minecraft:stick_from_stone")),
@@ -122,8 +120,8 @@ class ItemViewModelTest {
                 "minecraft:crafting_shaped",
                 recipe(
                     "minecraft:stick",
-                    listOf("Pack") to body("minecraft:stick", inputs = listOf(listOf("minecraft:bamboo"))),
-                    listOf("Vanilla") to body("minecraft:stick", inputs = listOf(listOf("minecraft:oak_planks"))),
+                    listOf("Pack") to display(inputs = listOf(listOf("minecraft:bamboo"))),
+                    listOf("Vanilla") to display(inputs = listOf(listOf("minecraft:oak_planks"))),
                 ),
             ),
         )
@@ -141,7 +139,7 @@ class ItemViewModelTest {
     fun alternativesCycleEverySecondOnOneClock() = runTest {
         val planks = listOf("minecraft:oak_planks", "minecraft:spruce_planks", "minecraft:birch_planks")
         val logs = listOf("minecraft:oak_log", "minecraft:spruce_log")
-        recipes.value = listOf(group("minecraft:crafting_shaped", recipe("minecraft:stick", listOf("ATM") to body("minecraft:stick", inputs = listOf(planks, logs)))))
+        recipes.value = listOf(group("minecraft:crafting_shaped", recipe("minecraft:stick", listOf("ATM") to display(inputs = listOf(planks, logs)))))
         val viewModel = viewModel()
         assertEquals(listOf("minecraft:oak_planks", "minecraft:oak_log"), viewModel.state.value.sections.single().inputIds)
 
@@ -155,26 +153,19 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun aRecipeWithAStoredLayoutFillsItsSlotsFromItsLayoutStacks() = runTest {
-        val crafting = CatalogLayout(
+    fun aCapturedRecipeShowsOneAlternativePerSlot() = runTest {
+        val crafting = RecipeDisplay.Captured(
             key = "minecraft:crafting",
             width = 116,
             height = 54,
             slots = listOf(
-                RecipeSlot(x = 1, y = 1, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
-                RecipeSlot(x = 19, y = 1, width = 18, height = 18, role = RecipeSlot.Role.INPUT),
-                RecipeSlot(x = 94, y = 18, width = 26, height = 26, role = RecipeSlot.Role.OUTPUT),
-            ),
-        )
-        val stick = body("minecraft:stick").copy(
-            layout_stacks = listOf(
-                Slot(stacks = listOf(ItemStack("minecraft:oak_planks", 1), ItemStack("minecraft:spruce_planks", 1))),
-                Slot(),
-                Slot(stacks = listOf(ItemStack("minecraft:stick", 4))),
+                DisplaySlot(x = 1, y = 1, width = 18, height = 18, stacks = listOf(DisplayStack("minecraft:oak_planks", 1), DisplayStack("minecraft:spruce_planks", 1))),
+                DisplaySlot(x = 19, y = 1, width = 18, height = 18, stacks = emptyList()),
+                DisplaySlot(x = 94, y = 18, width = 26, height = 26, stacks = listOf(DisplayStack("minecraft:stick", 4))),
             ),
         )
         recipes.value = listOf(
-            group("minecraft:crafting_shaped", CatalogRecipe(1, "minecraft:stick", listOf(RecipeVariant(stick, listOf("ATM"), crafting)))),
+            group("minecraft:crafting_shaped", CatalogRecipe(1, "minecraft:stick", listOf(RecipeVariant(crafting, listOf("ATM"))))),
             group("minecraft:stonecutting", recipe("minecraft:stick_from_stone")),
         )
         val viewModel = viewModel()
@@ -207,14 +198,14 @@ class ItemViewModelTest {
         recipes.value = listOf(
             group(
                 "minecraft:crafting_shaped",
-                recipe("minecraft:stick", listOf("ATM") to body("minecraft:stick", inputs = listOf(listOf("gadgets:widget"), emptyList()), results = listOf("minecraft:stick" to 0))),
+                recipe("minecraft:stick", listOf("ATM") to display(inputs = listOf(listOf("gadgets:widget"), emptyList()), results = listOf("minecraft:stick" to 1))),
             ),
         )
         val viewModel = viewModel()
 
         val layout = viewModel.state.value.sections.single().layout as RecipeLayoutUi.Generic
         assertEquals(listOf(StackUi("gadgets:widget", count = 1, item = null), null), layout.inputs)
-        assertEquals(listOf(StackUi("minecraft:stick", count = 1, item = itemOf("minecraft:stick"))), layout.results, "a count of 0 is 1")
+        assertEquals(listOf(StackUi("minecraft:stick", count = 1, item = itemOf("minecraft:stick"))), layout.results)
     }
 
     @Test
@@ -246,17 +237,16 @@ private val RecipeSectionUi.inputIds get() = (layout as RecipeLayoutUi.Generic).
 
 private fun itemOf(id: String) = CatalogItem(releaseId = 1, itemId = id, displayName = id.substringAfter(':'), icon = null)
 
-private fun group(typeId: String, vararg recipes: CatalogRecipe) =
-    RecipeGroup(typeId, recipes.map { it.copy(variants = it.variants.map { v -> v.copy(recipe = v.recipe.copy(type_id = typeId)) }) })
+private fun group(typeId: String, vararg recipes: CatalogRecipe) = RecipeGroup(typeId, recipes.toList())
 
-/** A recipe with one variant per entry of [variants]: its Instance names and its body. */
-private fun recipe(id: String, vararg variants: Pair<List<String>, Recipe> = arrayOf(listOf("ATM") to body(id))) =
-    CatalogRecipe(releaseId = 1, recipeId = id, variants = variants.map { (names, body) -> RecipeVariant(body, names, layout = null) })
+/** A recipe with one variant per entry of [variants]: its Instance names and how it is drawn. */
+private fun recipe(id: String, vararg variants: Pair<List<String>, RecipeDisplay> = arrayOf(listOf("ATM") to display())) =
+    CatalogRecipe(releaseId = 1, recipeId = id, variants = variants.map { (names, display) -> RecipeVariant(display, names) })
 
-/** A body taking one stack per input slot (alternatives within a slot) and making [results]. */
-private fun body(id: String, inputs: List<List<String>> = listOf(listOf("minecraft:oak_planks")), results: List<Pair<String, Int>> = listOf("minecraft:stick" to 4)) =
-    Recipe(
-        id = id,
-        inputs = inputs.map { alternatives -> Slot(stacks = alternatives.map { ItemStack(item_id = it, count = 1) }) },
-        results = results.map { (item, count) -> ItemStack(item_id = item, count = count) },
+/** A generic display taking one stack per input slot (alternatives within a slot) and making [results]. */
+private fun display(inputs: List<List<String>> = listOf(listOf("minecraft:oak_planks")), results: List<Pair<String, Int>> = listOf("minecraft:stick" to 4)) =
+    RecipeDisplay.Generic(
+        inputs = inputs.map { alternatives -> alternatives.map { DisplayStack(it, 1) } },
+        results = results.map { (item, count) -> DisplayStack(item, count) },
     )
+
