@@ -22,8 +22,8 @@ import java.util.Set;
  *   <li>the namespace of a recipe's id owns it;</li>
  *   <li>each layout lists the recipe it was laid out for.</li>
  * </ul>
- * Each kind of failure is logged once per type. Layouts are laid out on the {@link RenderThread}
- * a budgeted slice at a time.
+ * Each kind of failure is logged once per type. Recipes are read first ({@link #read}); layouts are
+ * laid out later, a chunk at a time, on the {@link RenderThread} in budgeted slices.
  */
 public final class RecipeAssembly {
 
@@ -36,12 +36,52 @@ public final class RecipeAssembly {
     /** JEI's tag listings, one type per registry ({@code minecraft:tag_recipes/item}, ...). */
     private static final String JEI_TAG_TYPE_PREFIX = "minecraft:tag_recipes/";
 
-    /** The Snapshot's recipes in order, the jobs of those with a layout, and the namespaces owning them. */
-    public record Assembled(List<Recipe> recipes, List<LayoutJob> layouts, Set<String> namespaces) {
-        public Assembled {
+    /** Recipes in order with their {@code layout_stacks}, and the jobs of those with a layout. */
+    public record LaidOutRecipes(List<Recipe> recipes, List<LayoutJob> layouts) {
+        public LaidOutRecipes {
             recipes = List.copyOf(recipes);
             layouts = List.copyOf(layouts);
-            namespaces = Set.copyOf(namespaces);
+        }
+    }
+
+    /**
+     * The recipes that ship, read but not yet laid out: their count and owners are known, so the
+     * Handshake can go out before any layout is captured.
+     */
+    public final class Prepared {
+        private final List<Read> read;
+        private final Set<String> namespaces;
+
+        private Prepared(List<Read> read) {
+            this.read = List.copyOf(read);
+            this.namespaces = read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(java.util.stream.Collectors.toUnmodifiableSet());
+        }
+
+        public int count() {
+            return read.size();
+        }
+
+        /** The namespaces of the recipe ids, which own the recipes (ADR 0011). */
+        public Set<String> namespaces() {
+            return namespaces;
+        }
+
+        /**
+         * Lays out recipes {@code from} (inclusive) to {@code to} (exclusive) on the render thread, a
+         * budgeted slice at a time, and returns them with what their layouts show.
+         */
+        public LaidOutRecipes layOut(int from, int to) {
+            List<Read> chunk = read.subList(from, to);
+            List<Optional<LaidOut>> laidOut = layOutAll(chunk);
+            List<Recipe> recipes = new ArrayList<>(chunk.size());
+            List<LayoutJob> layouts = new ArrayList<>();
+            for (int i = 0; i < chunk.size(); i++) {
+                Recipe recipe = chunk.get(i).recipe();
+                Optional<LaidOut> layout = laidOut.get(i);
+                recipes.add(layout.map(l -> recipe.toBuilder().addAllLayoutStacks(l.stacks()).build()).orElse(recipe));
+                layout.ifPresent(l -> layouts.add(l.job()));
+            }
+            return new LaidOutRecipes(recipes, layouts);
         }
     }
 
@@ -54,20 +94,9 @@ public final class RecipeAssembly {
         this.renderThread = renderThread;
     }
 
-    public Assembled assemble(List<? extends RecipeCandidate> candidates) {
-        List<Read> read = readAll(candidates);
-        List<Optional<LaidOut>> laidOut = layOutAll(read);
-        List<Recipe> recipes = new ArrayList<>(read.size());
-        List<LayoutJob> layouts = new ArrayList<>();
-        Set<String> namespaces = new HashSet<>();
-        for (int i = 0; i < read.size(); i++) {
-            Recipe recipe = read.get(i).recipe();
-            Optional<LaidOut> layout = laidOut.get(i);
-            recipes.add(layout.map(l -> recipe.toBuilder().addAllLayoutStacks(l.stacks()).build()).orElse(recipe));
-            layout.ifPresent(l -> layouts.add(l.job()));
-            namespaces.add(namespaceOf(recipe.getId()));
-        }
-        return new Assembled(recipes, layouts, namespaces);
+    /** Reads every candidate that ships, on the calling (sender) thread; nothing is laid out yet. */
+    public Prepared read(List<? extends RecipeCandidate> candidates) {
+        return new Prepared(readAll(candidates));
     }
 
     /** A candidate that read, with what it read. */

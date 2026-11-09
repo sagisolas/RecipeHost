@@ -6,6 +6,7 @@ import org.sagisolas.recipehost.mod.snapshot.icon.IconBatches;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutBatches;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.IconBatch;
@@ -13,9 +14,9 @@ import org.sagisolas.recipehost.protocol.Item;
 import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
-import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -34,20 +35,20 @@ public final class Snapshot implements SnapshotSource {
     private static final int ITEM_BATCH_SIZE = 256;
     private static final int RECIPE_BATCH_SIZE = 256;
 
-    /** What a Snapshot carries, read from the game. Recipes are those the Recipe assembly ships. */
+    /**
+     * What a Snapshot carries, read from the game. Recipes are those the Recipe assembly ships, read
+     * but not laid out: each recipe batch lays out its own recipes as it is pulled.
+     */
     public record Contents(
             String minecraftVersion,
             String locale,
             String instanceName,
             List<ModInfo> mods,
             List<Item> items,
-            List<Recipe> recipes,
-            List<LayoutJob> layoutJobs) {
+            RecipeAssembly.Prepared recipes) {
         public Contents {
             mods = List.copyOf(mods);
             items = List.copyOf(items);
-            recipes = List.copyOf(recipes);
-            layoutJobs = List.copyOf(layoutJobs);
         }
     }
 
@@ -55,6 +56,8 @@ public final class Snapshot implements SnapshotSource {
     private final IconBatches.SheetRenderer icons;
     private final LayoutBatches.SheetRenderer layouts;
     private Contents contents;
+    /** The jobs of the recipes laid out so far; complete once the recipe batches are drained. */
+    private final List<LayoutJob> layoutJobs = new ArrayList<>();
 
     public Snapshot(Supplier<Contents> read, IconBatches.SheetRenderer icons, LayoutBatches.SheetRenderer layouts) {
         this.read = read;
@@ -101,7 +104,7 @@ public final class Snapshot implements SnapshotSource {
                 .addAllMods(c.mods())
                 .setInstanceName(c.instanceName())
                 .setTotalItems(c.items().size())
-                .setTotalRecipes(c.recipes().size())
+                .setTotalRecipes(c.recipes().count())
                 .build();
     }
 
@@ -109,8 +112,23 @@ public final class Snapshot implements SnapshotSource {
         return batched(contents().items(), ITEM_BATCH_SIZE, chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
     }
 
+    /** Lays out each batch's recipes as it is pulled, so their layouts are captured while recipes stream. */
     private synchronized Iterator<RecipeBatch> recipeBatches() {
-        return batched(contents().recipes(), RECIPE_BATCH_SIZE, chunk -> RecipeBatch.newBuilder().addAllRecipes(chunk).build());
+        RecipeAssembly.Prepared recipes = contents().recipes();
+        return new Iterator<>() {
+            int i = 0;
+            @Override public boolean hasNext() { return i < recipes.count(); }
+            @Override public RecipeBatch next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                int end = Math.min(i + RECIPE_BATCH_SIZE, recipes.count());
+                RecipeAssembly.LaidOutRecipes laidOut = recipes.layOut(i, end);
+                i = end;
+                synchronized (Snapshot.this) {
+                    layoutJobs.addAll(laidOut.layouts());
+                }
+                return RecipeBatch.newBuilder().addAllRecipes(laidOut.recipes()).build();
+            }
+        };
     }
 
     private synchronized Iterator<IconBatch> iconBatches() {
@@ -118,7 +136,7 @@ public final class Snapshot implements SnapshotSource {
     }
 
     private synchronized Iterator<LayoutBatch> layoutBatches() {
-        return new LayoutBatches(contents().layoutJobs(), layouts, new PngEncoder());
+        return new LayoutBatches(List.copyOf(layoutJobs), layouts, new PngEncoder());
     }
 
     private Contents contents() {

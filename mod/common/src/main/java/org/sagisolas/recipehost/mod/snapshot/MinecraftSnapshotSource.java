@@ -57,7 +57,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     /** Runs on the sender thread, on the Snapshot's first use. */
     private Snapshot.Contents read() {
         ItemMapper.Result items = ItemMapper.map();
-        RecipeAssembly.Assembled recipes = new RecipeAssembly(renderThread).assemble(recipeSource.candidates());
+        RecipeAssembly.Prepared recipes = new RecipeAssembly(renderThread).read(recipeSource.candidates());
         Set<String> ownerNamespaces = new HashSet<>(items.namespacesWithItems());
         ownerNamespaces.addAll(recipes.namespaces());
         return new Snapshot.Contents(
@@ -66,8 +66,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
                 InstanceName.of(minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists),
                 ModInfos.assemble(Platform.listMods(), ownerNamespaces),
                 items.wireItems(),
-                recipes.recipes(),
-                recipes.layouts());
+                recipes);
     }
 
     /** Blocks the sender thread until the render thread has drawn the sheet. */

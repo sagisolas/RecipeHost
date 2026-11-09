@@ -1,6 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
 import org.junit.Test;
+import org.sagisolas.recipehost.mod.snapshot.DirectRenderThread;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.Recipe;
@@ -23,7 +24,7 @@ public class RecipeAssemblyTest {
     @Test
     public void aRecipeWithALayoutCarriesWhatEachOfItsSlotsShows() {
         Slot planks = slotOf("minecraft:oak_planks");
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("minecraft:crafting_shaped", () -> recipe("minecraft:stick"),
                         read -> Optional.of(new LaidOut(job("minecraft:crafting_shaped", read.getId(), 2), List.of(planks, planks))))));
 
@@ -33,7 +34,7 @@ public class RecipeAssemblyTest {
 
     @Test
     public void aRecipeThatFailsToReadIsLeftOutAndTheOthersShip() {
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("broken:machine", () -> { throw new IllegalStateException("a mod's broken recipe"); }, noLayout()),
                 candidate("minecraft:smelting", () -> recipe("minecraft:glass"), noLayout())));
 
@@ -42,7 +43,7 @@ public class RecipeAssemblyTest {
 
     @Test
     public void aRepeatedIdShipsOnlyTheFirstRecipe() {
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("create:mixing", () -> recipe("create:brass").toBuilder().addResults(stack("create:brass_ingot")).build(), noLayout()),
                 candidate("create:mixing", () -> recipe("create:brass"), noLayout())));
 
@@ -52,7 +53,7 @@ public class RecipeAssemblyTest {
 
     @Test
     public void tagListingsAndFuelAreNotRecipes() {
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("emi:tag", () -> recipe("emi:tag_a"), noLayout()),
                 candidate("emi:fuel", () -> recipe("emi:fuel_a"), noLayout()),
                 candidate("minecraft:tag_recipes/item", () -> recipe("minecraft:tag_b"), noLayout()),
@@ -64,16 +65,18 @@ public class RecipeAssemblyTest {
 
     @Test
     public void theNamespacesOfTheRecipeIdsOwnTheRecipes() {
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("minecraft:crafting", () -> recipe("minecraft:stick"), noLayout()),
                 candidate("minecraft:crafting", () -> recipe("mydatapack:cheap_saddle"), noLayout())));
 
-        assertEquals(Set.of("minecraft", "mydatapack"), assembled.namespaces());
+        assertEquals(Set.of("minecraft", "mydatapack"), assembly.read(List.of(
+                candidate("minecraft:crafting", () -> recipe("minecraft:stick"), noLayout()),
+                candidate("minecraft:crafting", () -> recipe("mydatapack:cheap_saddle"), noLayout()))).namespaces());
     }
 
     @Test
     public void aLayoutThatFailsLeavesItsRecipeWithoutOne() {
-        RecipeAssembly.Assembled assembled = assembly.assemble(List.of(
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(
                 candidate("broken:machine", () -> recipe("broken:a"), read -> { throw new LinkageError("built against another API"); }),
                 candidate("broken:machine", () -> recipe("broken:b"),
                         // Three Recipe slots, but only two stacks: the entries wouldn't line up.
@@ -84,7 +87,28 @@ public class RecipeAssemblyTest {
         assertTrue(assembled.layouts().isEmpty());
     }
 
-    private static List<String> idsOf(RecipeAssembly.Assembled assembled) {
+    @Test
+    public void readingLaysNothingOutAndCountsWhatShips() {
+        List<String> laidOut = new java.util.ArrayList<>();
+        List<RecipeCandidate> candidates = List.of(
+                candidate("minecraft:crafting", () -> recipe("minecraft:a"), read -> { laidOut.add(read.getId()); return Optional.empty(); }),
+                candidate("emi:tag", () -> recipe("emi:t"), noLayout()),
+                candidate("minecraft:crafting", () -> recipe("minecraft:b"), read -> { laidOut.add(read.getId()); return Optional.empty(); }));
+
+        RecipeAssembly.Prepared prepared = assembly.read(candidates);
+        assertEquals(2, prepared.count());
+        assertEquals(List.of(), laidOut);
+
+        prepared.layOut(1, 2);
+        assertEquals(List.of("minecraft:b"), laidOut);
+    }
+
+    private RecipeAssembly.LaidOutRecipes assembled(List<RecipeCandidate> candidates) {
+        RecipeAssembly.Prepared prepared = assembly.read(candidates);
+        return prepared.layOut(0, prepared.count());
+    }
+
+    private static List<String> idsOf(RecipeAssembly.LaidOutRecipes assembled) {
         return assembled.recipes().stream().map(Recipe::getId).toList();
     }
 
