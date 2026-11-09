@@ -64,9 +64,12 @@ private class InstanceRecipe(
     layoutHeight: Long?,
     layoutSlots: ByteArray?,
 ) {
-    /** Null unless the recipe's layout is stored: the query's left join gives all four or none. */
-    val layout: StoredLayout? = if (layoutKey != null && layoutWidth != null && layoutHeight != null && layoutSlots != null) {
-        StoredLayout(layoutKey, layoutWidth.toInt(), layoutHeight.toInt(), RecipeLayout.ADAPTER.decode(layoutSlots).slots)
+    /**
+     * Null unless the recipe's layout is stored: the query's left join gives all four or none. Its
+     * slots are decoded only when the variant is shown.
+     */
+    val layout: (() -> StoredLayout)? = if (layoutKey != null && layoutWidth != null && layoutHeight != null && layoutSlots != null) {
+        { StoredLayout(layoutKey, layoutWidth.toInt(), layoutHeight.toInt(), RecipeLayout.ADAPTER.decode(layoutSlots).slots) }
     } else {
         null
     }
@@ -91,10 +94,9 @@ private fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
 /** Rows of one recipe, newest Instance first, collapsed by body hash; groupBy keeps first-seen order. */
 private fun List<InstanceRecipe>.toVariants(): List<RecipeVariant> =
     groupBy { it.bodyHash.toByteString() }.values.map { sameBody ->
-        RecipeVariant(
-            display = recipeDisplayOf(Recipe.ADAPTER.decode(sameBody.first().body), sameBody.firstNotNullOfOrNull { it.layout }),
-            instanceNames = sameBody.map { it.instanceName },
-        )
+        RecipeVariant(instanceNames = sameBody.map { it.instanceName }) {
+            recipeDisplayOf(Recipe.ADAPTER.decode(sameBody.first().body), sameBody.firstNotNullOfOrNull { it.layout }?.invoke())
+        }
     }
 
 /**
