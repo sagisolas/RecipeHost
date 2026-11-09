@@ -101,8 +101,8 @@ public final class LayoutRenderer implements AutoCloseable {
         try (NativeImage image = new NativeImage(SIZE, SIZE, false)) {
             RenderSystem.bindTexture(target.getColorTextureId());
             image.downloadTexture(0, false);
-            image.flipY();
-            return new LayoutSheet(SIZE, NativeImages.toArgb(image), taken, placed, failed);
+            // Flipped and swizzled on the sender thread, outside the frame's budget.
+            return LayoutSheet.fromReadback(SIZE, NativeImages.readback(image), taken, placed, failed);
         } finally {
             target.unbindWrite();
             main.bindWrite(true);

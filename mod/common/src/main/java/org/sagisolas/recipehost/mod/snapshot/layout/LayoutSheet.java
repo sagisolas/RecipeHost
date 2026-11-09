@@ -1,5 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
+
 import java.util.List;
 
 /**
@@ -14,7 +16,9 @@ public final class LayoutSheet {
     record Failed(LayoutJob job, Throwable cause) {}
 
     private final int width;
-    private final int[] argb;
+    /** Top-down ARGB, or null until {@link #readback} is converted. */
+    private int[] argb;
+    private final int[] readback;
     private final int taken;
     private final List<Placed> placed;
     private final List<Failed> failed;
@@ -24,8 +28,21 @@ public final class LayoutSheet {
      * @param taken how many jobs from the front of the given list this sheet consumed
      */
     LayoutSheet(int width, int[] argb, int taken, List<Placed> placed, List<Failed> failed) {
+        this(width, argb, null, taken, placed, failed);
+    }
+
+    /**
+     * A square sheet straight from a GL read-back ({@code NativeImages.readback}): it is turned into
+     * top-down ARGB when first cropped, off the render thread.
+     */
+    static LayoutSheet fromReadback(int size, int[] abgrBottomUp, int taken, List<Placed> placed, List<Failed> failed) {
+        return new LayoutSheet(size, null, abgrBottomUp, taken, placed, failed);
+    }
+
+    private LayoutSheet(int width, int[] argb, int[] readback, int taken, List<Placed> placed, List<Failed> failed) {
         this.width = width;
         this.argb = argb;
+        this.readback = readback;
         this.taken = taken;
         this.placed = List.copyOf(placed);
         this.failed = List.copyOf(failed);
@@ -49,8 +66,13 @@ public final class LayoutSheet {
         int h = layout.job().height();
         int[] out = new int[w * h];
         for (int row = 0; row < h; row++) {
-            System.arraycopy(argb, (layout.y() + row) * width + layout.x(), out, row * w, w);
+            System.arraycopy(argb(), (layout.y() + row) * width + layout.x(), out, row * w, w);
         }
         return out;
+    }
+
+    private int[] argb() {
+        if (argb == null) argb = NativeImages.argbTopDown(readback, width, readback.length / width);
+        return argb;
     }
 }

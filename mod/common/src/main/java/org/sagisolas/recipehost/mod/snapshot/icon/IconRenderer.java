@@ -113,8 +113,8 @@ public final class IconRenderer implements AutoCloseable {
         try (NativeImage image = new NativeImage(WIDTH, HEIGHT, false)) {
             RenderSystem.bindTexture(target.getColorTextureId());
             image.downloadTexture(0, false);
-            image.flipY();
-            return new IconSheet(COLUMNS, CELL, drawn, NativeImages.toArgb(image));
+            // Flipped and swizzled on the sender thread, outside the frame's budget.
+            return IconSheet.fromReadback(COLUMNS, CELL, ROWS, drawn, NativeImages.readback(image));
         } finally {
             target.unbindWrite();
             main.bindWrite(true);

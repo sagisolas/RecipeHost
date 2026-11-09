@@ -1,5 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
+
 import java.awt.image.BufferedImage;
 
 /**
@@ -12,17 +14,35 @@ public final class IconSheet {
     private final int columns;
     private final int cell;
     private final int count;
-    private final int[] argb;
+    /** Top-down ARGB, or null until {@link #readback} is converted. */
+    private int[] argb;
+    private final int[] readback;
 
     /**
      * @param count number of cells actually drawn, starting at index 0
      * @param argb  top-down, row-major pixels of the whole sheet; width is {@code columns * cell}
      */
     public IconSheet(int columns, int cell, int count, int[] argb) {
+        this(columns, cell, count, argb, null);
+    }
+
+    private IconSheet(int columns, int cell, int count, int[] argb, int[] readback) {
         this.columns = columns;
         this.cell = cell;
         this.count = count;
         this.argb = argb;
+        this.readback = readback;
+    }
+
+    /**
+     * A sheet straight from a GL read-back ({@link NativeImages#readback}): it is turned into
+     * top-down ARGB when the atlas is first built, off the render thread.
+     */
+    static IconSheet fromReadback(int columns, int cell, int rows, int count, int[] abgrBottomUp) {
+        if (abgrBottomUp.length != columns * cell * rows * cell) {
+            throw new IllegalArgumentException("a " + columns + "x" + rows + " sheet read back " + abgrBottomUp.length + " pixels");
+        }
+        return new IconSheet(columns, cell, count, null, abgrBottomUp);
     }
 
     public int count() {
@@ -45,7 +65,12 @@ public final class IconSheet {
         int width = columns * cell;
         int height = Math.max(1, (count + columns - 1) / columns) * cell;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        image.setRGB(0, 0, width, height, argb, 0, width);
+        image.setRGB(0, 0, width, height, argb(), 0, width);
         return image;
+    }
+
+    private int[] argb() {
+        if (argb == null) argb = NativeImages.argbTopDown(readback, columns * cell, readback.length / (columns * cell));
+        return argb;
     }
 }
