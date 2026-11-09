@@ -51,16 +51,18 @@ deleteOf:
 DELETE FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId;
 
 insert:
-INSERT INTO recipe(release_id, recipe_id, instance_id, type_id, body, body_hash)
-VALUES (:releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
+INSERT INTO recipe(id, release_id, recipe_id, instance_id, type_id, body, body_hash)
+VALUES (:pk, :releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
 
 -- Points a recipe of one Instance and release at its layout; the layout row may not exist yet.
 linkLayout:
 UPDATE recipe SET layout_key = :layoutKey
 WHERE instance_id = :instanceId AND release_id = :releaseId AND recipe_id = :recipeId;
 
-lastInsertedId:
-SELECT last_insert_rowid();
+-- The key the next inserted recipe gets: a Scan's commit numbers its recipes from here itself,
+-- rather than asking SQLite after each insert.
+nextPk:
+SELECT COALESCE(MAX(id), 0) + 1 FROM recipe;
 
 insertOutput:
 INSERT OR IGNORE INTO recipe_output(recipe_pk, item_id) VALUES (:recipePk, :itemId);

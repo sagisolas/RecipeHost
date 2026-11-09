@@ -83,22 +83,27 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
         }
         val staged = scan ?: error("stream ended before Handshake")
         commitOnce(staged)
-        deleteUnreferencedLayouts()
+        deleteUnreferenced()
         emit(ScanProgress.Done)
     }.catch { cause ->
         if (cause is CancellationException) throw cause
         // The screen only shows a reason; the cause is only ever seen here (logcat / Xcode console).
         println("[recipehost] Scan failed: ${cause.stackTraceToString()}")
-        // A drop keeps the layouts that arrived, but its commit may still have orphaned old ones.
-        runCatching { deleteUnreferencedLayouts() }
+        // A drop keeps the Icons and layouts that arrived, but they may still have orphaned old ones.
+        runCatching { deleteUnreferenced() }
         emit(ScanProgress.Failed(cause))
     }
 
     /**
-     * Deletes the layouts no recipe points at. Run once the Scan has ended: its commit unlinked the
-     * recipes it replaced, and their layouts may be orphans now.
+     * Deletes the layouts no recipe points at and the atlases no Icon points at. Run once the Scan
+     * has ended: its commit unlinked the recipes it replaced, and its IconBatches repointed Icons,
+     * so their layouts and atlases may be orphans now. A full scan of each table, so once per Scan
+     * rather than per batch.
      */
-    private fun deleteUnreferencedLayouts() = catalog.recipeLayoutQueries.deleteUnreferenced()
+    private fun deleteUnreferenced() = catalog.transaction {
+        catalog.recipeLayoutQueries.deleteUnreferenced()
+        catalog.iconQueries.deleteUnreferencedAtlases()
+    }
 
     /** Writes the staged Items and Recipes in one transaction. */
     private fun commit(scan: StagedScan): Committed {
@@ -123,9 +128,9 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
     }
 
     /**
-     * Stores the IconBatch's `Icon atlas` and points each of its items' Icons at their cell, then
-     * deletes the atlases no Icon points at any more (ADR 0014). One short transaction per batch,
-     * so each committed batch survives a later drop.
+     * Stores the IconBatch's `Icon atlas` and points each of its items' Icons at their cell (ADR 0014).
+     * One short transaction per batch, so each committed batch survives a later drop. Atlases no
+     * Icon points at any more are deleted once the Scan ends.
      */
     private fun storeAtlasAndPruneOrphans(committed: Committed, batch: IconBatch) {
         if (batch.item_ids.isEmpty()) return
@@ -137,7 +142,6 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
                 insertAtlas(batch.png.toByteArray(), batch.columns.toLong(), batch.cell_size.toLong())
                 val atlasId = lastInsertedAtlasId().executeAsOne()
                 batch.item_ids.forEachIndexed { cell, itemId -> upsert(releases[cell], itemId, atlasId, cell.toLong()) }
-                deleteUnreferencedAtlases()
             }
         }
     }
@@ -193,9 +197,11 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
                 deleteInputsOf(instanceId, releaseId)
                 deleteOf(instanceId, releaseId)
             }
+            var recipePk = nextPk().executeAsOne()
             recipes.forEach { recipe ->
                 val body = Recipe.ADAPTER.encodeByteString(recipe)
                 insert(
+                    pk = recipePk,
                     releaseId = releaseIds.releaseOf(recipe.id),
                     recipeId = recipe.id,
                     instanceId = instanceId,
@@ -203,9 +209,10 @@ internal class ScanIngest(private val catalog: CatalogDatabase, private val cloc
                     body = body.toByteArray(),
                     bodyHash = body.sha256().toByteArray(),
                 )
-                val recipePk = lastInsertedId().executeAsOne()
-                recipe.results.forEach { insertOutput(recipePk, it.item_id) }
-                recipe.inputs.forEach { slot -> slot.stacks.forEach { insertInput(recipePk, it.item_id) } }
+                recipe.results.mapTo(HashSet()) { it.item_id }.forEach { insertOutput(recipePk, it) }
+                // An item in several Slots, or twice in one, is one row.
+                recipe.inputs.flatMapTo(HashSet()) { slot -> slot.stacks.map { it.item_id } }.forEach { insertInput(recipePk, it) }
+                recipePk++
             }
         }
 
