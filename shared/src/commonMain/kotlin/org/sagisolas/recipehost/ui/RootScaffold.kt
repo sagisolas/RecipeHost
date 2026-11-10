@@ -1,8 +1,6 @@
 package org.sagisolas.recipehost.ui
 
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +33,7 @@ import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.StackEntry
 import org.sagisolas.recipehost.ui.navigation.Tab
+import org.sagisolas.recipehost.ui.navigation.noTransition
 
 /**
  * The bottom-navigation root: a `NavDisplay` of the tabs in use above the [McBottomBar], which
@@ -68,8 +67,8 @@ internal fun RootScaffold(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             // Screens swap with no animation. During the predictive back gesture the screen being
             // left stays alone on screen until the gesture commits.
-            transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-            popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+            transitionSpec = { noTransition() },
+            popTransitionSpec = { noTransition() },
             predictivePopTransitionSpec = { swapAtEnd() },
         )
         McBottomBar(

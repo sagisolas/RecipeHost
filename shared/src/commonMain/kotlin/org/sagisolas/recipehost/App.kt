@@ -18,6 +18,7 @@ import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.navigation.Route
 import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.Tab
+import org.sagisolas.recipehost.ui.navigation.noTransition
 import org.sagisolas.recipehost.ui.navigation.rememberNavigator
 import org.sagisolas.recipehost.ui.screens.ItemGridScreen
 import org.sagisolas.recipehost.ui.screens.ItemScreen
@@ -50,6 +51,9 @@ fun App(graph: AppGraph) {
                         rememberSaveableStateHolderNavEntryDecorator(),
                         rememberViewModelStoreNavEntryDecorator(),
                     ),
+                transitionSpec = { noTransition() },
+                popTransitionSpec = { noTransition() },
+                predictivePopTransitionSpec = { noTransition() },
                 entryProvider = { route ->
                     NavEntry(route) {
                         when (it) {

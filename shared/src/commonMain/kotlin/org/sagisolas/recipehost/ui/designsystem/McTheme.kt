@@ -1,5 +1,6 @@
 package org.sagisolas.recipehost.ui.designsystem
 
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
@@ -27,6 +28,7 @@ internal object McTheme {
  * Provides the design system's skin, [typography] and [colors] to [content]. The app passes
  * its typography (built from its bundled font); the default is a system monospace font.
  * [content] sits on [McSkin.screen], the standard background, so its text is [McColors.textOnDark].
+ * The app has no animations, so scrolling past an end shows no overscroll effect (Android's stretch).
  */
 @Composable
 internal fun McTheme(
@@ -39,6 +41,7 @@ internal fun McTheme(
         LocalMcSkin provides rememberMcSkin(),
         LocalMcTypography provides typography,
         LocalMcContentColor provides colors.textOnDark,
+        LocalOverscrollFactory provides null,
         content = content,
     )
 }

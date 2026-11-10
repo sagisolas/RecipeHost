@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The app has no animations. Compose sets no window animation of its own for its windows, so
+        the platform's come from here: none when the activity opens or closes, and none for dialogs.
+    -->
+    <style name="Theme.RecipeHost" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <!-- Compose's Dialog builds its window from this theme (themeResId 0 resolves dialogTheme). -->
+        <item name="android:dialogTheme">@style/Theme.RecipeHost.Dialog</item>
+    </style>
+
+    <style name="Theme.RecipeHost.Dialog" parent="@android:style/Theme.Material.Light.Dialog">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+</resources>
