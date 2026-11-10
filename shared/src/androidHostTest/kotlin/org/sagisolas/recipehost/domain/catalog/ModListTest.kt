@@ -8,6 +8,7 @@ import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.createAddition
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.jei
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
+import org.sagisolas.recipehost.domain.CatalogFixture.Companion.shaped
 import org.sagisolas.recipehost.protocol.ModInfo
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
@@ -22,11 +23,18 @@ class ModListTest {
     @AfterTest
     fun close() = catalog.close()
 
+    /** A Scan of [instance] in which each of [mods] adds one Item. */
+    private suspend fun scanWithItems(
+        instance: String,
+        vararg mods: ModInfo,
+        mcVersion: String = "1.21.1",
+    ) = catalog.scan(instance, *mods, mcVersion = mcVersion, items = mods.map { "${it.id}:thing" to "Thing" })
+
     @Test
     fun listsMinecraftFirstThenModsByNameEachWithItsReleasesNewestFirst() =
         runTest {
-            catalog.scan("Old", minecraft, create5, jei, mcVersion = "1.20.1")
-            catalog.scan("New", createAddition, create6, minecraft)
+            scanWithItems("Old", minecraft, create5, jei, mcVersion = "1.20.1")
+            scanWithItems("New", createAddition, create6, minecraft)
 
             val mods = modList.mods.first()
 
@@ -46,10 +54,41 @@ class ModListTest {
         }
 
     @Test
+    fun aModThatAddsNoItemsIsLeftOut() =
+        runTest {
+            val datapack = ModInfo(id = "mydatapack", name = "mydatapack", version = "datapack")
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                datapack,
+                items = listOf("minecraft:stick" to "Stick"),
+                recipes = listOf(shaped("mydatapack:cheap_stick", result = "minecraft:stick", "minecraft:dirt")),
+            )
+
+            assertEquals(listOf("minecraft"), modList.mods.first().map { it.modId })
+        }
+
+    @Test
+    fun aModWithItemsInAnyReleaseListsAllItsReleases() =
+        runTest {
+            scanWithItems("Old", minecraft, create5)
+            catalog.scan("New", minecraft, create6, items = listOf("minecraft:stick" to "Stick"))
+
+            assertEquals(
+                listOf("6.0.1", "5.1.0"),
+                modList.mods
+                    .first()
+                    .single { it.modId == "create" }
+                    .releases
+                    .map { it.version },
+            )
+        }
+
+    @Test
     fun marksTheSelectedReleaseAndSavesANewChoice() =
         runTest {
-            catalog.scan("Old", minecraft, create5)
-            catalog.scan("New", minecraft, create6)
+            scanWithItems("Old", minecraft, create5)
+            scanWithItems("New", minecraft, create6)
 
             assertEquals(
                 catalog.releaseId(create6),
@@ -83,8 +122,8 @@ class ModListTest {
     @Test
     fun aModNamedDifferentlyInItsNewestReleaseShowsTheNewestName() =
         runTest {
-            catalog.scan("Old", ModInfo(id = "jei", name = "JEI", version = "18.0.0"))
-            catalog.scan("New", jei)
+            scanWithItems("Old", ModInfo(id = "jei", name = "JEI", version = "18.0.0"))
+            scanWithItems("New", jei)
 
             assertEquals(listOf("Just Enough Items"), modList.mods.first().map { it.name })
         }
@@ -92,7 +131,7 @@ class ModListTest {
     @Test
     fun selectingAnotherModsReleaseIsRejected() =
         runTest {
-            catalog.scan("ATM9", minecraft, create6)
+            scanWithItems("ATM9", minecraft, create6)
 
             assertFailsWith<IllegalArgumentException> { modList.select("create", catalog.releaseId(minecraft)) }
             assertEquals(

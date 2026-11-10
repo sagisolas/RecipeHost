@@ -19,7 +19,10 @@ internal class ModList(
     private val catalog: CatalogDatabase,
     private val context: CoroutineContext,
 ) {
-    /** Every mod with at least one release: minecraft first, then by name. */
+    /**
+     * Every mod that adds Items in at least one of its releases, with all its releases: minecraft
+     * first, then by name. The list filters the item grid, so a mod with no Items has no place in it.
+     */
     val mods: Flow<List<CatalogMod>> =
         catalog.modReleaseQueries.withSelection().asFlow().mapToList(context).map { rows ->
             rows
