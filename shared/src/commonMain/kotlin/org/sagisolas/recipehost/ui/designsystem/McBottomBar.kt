@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -53,11 +54,18 @@ internal fun McBottomBar(
                 modifier = Modifier.weight(1f).fillMaxHeight().semantics { this.selected = selected },
                 role = Role.Tab,
             ) {
+                // The icon takes the label's colour, so either can come in any colour.
+                val color = if (selected) McTheme.colors.textOnDark else McTheme.colors.textDisabled
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(item.icon, contentDescription = null, modifier = Modifier.size(McDimens.BottomBarIconSize))
+                    Image(
+                        item.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(McDimens.BottomBarIconSize),
+                        colorFilter = ColorFilter.tint(color),
+                    )
                     McText(
                         text = item.label,
-                        color = if (selected) McTheme.colors.textOnDark else McTheme.colors.textDisabled,
+                        color = color,
                         style = McTheme.typography.small,
                         maxLines = 1,
                     )

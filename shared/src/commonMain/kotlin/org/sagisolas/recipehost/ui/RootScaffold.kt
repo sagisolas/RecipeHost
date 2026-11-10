@@ -16,22 +16,21 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.ic_build
+import org.sagisolas.recipehost.shared.generated.resources.ic_grid_view
 import org.sagisolas.recipehost.shared.generated.resources.tab_items
 import org.sagisolas.recipehost.shared.generated.resources.tab_settings
 import org.sagisolas.recipehost.ui.designsystem.McBottomBar
 import org.sagisolas.recipehost.ui.designsystem.McBottomBarItem
-import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.StackEntry
@@ -109,14 +108,8 @@ private const val SWAP_MILLIS = 100
 
 /** A tab's entry in the bar. */
 @Composable
-private fun barItem(tab: Tab): McBottomBarItem {
-    // TODO(issue 11): real tab icons; the missing texture stands in until then.
-    val missingTexture = McTheme.skin.missingTexture
-    val icon = remember(missingTexture) { BitmapPainter(missingTexture, filterQuality = FilterQuality.None) }
-    val label =
-        when (tab) {
-            Tab.Items -> stringResource(Res.string.tab_items)
-            Tab.Settings -> stringResource(Res.string.tab_settings)
-        }
-    return McBottomBarItem(label, icon)
-}
+private fun barItem(tab: Tab): McBottomBarItem =
+    when (tab) {
+        Tab.Items -> McBottomBarItem(stringResource(Res.string.tab_items), painterResource(Res.drawable.ic_grid_view))
+        Tab.Settings -> McBottomBarItem(stringResource(Res.string.tab_settings), painterResource(Res.drawable.ic_build))
+    }
