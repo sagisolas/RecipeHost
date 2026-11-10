@@ -46,7 +46,7 @@ class PairingEntryTest {
 
     private fun TestScope.entry() =
         PairingEntry(
-            ScanController(backgroundScope, source, ScanIngest(CatalogDatabase(driver), Clock.System)),
+            ScanController(backgroundScope, source, ScanIngest(CatalogDatabase(driver), Clock.System)) {},
             QrScanner { scanned },
         )
 

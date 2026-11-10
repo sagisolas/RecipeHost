@@ -29,6 +29,7 @@ import org.sagisolas.recipehost.presentation.ModListViewModel
 import org.sagisolas.recipehost.presentation.PairingEntry
 import org.sagisolas.recipehost.presentation.QrPairing
 import org.sagisolas.recipehost.presentation.ScanProgressViewModel
+import org.sagisolas.recipehost.presentation.SettingsViewModel
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
@@ -57,13 +58,13 @@ class AppGraph(
             scope = appScope,
             sessions = RetryingSessionClient(SessionClient(KtorSocketConnector())),
             ingest = ScanIngest(catalog, Clock.System),
+            clear = ClearCatalog(catalog, Dispatchers.IO)::invoke,
         )
 
     internal val itemSearch = ItemSearch(catalog, Dispatchers.IO)
     internal val modList = ModList(catalog, Dispatchers.IO)
     internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
     internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
-    internal val clearCatalog = ClearCatalog(catalog, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
     internal val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
@@ -96,7 +97,6 @@ class AppGraph(
 
     // The ViewModel factories, called by `viewModel { }` in each screen's entry. Navigation state
     // is the UI's: `App` builds the `Navigator`, and the screens navigate after calling their ViewModel.
-    // TODO(issue 10): the Settings ViewModel.
 
     internal fun welcomeViewModel() = WelcomeViewModel(qrPairing)
 
@@ -107,6 +107,8 @@ class AppGraph(
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
 
     internal fun itemViewModel(itemId: String) = ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke)
+
+    internal fun settingsViewModel() = SettingsViewModel(scans::clearCatalog, scans.progress)
 }
 
 /** Decoded Icon atlases kept: 64 sheets of 16×8 32 px cells, about 32 MB (ADR 0014). */

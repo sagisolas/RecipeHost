@@ -6,6 +6,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class NavigatorTest {
     /** Built the way `rememberNavigator` builds it, minus the saving, which Navigation 3 owns. */
@@ -96,6 +97,27 @@ class NavigatorTest {
         assertEquals(Route.Root, navigator.route)
         assertEquals(Tab.Items, navigator.selectedTab)
         assertEquals(Screen.Grid, navigator.currentScreen)
+    }
+
+    @Test
+    fun showingWelcomeDiscardsEveryTabsStack() {
+        val navigator = navigator()
+        navigator.push(Screen.Item("minecraft:stone"))
+        navigator.selectTab(Tab.Settings)
+        navigator.push(Screen.Item("minecraft:stick"))
+        val oldEntries = navigator.stacks.values.flatten()
+
+        navigator.showWelcome()
+
+        assertEquals(Route.Welcome, navigator.route)
+        assertEquals(Tab.Items, navigator.selectedTab)
+        assertEquals(listOf(Screen.Grid), navigator.displayed)
+        assertEquals(
+            listOf(Screen.Settings),
+            navigator.stacks.getValue(Tab.Settings).map { (it as StackEntry).screen },
+        )
+        val newEntries = navigator.stacks.values.flatten()
+        assertTrue(newEntries.none { it in oldEntries }, "the roots are fresh entries, with no saved state")
     }
 
     @Test

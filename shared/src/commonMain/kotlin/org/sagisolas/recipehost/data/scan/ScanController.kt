@@ -20,6 +20,8 @@ internal class ScanController(
     private val scope: CoroutineScope,
     private val sessions: SessionSource,
     private val ingest: ScanIngest,
+    /** Empties the `Catalog`; `AppGraph` passes `ClearCatalog`. */
+    private val clear: suspend () -> Unit,
 ) {
     private val _progress = MutableStateFlow<ScanProgress?>(null)
 
@@ -28,15 +30,33 @@ internal class ScanController(
 
     private var running: Job? = null
 
+    /** The last [clearCatalog]'s deletes. */
+    private var clearing: Job? = null
+
     /** Starts a `Scan` from [payload]; returns false and does nothing while another one runs. */
     fun start(payload: PairingPayload): Boolean {
         if (running?.isActive == true) return false
         // Right away, so Scan progress never shows the last Scan's end for the new one.
         _progress.value = ScanProgress.Connecting
+        val clear = clearing
         running =
             scope.launch {
+                // A Scan writing into a half-cleared Catalog would leave it neither empty nor whole.
+                clear?.join()
                 ingest.ingest(sessions.open(payload)).collect { _progress.value = it }
             }
+        return true
+    }
+
+    /**
+     * Empties the `Catalog`; returns false and does nothing while a `Scan` runs. The deletes run in
+     * [scope], so they finish even if the caller is cancelled. Call from the main thread.
+     */
+    suspend fun clearCatalog(): Boolean {
+        if (running?.isActive == true) return false
+        val job = scope.launch { clear() }
+        clearing = job
+        job.join()
         return true
     }
 }

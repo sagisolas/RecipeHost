@@ -2,7 +2,9 @@ package org.sagisolas.recipehost.data.scan
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -51,7 +53,16 @@ class ScanControllerTest {
             }
     }
 
-    private fun TestScope.controller(source: SessionSource) = ScanController(backgroundScope, source, ingest)
+    private var clears = 0
+
+    /** Clears are counted, and each waits for [clearGate] when the test sets one. */
+    private var clearGate: CompletableDeferred<Unit>? = null
+
+    private fun TestScope.controller(source: SessionSource) =
+        ScanController(backgroundScope, source, ingest) {
+            clearGate?.await()
+            clears++
+        }
 
     @Test
     fun progressFollowsTheRunningScan() =
@@ -101,5 +112,57 @@ class ScanControllerTest {
             controller.start(payload)
 
             assertEquals(ScanProgress.Connecting, controller.progress.value, "before the Scan's coroutine runs")
+        }
+
+    @Test
+    fun clearingIsRefusedWhileAScanRuns() =
+        runTest {
+            val source = GatedSource()
+            val controller = controller(source)
+            controller.start(payload)
+            runCurrent()
+
+            assertFalse(controller.clearCatalog())
+            assertEquals(0, clears)
+
+            source.finish.complete(Unit)
+            runCurrent()
+            assertTrue(controller.clearCatalog())
+            assertEquals(1, clears)
+        }
+
+    @Test
+    fun aScanStartedDuringAClearRunsOnceTheClearIsDone() =
+        runTest {
+            val source = GatedSource()
+            val controller = controller(source)
+            val gate = CompletableDeferred<Unit>().also { clearGate = it }
+            val cleared = async { controller.clearCatalog() }
+            runCurrent()
+
+            assertTrue(controller.start(payload))
+            runCurrent()
+            assertEquals(0, source.opened, "the Scan waits, so it can't write into a half-cleared Catalog")
+
+            gate.complete(Unit)
+            runCurrent()
+            assertTrue(cleared.await())
+            assertEquals(1, clears)
+            assertEquals(1, source.opened)
+        }
+
+    @Test
+    fun aClearFinishesEvenIfItsCallerIsCancelled() =
+        runTest {
+            val controller = controller(GatedSource())
+            val gate = CompletableDeferred<Unit>().also { clearGate = it }
+            val caller = launch { controller.clearCatalog() }
+            runCurrent()
+
+            caller.cancel()
+            gate.complete(Unit)
+            runCurrent()
+
+            assertEquals(1, clears, "e.g. the Settings ViewModel cleared mid-clear by a deep link")
         }
 }

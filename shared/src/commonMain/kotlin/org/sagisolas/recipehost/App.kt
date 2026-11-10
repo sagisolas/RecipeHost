@@ -10,13 +10,7 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import org.jetbrains.compose.resources.stringResource
-import org.sagisolas.recipehost.shared.generated.resources.Res
-import org.sagisolas.recipehost.shared.generated.resources.placeholder_open_item
-import org.sagisolas.recipehost.shared.generated.resources.placeholder_settings
 import org.sagisolas.recipehost.ui.AppTheme
-import org.sagisolas.recipehost.ui.PlaceholderAction
-import org.sagisolas.recipehost.ui.PlaceholderScreen
 import org.sagisolas.recipehost.ui.RootScaffold
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
@@ -29,6 +23,7 @@ import org.sagisolas.recipehost.ui.screens.ItemGridScreen
 import org.sagisolas.recipehost.ui.screens.ItemScreen
 import org.sagisolas.recipehost.ui.screens.ModListScreen
 import org.sagisolas.recipehost.ui.screens.ScanProgressScreen
+import org.sagisolas.recipehost.ui.screens.SettingsScreen
 import org.sagisolas.recipehost.ui.screens.WelcomeScreen
 
 /** The whole app UI, over the instances [graph] holds. */
@@ -105,17 +100,8 @@ private fun TabScreen(
             )
         }
 
-        // TODO(issue 10): Settings.
         Screen.Settings -> {
-            PlaceholderScreen(
-                stringResource(Res.string.placeholder_settings),
-                actions =
-                    listOf(
-                        PlaceholderAction(stringResource(Res.string.placeholder_open_item, "minecraft:stone")) {
-                            navigator.push(Screen.Item("minecraft:stone"))
-                        },
-                    ),
-            )
+            SettingsScreen(viewModel { graph.settingsViewModel() }, onCleared = navigator::showWelcome)
         }
     }
 }

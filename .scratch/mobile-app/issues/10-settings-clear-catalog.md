@@ -1,6 +1,6 @@
 # Settings tab: Clear Catalog
 
-Status: ready-for-agent
+Status: done
 Blocked by: 05, 06, 07
 Spec: ../spec.md
 

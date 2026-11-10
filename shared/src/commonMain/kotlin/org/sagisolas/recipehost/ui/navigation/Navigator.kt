@@ -153,6 +153,20 @@ internal class Navigator(
         route = Route.ScanProgress
     }
 
+    /**
+     * Leaves the bottom-navigation root for Welcome, discarding every tab's stack: each tab starts
+     * again from a fresh root entry, with no saved state, when the root comes back.
+     */
+    fun showWelcome() {
+        route = Route.Welcome
+        selectedTab = Tab.Items
+        stacks.forEach { (tab, stack) ->
+            // Adding first keeps the stack from ever being empty.
+            stack.add(StackEntry(tab.root))
+            stack.subList(0, stack.lastIndex).clear()
+        }
+    }
+
     /** Leaves a full-screen route for the bottom-navigation root, on [tab]. */
     fun showRoot(tab: Tab) {
         route = Route.Root
