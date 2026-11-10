@@ -14,6 +14,8 @@ Kotlin Multiplatform project (Android + iOS + shared).
 - The same rule applies to the mobile app (`:shared`): services, repositories, use cases and ViewModels receive collaborators through the constructor, and `AppGraph` (built by the Android/iOS wrapper) is the composition root.
 
 ## Code style
+- Formatting is automatic: Spotless with ktlint (Kotlin, `*.gradle.kts`) and palantir-java-format (Java), configured in the root `build.gradle.kts` and `.editorconfig`. Run `./gradlew spotlessApply` before committing; `./gradlew spotlessCheck` verifies. Lines are at most 120 columns; where ktlint can't wrap a line itself, wrap it by hand.
+- Per clone, enable the pre-commit hook: `git config core.hooksPath .githooks`.
 - One component family per file: don't mix unrelated components (e.g. a button and a slot) in one file, but keep variants and the shared base of one component together (e.g. `McButton`, `McSquareButton` and their `McPressable` base in `McButton.kt`). Don't split finer than that. The file is named after its main declaration. Small helpers and data types used only by that component stay in its file.
 - Mobile app (`:shared`) follows MVVM:
   - A ViewModel exposes one `StateFlow` of an immutable UiState (a data class, or a sealed type of data classes and objects), and each user action is a ViewModel method. The UI renders the state and calls the methods. Nothing mutable is shared between a ViewModel and the UI: no `TextFieldState`, `MutableState` or `Navigator` passed in either direction (a text field takes `value` and `onValueChange`).

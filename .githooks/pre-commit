@@ -1,0 +1,14 @@
+#!/bin/sh
+# Rejects a commit whose Kotlin, Gradle Kotlin DSL or Java files are not formatted.
+# Enable once per clone: git config core.hooksPath .githooks
+# It checks the working tree, so stage what you format. Skip in an emergency with --no-verify.
+
+if ! git diff --cached --name-only --diff-filter=ACMR | grep -qE '\.(kt|kts|java)$'; then
+    exit 0
+fi
+
+if ! ./gradlew spotlessCheck --quiet; then
+    echo >&2
+    echo >&2 "Formatting check failed. Run ./gradlew spotlessApply, stage the changes, and commit again."
+    exit 1
+fi

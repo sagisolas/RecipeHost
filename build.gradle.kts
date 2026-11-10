@@ -9,6 +9,31 @@ plugins {
     alias(libs.plugins.architecturyPlugin)
     alias(libs.plugins.wire) apply false
     alias(libs.plugins.sqldelight) apply false
+    alias(libs.plugins.spotless)
+}
+
+// One formatting setup for every module, configured from the root. Style lives in .editorconfig.
+// spotlessCheck verifies, spotlessApply fixes; not wired into `check` (runs on demand and from .githooks).
+spotless {
+    isEnforceCheck = false
+    val editorConfig = rootProject.file(".editorconfig")
+    val excludes = listOf("**/build/**", "**/.gradle/**", "**/.kotlin/**", "mod/*/run/**")
+    kotlin {
+        target("**/src/**/*.kt")
+        targetExclude(excludes)
+        ktlint(libs.versions.ktlint.get()).setEditorConfigPath(editorConfig)
+    }
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        targetExclude(excludes)
+        ktlint(libs.versions.ktlint.get()).setEditorConfigPath(editorConfig)
+    }
+    java {
+        target("**/src/**/*.java")
+        targetExclude(excludes)
+        palantirJavaFormat(libs.versions.palantirJavaFormat.get())
+        removeUnusedImports()
+    }
 }
 
 architectury {

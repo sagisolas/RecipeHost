@@ -24,6 +24,9 @@ protobufPlugin = "0.9.5"
 qrcodegen = "1.8.0"
 sqldelight = "2.4.1"
 playServices-codeScanner = "16.1.0"
+spotless = "8.11.0"
+ktlint = "1.8.0"
+palantirJavaFormat = "2.103.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -71,3 +74,4 @@ architecturyPlugin = { id = "architectury-plugin", version.ref = "architecturyPl
 wire = { id = "com.squareup.wire", version.ref = "wire" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
