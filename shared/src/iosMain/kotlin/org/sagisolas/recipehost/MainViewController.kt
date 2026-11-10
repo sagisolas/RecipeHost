@@ -7,6 +7,7 @@ import org.sagisolas.recipehost.platform.QrScanner
 import platform.UIKit.UIViewController
 
 /** The iOS wrapper's entry point. iOS is not in v1: it only has to keep compiling. */
+@Suppress("ktlint:standard:function-naming") // Swift calls it by this name.
 fun MainViewController(): UIViewController {
     val graph = AppGraph(
         driver = NativeSqliteDriver(CatalogDatabase.Schema, "catalog.db"),

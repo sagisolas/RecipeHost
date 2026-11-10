@@ -16,22 +16,22 @@ class PairingEntry internal constructor(
     private val scans: ScanController,
     private val qrScanner: QrScanner,
 ) {
-    private val _failure = MutableStateFlow<PairingPayloadException?>(null)
+    private val mutableFailure = MutableStateFlow<PairingPayloadException?>(null)
 
     /**
      * Why the last URI was rejected, or `null` once a valid one arrives. The Scan progress screen
      * shows it as a domain error, next to [ScanController.progress].
      */
-    internal val failure: StateFlow<PairingPayloadException?> = _failure.asStateFlow()
+    internal val failure: StateFlow<PairingPayloadException?> = mutableFailure.asStateFlow()
 
     /** Conflated: a link that arrives before the UI collects (a cold-start deep link) still lands. */
-    private val _progressRequests = Channel<Unit>(Channel.CONFLATED)
+    private val progressRequestChannel = Channel<Unit>(Channel.CONFLATED)
 
     /**
      * Emits each time a URI arrives, valid or not, asking the UI to show Scan progress. The UI owns
      * navigation state (Navigation 3 saves it), so this asks rather than navigates.
      */
-    internal val progressRequests: Flow<Unit> = _progressRequests.receiveAsFlow()
+    internal val progressRequests: Flow<Unit> = progressRequestChannel.receiveAsFlow()
 
     /**
      * Starts a `Scan` from a `recipehost://pair` URI and shows its progress; while a Scan runs,
@@ -40,11 +40,11 @@ class PairingEntry internal constructor(
     fun start(uri: String) {
         PairingPayload.parse(uri)
             .onSuccess {
-                _failure.value = null
+                mutableFailure.value = null
                 scans.start(it)
             }
-            .onFailure { _failure.value = it as PairingPayloadException }
-        _progressRequests.trySend(Unit)
+            .onFailure { mutableFailure.value = it as PairingPayloadException }
+        progressRequestChannel.trySend(Unit)
     }
 
     /** Opens the in-app scanner and [start]s from the code it reads; a cancelled scan does nothing. */
