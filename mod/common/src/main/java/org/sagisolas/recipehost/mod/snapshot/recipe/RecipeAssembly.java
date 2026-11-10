@@ -3,13 +3,16 @@ package org.sagisolas.recipehost.mod.snapshot.recipe;
 import com.mojang.logging.LogUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.Recipe;
+import org.sagisolas.recipehost.protocol.RecipeType;
 import org.slf4j.Logger;
 
 /**
@@ -20,6 +23,7 @@ import org.slf4j.Logger;
  *   <li>a recipe that fails to read is left out, and one whose layout fails ships without it;</li>
  *   <li>a Snapshot names each recipe once: of recipes sharing an id, the first is kept;</li>
  *   <li>the namespace of a recipe's id owns it;</li>
+ *   <li>a type is named by the first of its recipes that ships and gives a name;</li>
  *   <li>each layout lists the recipe it was laid out for.</li>
  * </ul>
  * Each kind of failure is logged once per type. Recipes are read first ({@link #read}); layouts are
@@ -51,9 +55,11 @@ public final class RecipeAssembly {
     public final class Prepared {
         private final List<Read> read;
         private final Set<String> namespaces;
+        private final List<RecipeType> recipeTypes;
 
-        private Prepared(List<Read> read) {
+        private Prepared(List<Read> read, List<RecipeType> recipeTypes) {
             this.read = List.copyOf(read);
+            this.recipeTypes = List.copyOf(recipeTypes);
             this.namespaces =
                     read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(Collectors.toUnmodifiableSet());
         }
@@ -65,6 +71,11 @@ public final class RecipeAssembly {
         /** The namespaces of the recipe ids, which own the recipes (ADR 0011). */
         public Set<String> namespaces() {
             return namespaces;
+        }
+
+        /** The names of the shipped recipes' types, in the order the types first ship; unnamed types are left out. */
+        public List<RecipeType> recipeTypes() {
+            return recipeTypes;
         }
 
         /**
@@ -93,6 +104,7 @@ public final class RecipeAssembly {
     private final Set<String> failedReads = new HashSet<>();
     private final Set<String> failedLayouts = new HashSet<>();
     private final Set<String> repeatingTypes = new HashSet<>();
+    private final Set<String> failedTypeNames = new HashSet<>();
 
     public RecipeAssembly(RenderThread renderThread) {
         this.renderThread = renderThread;
@@ -100,7 +112,8 @@ public final class RecipeAssembly {
 
     /** Reads every candidate that ships, on the calling (sender) thread; nothing is laid out yet. */
     public Prepared read(List<? extends RecipeCandidate> candidates) {
-        return new Prepared(readAll(candidates));
+        List<Read> read = readAll(candidates);
+        return new Prepared(read, recipeTypesOf(read));
     }
 
     /** A candidate that read, with what it read. */
@@ -136,6 +149,34 @@ public final class RecipeAssembly {
             read.add(new Read(candidate, recipe));
         }
         return read;
+    }
+
+    /** Asks each type's shipped recipes for its name until one gives it. */
+    private List<RecipeType> recipeTypesOf(List<Read> read) {
+        Map<String, Optional<String>> names = new LinkedHashMap<>();
+        for (Read r : read) {
+            String typeId = r.candidate().typeId();
+            if (names.getOrDefault(typeId, Optional.empty()).isEmpty()) names.put(typeId, typeName(r.candidate()));
+        }
+        List<RecipeType> types = new ArrayList<>();
+        names.forEach((id, name) -> name.ifPresent(
+                n -> types.add(RecipeType.newBuilder().setId(id).setName(n).build())));
+        return types;
+    }
+
+    private Optional<String> typeName(RecipeCandidate candidate) {
+        try {
+            return candidate.typeName().filter(name -> !name.isBlank());
+        } catch (RuntimeException | LinkageError e) {
+            String typeId = candidate.typeId();
+            if (failedTypeNames.add(typeId)) {
+                LOG.warn(
+                        "[recipehost] the recipe type {} fails to name itself; it ships unnamed (logged once per type)",
+                        typeId,
+                        e);
+            }
+            return Optional.empty();
+        }
     }
 
     /** Lays out every read recipe on the render thread, where mods expect it, a budgeted slice at a time. */

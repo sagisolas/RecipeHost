@@ -14,6 +14,7 @@ import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
+import org.sagisolas.recipehost.protocol.RecipeType;
 import org.sagisolas.recipehost.protocol.Slot;
 
 public class RecipeAssemblyTest {
@@ -127,6 +128,87 @@ public class RecipeAssemblyTest {
 
         prepared.layOut(1, 2);
         assertEquals(List.of("minecraft:b"), laidOut);
+    }
+
+    @Test
+    public void eachShippedTypeIsNamedOnceByItsFirstRecipeThatHasAName() {
+        RecipeAssembly.Prepared prepared = assembly.read(List.of(
+                named(candidate("minecraft:crafting", () -> recipe("minecraft:stick"), noLayout()), "Crafting"),
+                named(candidate("minecraft:crafting", () -> recipe("minecraft:torch"), noLayout()), "Other"),
+                candidate("create:mixing", () -> recipe("create:brass"), noLayout()),
+                named(candidate("emi:tag", () -> recipe("emi:tag_a"), noLayout()), "Tags"),
+                named(
+                        candidate(
+                                "broken:machine",
+                                () -> {
+                                    throw new IllegalStateException("a mod's broken recipe");
+                                },
+                                noLayout()),
+                        "Broken"),
+                named(candidate("minecraft:smelting", () -> recipe("minecraft:glass"), noLayout()), "Furnace")));
+
+        assertEquals(
+                List.of(type("minecraft:crafting", "Crafting"), type("minecraft:smelting", "Furnace")),
+                prepared.recipeTypes());
+    }
+
+    @Test
+    public void aTypeWhoseNameFailsIsLeftUnnamed() {
+        RecipeCandidate failing = new RecipeCandidate() {
+            @Override
+            public String typeId() {
+                return "broken:machine";
+            }
+
+            @Override
+            public Recipe read() {
+                return recipe("broken:a");
+            }
+
+            @Override
+            public Optional<LaidOut> layOut(Recipe read) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<String> typeName() {
+                throw new LinkageError("built against another API");
+            }
+        };
+
+        RecipeAssembly.Prepared prepared = assembly.read(List.of(failing));
+
+        assertEquals(1, prepared.count());
+        assertEquals(List.of(), prepared.recipeTypes());
+    }
+
+    private static RecipeType type(String id, String name) {
+        return RecipeType.newBuilder().setId(id).setName(name).build();
+    }
+
+    /** {@code candidate} with its type named {@code name}. */
+    private static RecipeCandidate named(RecipeCandidate candidate, String name) {
+        return new RecipeCandidate() {
+            @Override
+            public String typeId() {
+                return candidate.typeId();
+            }
+
+            @Override
+            public Recipe read() {
+                return candidate.read();
+            }
+
+            @Override
+            public Optional<LaidOut> layOut(Recipe read) {
+                return candidate.layOut(read);
+            }
+
+            @Override
+            public Optional<String> typeName() {
+                return Optional.of(name);
+            }
+        };
     }
 
     private RecipeAssembly.LaidOutRecipes assembled(List<RecipeCandidate> candidates) {

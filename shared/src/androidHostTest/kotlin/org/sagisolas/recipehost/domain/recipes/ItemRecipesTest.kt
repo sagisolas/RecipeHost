@@ -12,6 +12,7 @@ import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.protocol.ItemStack
 import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.RecipeSlot
+import org.sagisolas.recipehost.protocol.RecipeType
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
@@ -200,6 +201,74 @@ class ItemRecipesTest {
                 ),
                 recipe.variants.map { it.display to it.instanceNames },
             )
+        }
+
+    @Test
+    fun groupsCarryTheirTypesNameAndAnUnnamedTypeHasNone() =
+        runTest {
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                create6,
+                recipes =
+                    listOf(
+                        shaped("minecraft:iron_sheet", result = "create:iron_sheet", "minecraft:iron_ingot"),
+                        shaped(
+                            "create:pressing/iron_sheet",
+                            result = "create:iron_sheet",
+                            "minecraft:iron_ingot",
+                            type = pressing,
+                        ),
+                    ),
+                types = listOf(RecipeType(id = crafting, name = "Crafting")),
+            )
+
+            assertEquals(
+                listOf(crafting to "Crafting", pressing to null),
+                recipesFor("create:iron_sheet").first().map { it.typeId to it.name },
+            )
+        }
+
+    @Test
+    fun aLaterScanRenamesATypeOfTheSameRelease() =
+        runTest {
+            val recipes = listOf(shaped("minecraft:stick", result = "minecraft:stick", "minecraft:oak_planks"))
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                recipes = recipes,
+                types = listOf(RecipeType(id = crafting, name = "Crafting")),
+            )
+            catalog.scan(
+                "Vanilla",
+                minecraft,
+                recipes = recipes,
+                types = listOf(RecipeType(id = crafting, name = "Werkbank")),
+            )
+
+            assertEquals(listOf("Werkbank"), recipesFor("minecraft:stick").first().map { it.name })
+        }
+
+    @Test
+    fun aTypeIsNamedOnlyByTheSelectedReleaseOfItsNamespace() =
+        runTest {
+            val press =
+                shaped(
+                    "create:pressing/iron_sheet",
+                    result = "create:iron_sheet",
+                    "minecraft:iron_ingot",
+                    type = pressing,
+                )
+            catalog.scan(
+                "Old",
+                minecraft,
+                create5,
+                recipes = listOf(press),
+                types = listOf(RecipeType(id = pressing, name = "Pressing")),
+            )
+            catalog.scan("New", minecraft, create6, recipes = listOf(press))
+
+            assertEquals(listOf(null), recipesFor("create:iron_sheet").first().map { it.name })
         }
 
     @Test

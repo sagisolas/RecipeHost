@@ -77,6 +77,23 @@ class ItemViewModelTest {
         }
 
     @Test
+    fun aSectionIsTitledWithItsTypesNameOrItsTypeIdWhenItHasNone() =
+        runTest {
+            recipes.value =
+                listOf(
+                    group("minecraft:crafting", recipe("minecraft:stick"), name = "Crafting"),
+                    group("create:pressing", recipe("create:pressing/stick")),
+                )
+            val viewModel = viewModel()
+
+            assertEquals(
+                listOf("Crafting", "create:pressing"),
+                viewModel.state.value.sections
+                    .map { it.title },
+            )
+        }
+
+    @Test
     fun thePagerMovesWithinItsSectionOnly() =
         runTest {
             recipes.value =
@@ -382,7 +399,8 @@ private fun itemOf(id: String) =
 private fun group(
     typeId: String,
     vararg recipes: CatalogRecipe,
-) = RecipeGroup(typeId, recipes.toList())
+    name: String? = null,
+) = RecipeGroup(typeId, name, recipes.toList())
 
 /** A recipe with one variant per entry of [variants]: its Instance names and how it is drawn. */
 private fun recipe(

@@ -16,6 +16,7 @@ import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
 import org.sagisolas.recipehost.protocol.RecipeLayout
+import org.sagisolas.recipehost.protocol.RecipeType
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.time.Clock
 
@@ -128,6 +129,7 @@ internal class ScanIngest(
                 upsertItem(releaseIds.releaseOf(item.id), item, ordinal.toLong())
             }
             replaceRecipes(instanceId, releaseIds, scan.recipes)
+            upsertTypeNames(releaseIds, handshake.recipe_types)
             releaseIds.forEach { (modId, releaseId) -> catalog.versionSelectionQueries.choose(modId, releaseId) }
             Committed(releaseIds, instanceId)
         }
@@ -214,6 +216,17 @@ internal class ScanIngest(
     ) = with(catalog.itemQueries) {
         update(item.display_name, ordinal, releaseId, item.id)
         insertIfAbsent(releaseId, item.id, item.display_name, ordinal)
+    }
+
+    /**
+     * Names each type under its namespace's release. A type whose namespace has no release in this
+     * Scan (an EMI category of a mod that owns no Items or Recipes) has nowhere to go and stays unnamed.
+     */
+    private fun upsertTypeNames(
+        releaseIds: Map<String, Long>,
+        types: List<RecipeType>,
+    ) = types.forEach { type ->
+        releaseIds[namespaceOf(type.id)]?.let { catalog.recipeTypeQueries.upsert(it, type.id, type.name) }
     }
 
     /** Replaces this Instance's recipes for every release in the Scan; each recipe goes to its id's namespace. */

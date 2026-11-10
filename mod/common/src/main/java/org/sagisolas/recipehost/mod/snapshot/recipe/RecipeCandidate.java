@@ -6,7 +6,7 @@ import org.sagisolas.recipehost.protocol.Recipe;
 /**
  * One recipe as a recipe source (vanilla dispatch, EMI) finds it, not yet read. {@link RecipeAssembly}
  * decides whether it ships and owns every rule a Snapshot's recipes follow; a candidate only reads.
- * Both methods may throw: the assembly isolates the failure to this recipe.
+ * Every method may throw: the assembly isolates the failure to this recipe.
  */
 public interface RecipeCandidate {
 
@@ -21,4 +21,12 @@ public interface RecipeCandidate {
      * none. Gets what {@link #read()} returned. Runs on the render thread.
      */
     Optional<LaidOut> layOut(Recipe read);
+
+    /**
+     * The name of the recipe's type in the game's language (ADR 0004), or empty when it has none.
+     * Runs on the sender thread, for each shipping recipe of the type until one gives a name.
+     */
+    default Optional<String> typeName() {
+        return Optional.empty();
+    }
 }

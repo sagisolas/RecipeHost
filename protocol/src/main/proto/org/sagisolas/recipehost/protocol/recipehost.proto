@@ -34,6 +34,15 @@ message Handshake {
   uint32 total_items = 5;
   uint32 total_recipes = 6;
   string instance_name = 7;        // game-directory folder name, see Instance in GLOSSARY.md
+  repeated RecipeType recipe_types = 8; // names of the recipe types the Snapshot's recipes use, where known
+}
+
+// A recipe type's name in the game's language (ADR 0004), e.g. "Crafting" for
+// "minecraft:crafting". Under EMI, the type is the recipe's category. A type
+// with no name isn't listed; the app shows its id instead.
+message RecipeType {
+  string id = 1;
+  string name = 2;
 }
 
 // Sent for every namespace that owns at least one Item or Recipe. A namespace

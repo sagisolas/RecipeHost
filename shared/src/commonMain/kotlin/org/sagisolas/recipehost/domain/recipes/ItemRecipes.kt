@@ -76,6 +76,7 @@ private class InstanceRecipe(
     layoutWidth: Long?,
     layoutHeight: Long?,
     layoutSlots: ByteArray?,
+    val typeName: String?,
 ) {
     /**
      * Null unless the recipe's layout is stored: the query's left join gives all four or none. Its
@@ -109,6 +110,7 @@ private fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
         .map { (typeId, rows) ->
             RecipeGroup(
                 typeId = typeId,
+                name = rows.first().typeName,
                 recipes =
                     rows.groupBy { it.releaseId to it.recipeId }.map { (key, instances) ->
                         CatalogRecipe(releaseId = key.first, recipeId = key.second, variants = instances.toVariants())

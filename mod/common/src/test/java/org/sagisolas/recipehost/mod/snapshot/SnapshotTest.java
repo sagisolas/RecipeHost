@@ -21,6 +21,7 @@ import org.sagisolas.recipehost.protocol.Handshake;
 import org.sagisolas.recipehost.protocol.Item;
 import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.Recipe;
+import org.sagisolas.recipehost.protocol.RecipeType;
 
 public class SnapshotTest {
 
@@ -46,6 +47,11 @@ public class SnapshotTest {
                     public Optional<LaidOut> layOut(Recipe read) {
                         laidOut.add(read.getId());
                         return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<String> typeName() {
+                        return Optional.of("Crafting");
                     }
                 })
                 .toList();
@@ -89,6 +95,12 @@ public class SnapshotTest {
         assertEquals(300, handshake.getTotalItems());
         assertEquals(257, handshake.getTotalRecipes());
         assertEquals("My pack", handshake.getInstanceName());
+        assertEquals(
+                List.of(RecipeType.newBuilder()
+                        .setId("minecraft:crafting")
+                        .setName("Crafting")
+                        .build()),
+                handshake.getRecipeTypesList());
         assertEquals(
                 List.of(256, 44),
                 frames.stream()

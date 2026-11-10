@@ -1,0 +1,14 @@
+-- A recipe type's name in the game's language (ADR 0004), under the Mod release of its id's
+-- namespace, like Items (ADR 0010). A Scan only adds or renames: the latest Scan's name wins.
+CREATE TABLE recipe_type (
+    release_id INTEGER NOT NULL,
+    type_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (release_id, type_id)
+);
+
+upsert:
+INSERT OR REPLACE INTO recipe_type(release_id, type_id, name) VALUES (:releaseId, :typeId, :name);
+
+clear:
+DELETE FROM recipe_type;

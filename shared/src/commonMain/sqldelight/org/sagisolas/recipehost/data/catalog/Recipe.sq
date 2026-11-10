@@ -87,12 +87,15 @@ SELECT item_id FROM recipe_input WHERE recipe_pk = :recipePk ORDER BY item_id;
 -- The recipes of the selected releases with a result of :itemId, one row per Instance, grouped
 -- by type and recipe and, within one (release, recipe id), the most recently scanned Instance first.
 -- The layout columns are null when the recipe has no layout, or its layout hasn't arrived.
+-- type_name is the type's name under the selected release of its namespace, null when it has none.
 selectedProducing:
 SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
     recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
-    recipe_layout.slots AS layout_slots
+    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
 FROM recipe
 LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+    AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
 WHERE recipe.id IN (SELECT recipe_pk FROM recipe_output WHERE item_id = :itemId)
@@ -102,9 +105,11 @@ ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scan
 selectedConsuming:
 SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
     recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
-    recipe_layout.slots AS layout_slots
+    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
 FROM recipe
 LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+    AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
 WHERE recipe.id IN (SELECT recipe_pk FROM recipe_input WHERE item_id = :itemId)

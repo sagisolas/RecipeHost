@@ -19,6 +19,7 @@ import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
 import org.sagisolas.recipehost.protocol.RecipeLayout
+import org.sagisolas.recipehost.protocol.RecipeType
 import org.sagisolas.recipehost.protocol.Slot
 import kotlin.test.assertEquals
 import kotlin.time.Clock
@@ -47,7 +48,7 @@ internal class CatalogFixture {
     /**
      * Runs a complete Scan of [instance] on Minecraft [mcVersion] carrying [mods]; each Scan is
      * one second later than the previous one. [icons] go out as one Icon atlas, in cell order, and
-     * [layouts] as one LayoutBatch. Asserts it finished.
+     * [layouts] as one LayoutBatch; the Handshake names [types]. Asserts it finished.
      */
     suspend fun scan(
         instance: String,
@@ -57,6 +58,7 @@ internal class CatalogFixture {
         recipes: List<Recipe> = emptyList(),
         icons: List<String> = emptyList(),
         layouts: List<RecipeLayout> = emptyList(),
+        types: List<RecipeType> = emptyList(),
     ) {
         nowMillis += 1_000
         val envelopes =
@@ -71,6 +73,7 @@ internal class CatalogFixture {
                                 mods = mods.toList(),
                                 total_items = items.size,
                                 total_recipes = recipes.size,
+                                recipe_types = types,
                             ),
                     ),
                 )

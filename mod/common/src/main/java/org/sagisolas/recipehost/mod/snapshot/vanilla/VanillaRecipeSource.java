@@ -62,5 +62,10 @@ public final class VanillaRecipeSource implements RecipeSource {
         public Optional<LaidOut> layOut(Recipe read) {
             return layout;
         }
+
+        @Override
+        public Optional<String> typeName() {
+            return VanillaTypeNames.of(typeId());
+        }
     }
 }

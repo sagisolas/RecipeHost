@@ -61,6 +61,10 @@ _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 How one `Recipe` looks: a background image drawn by the companion mod with the game's own GUI (EMI's display of the recipe when EMI is loaded, the companion mod's own vanilla layouts otherwise), with `Recipe slot`s placed on it. Everything the game draws is in the image, text and fluids included, except the `Item`s inside the `Recipe slot`s; the mobile app draws those. Optional — a `Recipe` without one is shown in a generic layout. Many `Recipe`s share one layout.
 _Avoid_: Screenshot, recipe GUI, recipe view (the app screen)
 
+**Recipe type**:
+What kind of `Recipe` it is, by its `type_id`: the vanilla `RecipeType` id (shaped and shapeless crafting are both `minecraft:crafting`), or the EMI category id when EMI is loaded. It is owned by the `Mod release` of its id's namespace, and may carry a name in the game's language; the Item screen shows one section per type, headed by that name or, without one, the `type_id`.
+_Avoid_: Category (except when speaking of EMI), recipe kind
+
 **Recipe slot**:
 A rectangle on a `Recipe layout` with a role (input, output or catalyst): a position each `Recipe` using that layout fills with its own `ItemStack`s. Presentation only: what a `Recipe` consumes and produces is still its `Slot`s and results.
 _Avoid_: Placed slot, Slot (the semantic input)

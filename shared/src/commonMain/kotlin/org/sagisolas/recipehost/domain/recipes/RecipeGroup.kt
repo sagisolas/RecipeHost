@@ -1,8 +1,12 @@
 package org.sagisolas.recipehost.domain.recipes
 
-/** The recipes of one [typeId] (e.g. `minecraft:crafting_shaped`), ordered by recipe id. */
+/**
+ * The recipes of one [typeId] (e.g. `minecraft:crafting`, or an EMI category such as `create:mixing`),
+ * ordered by recipe id. [name] is the type's name in the game's language, null when the `Catalog` has none.
+ */
 internal data class RecipeGroup(
     val typeId: String,
+    val name: String?,
     val recipes: List<CatalogRecipe>,
 )
 

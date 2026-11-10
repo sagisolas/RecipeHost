@@ -13,6 +13,7 @@ import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.item.Ids;
 import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeCandidate;
+import org.sagisolas.recipehost.mod.snapshot.recipe.TypeNames;
 import org.sagisolas.recipehost.protocol.Recipe;
 
 /**
@@ -42,6 +43,12 @@ public final class EmiRecipeSource implements RecipeSource {
             ResourceLocation id = recipe.getId();
             return EmiRecipeMapper.map(
                     id == null ? null : id.toString(), typeId(), inputsOf(recipe), stacksOf(recipe.getOutputs()));
+        }
+
+        /** The category's name; a category whose name has no translation gets none. */
+        @Override
+        public Optional<String> typeName() {
+            return TypeNames.of(recipe.getCategory().getName());
         }
 
         /** Runs {@code addWidgets} where mods expect it, on the render thread. */

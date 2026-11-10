@@ -36,12 +36,14 @@ internal data class ItemUiState(
 internal enum class ItemTab { Recipes, Uses }
 
 /**
- * One recipe type's section: the recipe at [index] of its [count], in its [selectedVariant].
+ * One recipe type's section, headed by [title]: the type's name, or its [typeId] when the `Catalog`
+ * has no name for it. It shows the recipe at [index] of its [count], in its [selectedVariant].
  * [variants] lists each variant's Instance names, newest first, and is empty when the recipe has
  * only one body, so there is nothing to choose.
  */
 internal data class RecipeSectionUi(
     val typeId: String,
+    val title: String,
     val index: Int,
     val count: Int,
     val recipeId: String,
@@ -233,6 +235,7 @@ private fun sectionOf(
     tick: Int,
 ) = RecipeSectionUi(
     typeId = placed.group.typeId,
+    title = placed.group.name ?: placed.group.typeId,
     index = placed.index,
     count = placed.group.recipes.size,
     recipeId = placed.recipe.recipeId,

@@ -1,12 +1,12 @@
 # Item screen: human-readable recipe type names
 
-Status: needs-triage
+Status: done
 Blocked by: 09
 Spec: ../spec.md
 
 ## Problem
 
-Each section on the Item screen (issue 09) is titled with its raw `type_id`, for example `minecraft:crafting_shaped` or `create:mixing`. The player expects names like "Crafting" or "Mixing", as in JEI and EMI.
+Each section on the Item screen (issue 09) is titled with its raw `type_id`, for example `minecraft:crafting` or `create:mixing`. The player expects names like "Crafting" or "Mixing", as in JEI and EMI.
 
 ## What
 
@@ -17,10 +17,14 @@ Each section on the Item screen (issue 09) is titled with its raw `type_id`, for
 - Proposed wire shape, to confirm during triage: a `RecipeType { id, name }` list in the `Handshake`, or a name on each `Recipe layout`. The Catalog stores the names per `Mod release` of the type id's namespace, like Items (ADR 0010, 0011).
 - When a type has no name, fall back to the `type_id`, so older Catalogs and unknown types still show something.
 
-## Open questions
+## Triage decisions
 
-- Where the name lives: per type id, or per layout or category. EMI can show one `type_id` under several categories.
-- Should shaped and shapeless crafting merge into one "Crafting" section, or stay as two sections with the same name?
+- **Per type id.** With EMI loaded, a recipe's `type_id` is its EMI category id, so each id has one name.
+- **No merge needed.** Shaped and shapeless crafting already share the `RecipeType` id `minecraft:crafting`.
+- **Wire:** `Handshake.recipe_types = 8`, a list of `RecipeType { id, name }` for the types the Snapshot's recipes use; unnamed types aren't listed. The protocol version is unchanged.
+- **Mod:** EMI names come from the category's `getName()`; a name whose translation key has no entry in the game's language is dropped (it would show the raw key). Without EMI, the seven vanilla types are named from the game's own translations of their block or screen (`container.crafting`, `block.minecraft.furnace`, ...); modded types get no name.
+- **Catalog:** `recipe_type(release_id, type_id, name)` under the release of the type id's namespace, upsert only, so the latest Scan wins. A type whose namespace has no release in the Scan stays unnamed. Clear Catalog deletes the rows.
+- **Manual check (user, in game):** names with and without EMI, in a non-English language, and a modded category without a translation.
 
 ## Acceptance
 

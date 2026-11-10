@@ -145,7 +145,7 @@ private fun RecipeSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             McText(
-                section.typeId,
+                section.title,
                 Modifier.weight(1f),
                 color = McTheme.colors.textOnDark,
                 style = McTheme.typography.small,

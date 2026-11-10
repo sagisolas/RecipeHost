@@ -115,6 +115,7 @@ public final class Snapshot implements SnapshotSource {
                 .setInstanceName(c.instanceName())
                 .setTotalItems(c.items().size())
                 .setTotalRecipes(c.recipes().count())
+                .addAllRecipeTypes(c.recipes().recipeTypes())
                 .build();
     }
 
