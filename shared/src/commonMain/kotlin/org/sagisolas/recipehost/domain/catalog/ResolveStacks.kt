@@ -31,15 +31,23 @@ internal class ResolveStacks(
     }
 
     private fun resolveChunk(ids: List<String>): Flow<Map<String, StackResolution>> =
-        catalog.itemQueries.selectedOfAll(ids) { modId, releaseId, itemId, displayName, atlasId, cell, columns, cellSize ->
-            modId to catalogItemOf(releaseId, itemId, displayName, atlasId, cell, columns, cellSize)
-        }
-            .asFlow()
+        catalog.itemQueries
+            .selectedOfAll(
+                ids,
+            ) { modId, releaseId, itemId, displayName, atlasId, cell, columns, cellSize ->
+                modId to catalogItemOf(releaseId, itemId, displayName, atlasId, cell, columns, cellSize)
+            }.asFlow()
             .throttleLatest(CATALOG_REFRESH_PERIOD)
             .mapToList(context)
             .map { rows ->
-                val resolved = rows.filter { (modId, item) -> modId == namespaceOf(item.itemId) }.associate { (_, item) -> item.itemId to item }
-                ids.associateWith { id -> resolved[id]?.let(StackResolution::Resolved) ?: StackResolution.Unresolved(id) }
+                val resolved =
+                    rows.filter { (modId, item) -> modId == namespaceOf(item.itemId) }.associate { (_, item) ->
+                        item.itemId to
+                            item
+                    }
+                ids.associateWith { id ->
+                    resolved[id]?.let(StackResolution::Resolved) ?: StackResolution.Unresolved(id)
+                }
             }
 }
 
@@ -47,11 +55,15 @@ internal class ResolveStacks(
 private const val CHUNK = 500
 
 internal sealed interface StackResolution {
-    data class Resolved(val item: CatalogItem) : StackResolution
+    data class Resolved(
+        val item: CatalogItem,
+    ) : StackResolution
 
     /**
      * The mod has no release in the `Catalog`, or its selected release lacks the Item: show
      * [itemId] with a placeholder Icon.
      */
-    data class Unresolved(val itemId: String) : StackResolution
+    data class Unresolved(
+        val itemId: String,
+    ) : StackResolution
 }

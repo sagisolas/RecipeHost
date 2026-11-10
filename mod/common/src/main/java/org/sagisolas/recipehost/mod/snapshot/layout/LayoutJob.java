@@ -1,10 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import net.minecraft.client.gui.GuiGraphics;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
-
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.client.gui.GuiGraphics;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 /**
  * A `Recipe layout` waiting to be rendered: what to draw, how big it is, where its
@@ -46,14 +45,20 @@ public record LayoutJob(
     }
 
     /** A layout whose key is known up front, such as {@code minecraft:crafting_shaped/3x3}. */
-    public static LayoutJob keyed(String key, String typeId, int width, int height,
-                           List<RecipeSlot> slots, List<String> recipeIds, Drawer drawer) {
+    public static LayoutJob keyed(
+            String key,
+            String typeId,
+            int width,
+            int height,
+            List<RecipeSlot> slots,
+            List<String> recipeIds,
+            Drawer drawer) {
         return new LayoutJob(typeId, width, height, slots, Objects.requireNonNull(key), recipeIds, drawer);
     }
 
     /** A layout keyed by a hash of what it draws, such as an EMI recipe's. */
-    public static LayoutJob hashed(String typeId, int width, int height,
-                            List<RecipeSlot> slots, List<String> recipeIds, Drawer drawer) {
+    public static LayoutJob hashed(
+            String typeId, int width, int height, List<RecipeSlot> slots, List<String> recipeIds, Drawer drawer) {
         return new LayoutJob(typeId, width, height, slots, null, recipeIds, drawer);
     }
 }

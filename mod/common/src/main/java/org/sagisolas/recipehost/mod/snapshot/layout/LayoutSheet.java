@@ -1,8 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
-
 import java.util.List;
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
  * One read-back of {@link LayoutRenderer}'s sheet: the first {@code taken} jobs of
@@ -18,6 +17,7 @@ public final class LayoutSheet {
     private final int width;
     /** Top-down ARGB, or null until {@link #readback} is converted. */
     private int[] argb;
+
     private final int[] readback;
     private final int taken;
     private final List<Placed> placed;

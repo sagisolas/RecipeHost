@@ -6,14 +6,13 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
@@ -75,8 +74,10 @@ public final class LayoutRenderer implements AutoCloseable {
                 if (position.isEmpty()) {
                     // Only a job that can't fit even an empty sheet is refused first.
                     if (taken == 0) {
-                        failed.add(new LayoutSheet.Failed(job, new IllegalArgumentException(
-                                "layout " + job.width() + "x" + job.height() + " is larger than the " + SIZE + " px sheet")));
+                        failed.add(new LayoutSheet.Failed(
+                                job,
+                                new IllegalArgumentException("layout " + job.width() + "x" + job.height()
+                                        + " is larger than the " + SIZE + " px sheet")));
                         taken++;
                     }
                     break;
@@ -115,7 +116,8 @@ public final class LayoutRenderer implements AutoCloseable {
      * flushed inside its clip, so it stays inside its own rectangle.
      */
     private void draw(LayoutJob job, int x, int y) {
-        JobGuiGraphics graphics = new JobGuiGraphics(minecraft, SIZE, new ScreenRectangle(x, y, job.width(), job.height()));
+        JobGuiGraphics graphics =
+                new JobGuiGraphics(minecraft, SIZE, new ScreenRectangle(x, y, job.width(), job.height()));
         graphics.clipToJob();
         try {
             graphics.pose().translate(x, y, 0f);

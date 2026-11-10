@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class LayoutScaleTest {
-
     @Test
     fun theLargestWholeScaleThatFitsIsChosen() {
         assertEquals(6, layoutScale(availableWidthPx = 1080, layoutWidth = 176))
@@ -21,7 +20,13 @@ class LayoutScaleTest {
 
     @Test
     fun slotRectanglesScaleWithTheImage() {
-        assertEquals(IntRect(left = 2, top = 4, right = 38, bottom = 40), scaledRect(x = 1, y = 2, width = 18, height = 18, scale = 2))
-        assertEquals(IntRect(left = 300, top = 102, right = 408, bottom = 210), scaledRect(x = 50, y = 17, width = 18, height = 18, scale = 6))
+        assertEquals(
+            IntRect(left = 2, top = 4, right = 38, bottom = 40),
+            scaledRect(x = 1, y = 2, width = 18, height = 18, scale = 2),
+        )
+        assertEquals(
+            IntRect(left = 300, top = 102, right = 408, bottom = 210),
+            scaledRect(x = 50, y = 17, width = 18, height = 18, scale = 6),
+        )
     }
 }

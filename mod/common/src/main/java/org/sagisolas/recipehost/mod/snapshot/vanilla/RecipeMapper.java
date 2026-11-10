@@ -1,5 +1,10 @@
 package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -11,17 +16,11 @@ import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
 import net.minecraft.world.item.crafting.SmithingTransformRecipe;
 import net.minecraft.world.item.crafting.StonecutterRecipe;
+import org.sagisolas.recipehost.mod.snapshot.item.Ids;
+import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
-import org.sagisolas.recipehost.mod.snapshot.item.Ids;
 
 /**
  * Flat {@code instanceof} cascade mapping vanilla recipe types to the wire
@@ -57,15 +56,26 @@ public final class RecipeMapper {
                 List<Slot> inputs = slotsOf(shaped.getIngredients());
                 // A modded subclass may be larger than the crafting table's grid; it gets no layout.
                 boolean fits = shaped.getWidth() <= GRID_SIDE && shaped.getHeight() <= GRID_SIDE;
-                return mapped(id, typeId, inputs, shaped.getResultItem(registryAccess), extras,
+                return mapped(
+                        id,
+                        typeId,
+                        inputs,
+                        shaped.getResultItem(registryAccess),
+                        extras,
                         fits ? layouts.crafting() : null,
                         fits ? craftingGrid(inputs, shaped.getWidth(), shaped.getHeight()) : List.of());
             }
             case ShapelessRecipe shapeless -> {
                 List<Slot> inputs = slotsOf(shapeless.getIngredients());
                 boolean fits = inputs.size() <= GRID_SIDE * GRID_SIDE;
-                return mapped(id, typeId, inputs, shapeless.getResultItem(registryAccess), Map.of(),
-                        fits ? layouts.crafting() : null, inputs);
+                return mapped(
+                        id,
+                        typeId,
+                        inputs,
+                        shapeless.getResultItem(registryAccess),
+                        Map.of(),
+                        fits ? layouts.crafting() : null,
+                        inputs);
             }
             case AbstractCookingRecipe cooking -> {
                 // 1.21.1 doesn't expose a public input() accessor; getIngredients() returns a size-1 list.
@@ -73,22 +83,41 @@ public final class RecipeMapper {
                 extras.put("cook_time", String.valueOf(cooking.getCookingTime()));
                 extras.put("xp", String.valueOf(cooking.getExperience()));
                 List<Slot> inputs = slotsOf(cooking.getIngredients());
-                return mapped(id, typeId, inputs, cooking.getResultItem(registryAccess), extras,
-                        layouts.cooking(typeId, cooking.getCookingTime(), cooking.getExperience()), inputs);
+                return mapped(
+                        id,
+                        typeId,
+                        inputs,
+                        cooking.getResultItem(registryAccess),
+                        extras,
+                        layouts.cooking(typeId, cooking.getCookingTime(), cooking.getExperience()),
+                        inputs);
             }
             case SmithingTransformRecipe smithing -> {
                 // template/base/addition fields are package-private in 1.21.1; getIngredients()
                 // is the override that returns them in that documented order.
                 List<Slot> inputs = slotsOf(smithing.getIngredients());
-                return mapped(id, typeId, inputs, smithing.getResultItem(registryAccess), Map.of(), layouts.smithing(), inputs);
+                return mapped(
+                        id,
+                        typeId,
+                        inputs,
+                        smithing.getResultItem(registryAccess),
+                        Map.of(),
+                        layouts.smithing(),
+                        inputs);
             }
             case StonecutterRecipe stonecutter -> {
                 // Same accessor-visibility caveat as AbstractCookingRecipe.
                 List<Slot> inputs = slotsOf(stonecutter.getIngredients());
-                return mapped(id, typeId, inputs, stonecutter.getResultItem(registryAccess), Map.of(), layouts.stonecutter(), inputs);
+                return mapped(
+                        id,
+                        typeId,
+                        inputs,
+                        stonecutter.getResultItem(registryAccess),
+                        Map.of(),
+                        layouts.stonecutter(),
+                        inputs);
             }
-            default -> {
-            }
+            default -> {}
         }
 
         // Shell for unknown types: no inputs, so no layout.
@@ -110,7 +139,8 @@ public final class RecipeMapper {
             for (int column = 0; column < GRID_SIDE; column++) {
                 int patternRow = row - rowOffset;
                 int patternColumn = column - columnOffset;
-                boolean inPattern = patternRow >= 0 && patternRow < height && patternColumn >= 0 && patternColumn < width;
+                boolean inPattern =
+                        patternRow >= 0 && patternRow < height && patternColumn >= 0 && patternColumn < width;
                 grid.add(inPattern ? pattern.get(patternRow * width + patternColumn) : EMPTY);
             }
         }
@@ -175,7 +205,14 @@ public final class RecipeMapper {
                 .addResults(resultStack)
                 .putAllExtras(extras)
                 .build();
-        return new Mapped(wire, Optional.ofNullable(layout).map(l -> new LaidOut(l.job(typeId, id),
-                layoutStacks(l.slots(), layoutInputs, Slot.newBuilder().addStacks(resultStack).build()))));
+        return new Mapped(
+                wire,
+                Optional.ofNullable(layout)
+                        .map(l -> new LaidOut(
+                                l.job(typeId, id),
+                                layoutStacks(
+                                        l.slots(),
+                                        layoutInputs,
+                                        Slot.newBuilder().addStacks(resultStack).build()))));
     }
 }

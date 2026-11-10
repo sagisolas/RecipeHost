@@ -1,5 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,16 +19,11 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.BlastFurnaceMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.SmithingMenu;
 import net.minecraft.world.inventory.SmokerMenu;
-import net.minecraft.world.inventory.Slot;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 /**
  * Draws the `Recipe layout`s of the vanilla-dispatch recipe types when EMI is
@@ -42,11 +41,13 @@ public final class VanillaLayouts {
 
     /** Item slots are 16 px; a slot's rectangle is its 18 px frame around that. */
     private static final int ITEM_SIZE = 16;
+
     private static final int SLOT_SIZE = 18;
     /** Panel around the outermost slot frames, enough to take in the 26 px result frames. */
     private static final int PADDING = 8;
     /** A large result frame reaches this far past its item on each side. */
     private static final int RESULT_FRAME_MARGIN = 5;
+
     private static final int NO_MOUSE = -1;
     /** The colour vanilla container labels use. */
     private static final int TEXT_COLOR = 0x404040;
@@ -75,21 +76,38 @@ public final class VanillaLayouts {
         Inventory inventory = minecraft.player.getInventory();
 
         CraftingMenu craftingMenu = new CraftingMenu(0, inventory);
-        this.crafting = screenLayout(craftingMenu, CRAFTING_GRID, CRAFTING_RESULT,
-                () -> new CraftingBackground(craftingMenu, minecraft)).toLayout(VanillaLayoutKeys.CRAFTING);
+        this.crafting = screenLayout(
+                        craftingMenu,
+                        CRAFTING_GRID,
+                        CRAFTING_RESULT,
+                        () -> new CraftingBackground(craftingMenu, minecraft))
+                .toLayout(VanillaLayoutKeys.CRAFTING);
 
         SmithingMenu smithingMenu = new SmithingMenu(0, inventory);
-        this.smithing = screenLayout(smithingMenu, SMITHING_INPUTS, SMITHING_RESULT,
-                () -> new SmithingBackground(smithingMenu, minecraft)).toLayout(VanillaLayoutKeys.SMITHING);
+        this.smithing = screenLayout(
+                        smithingMenu,
+                        SMITHING_INPUTS,
+                        SMITHING_RESULT,
+                        () -> new SmithingBackground(smithingMenu, minecraft))
+                .toLayout(VanillaLayoutKeys.SMITHING);
 
         FurnaceMenu furnaceMenu = new FurnaceMenu(0, inventory);
-        this.furnace = screenLayout(furnaceMenu, new int[]{FURNACE_INGREDIENT}, FURNACE_RESULT,
+        this.furnace = screenLayout(
+                furnaceMenu,
+                new int[] {FURNACE_INGREDIENT},
+                FURNACE_RESULT,
                 () -> new FurnaceBackground(furnaceMenu, minecraft));
         BlastFurnaceMenu blastFurnaceMenu = new BlastFurnaceMenu(0, inventory);
-        this.blastFurnace = screenLayout(blastFurnaceMenu, new int[]{FURNACE_INGREDIENT}, FURNACE_RESULT,
+        this.blastFurnace = screenLayout(
+                blastFurnaceMenu,
+                new int[] {FURNACE_INGREDIENT},
+                FURNACE_RESULT,
                 () -> new BlastFurnaceBackground(blastFurnaceMenu, minecraft));
         SmokerMenu smokerMenu = new SmokerMenu(0, inventory);
-        this.smoker = screenLayout(smokerMenu, new int[]{FURNACE_INGREDIENT}, FURNACE_RESULT,
+        this.smoker = screenLayout(
+                smokerMenu,
+                new int[] {FURNACE_INGREDIENT},
+                FURNACE_RESULT,
                 () -> new SmokerBackground(smokerMenu, minecraft));
 
         this.stonecutter = Stonecutter.layout();
@@ -111,7 +129,8 @@ public final class VanillaLayouts {
             case "minecraft:smoking" -> smoker;
             default -> furnace;
         };
-        Component time = Component.translatable("recipehost.layout.cooking_time", decimal(Double.toString(cookTimeTicks / 20.0)));
+        Component time = Component.translatable(
+                "recipehost.layout.cooking_time", decimal(Double.toString(cookTimeTicks / 20.0)));
         Component experience = Component.translatable("recipehost.layout.experience", decimal(Float.toString(xp)));
         RecipeSlot result = screen.slots().getLast();
         int textRight = screen.width() - PADDING / 2;
@@ -119,10 +138,15 @@ public final class VanillaLayouts {
         LayoutJob.Drawer drawer = (graphics, mouseX, mouseY) -> {
             screen.drawer().draw(graphics, mouseX, mouseY);
             graphics.drawString(font, time, textRight - font.width(time), textTop, TEXT_COLOR, false);
-            graphics.drawString(font, experience, textRight - font.width(experience), textTop + font.lineHeight, TEXT_COLOR, false);
+            graphics.drawString(
+                    font, experience, textRight - font.width(experience), textTop + font.lineHeight, TEXT_COLOR, false);
         };
-        return new VanillaLayout(VanillaLayoutKeys.cooking(typeId, cookTimeTicks, xp),
-                screen.width(), screen.height(), screen.slots(), drawer);
+        return new VanillaLayout(
+                VanillaLayoutKeys.cooking(typeId, cookTimeTicks, xp),
+                screen.width(),
+                screen.height(),
+                screen.slots(),
+                drawer);
     }
 
     /** A smithing transform recipe: the smithing table's template, base, addition and result. */
@@ -148,8 +172,8 @@ public final class VanillaLayouts {
      * player inventory, so a furnace's fuel slot is in the picture), padded and kept
      * inside the screen. Its recipe slots are {@code inputs} in order, then {@code result}.
      */
-    private static ScreenLayout screenLayout(AbstractContainerMenu menu, int[] inputs, int result,
-                                             Supplier<Background> background) {
+    private static ScreenLayout screenLayout(
+            AbstractContainerMenu menu, int[] inputs, int result, Supplier<Background> background) {
         int left = Integer.MAX_VALUE, top = Integer.MAX_VALUE, right = 0, bottom = 0;
         for (Slot slot : menu.slots) {
             if (slot.container instanceof Inventory) continue;
@@ -182,7 +206,13 @@ public final class VanillaLayouts {
     }
 
     private static RecipeSlot rect(int x, int y, RecipeSlot.Role role) {
-        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(SLOT_SIZE).setHeight(SLOT_SIZE).setRole(role).build();
+        return RecipeSlot.newBuilder()
+                .setX(x)
+                .setY(y)
+                .setWidth(SLOT_SIZE)
+                .setHeight(SLOT_SIZE)
+                .setRole(role)
+                .build();
     }
 
     /**
@@ -199,7 +229,9 @@ public final class VanillaLayouts {
         private static final ResourceLocation CRAFTING_TABLE =
                 ResourceLocation.withDefaultNamespace("textures/gui/container/crafting_table.png");
         /** A sprite, unlike the arrows baked into container textures, so it has no panel around it. */
-        private static final ResourceLocation ARROW = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
+        private static final ResourceLocation ARROW =
+                ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
+
         private static final int RESULT_FRAME = 26;
         private static final int INPUT_Y = (RESULT_FRAME - SLOT_SIZE) / 2;
         private static final int ARROW_X = SLOT_SIZE + 4;
@@ -211,7 +243,8 @@ public final class VanillaLayouts {
             List<RecipeSlot> slots = List.of(
                     rect(0, INPUT_Y, RecipeSlot.Role.INPUT),
                     rect(RESULT_X + RESULT_FRAME_MARGIN - 1, INPUT_Y, RecipeSlot.Role.OUTPUT));
-            return new VanillaLayout(VanillaLayoutKeys.STONECUTTER, RESULT_X + RESULT_FRAME, RESULT_FRAME, slots, Stonecutter::draw);
+            return new VanillaLayout(
+                    VanillaLayoutKeys.STONECUTTER, RESULT_X + RESULT_FRAME, RESULT_FRAME, slots, Stonecutter::draw);
         }
 
         private static void draw(GuiGraphics graphics, int mouseX, int mouseY) {

@@ -1,8 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
-import org.sagisolas.recipehost.protocol.Recipe;
-
 import java.util.Optional;
+import org.sagisolas.recipehost.protocol.Recipe;
 
 /**
  * One recipe as a recipe source (vanilla dispatch, EMI) finds it, not yet read. {@link RecipeAssembly}

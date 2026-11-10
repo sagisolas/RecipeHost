@@ -24,7 +24,10 @@ import org.sagisolas.recipehost.ui.designsystem.McTheme
 
 /** Full screen, shown while the `Catalog` is empty: the hint centred, "Scan QR" below it. */
 @Composable
-internal fun WelcomeScreen(viewModel: WelcomeViewModel, modifier: Modifier = Modifier) {
+internal fun WelcomeScreen(
+    viewModel: WelcomeViewModel,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(
         modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),

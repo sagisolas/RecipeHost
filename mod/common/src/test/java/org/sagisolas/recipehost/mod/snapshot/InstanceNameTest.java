@@ -1,12 +1,11 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 public class InstanceNameTest {
 

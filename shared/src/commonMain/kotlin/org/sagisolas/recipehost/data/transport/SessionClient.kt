@@ -27,26 +27,26 @@ internal class SessionClient(
     /** How long the connection may stay silent before it counts as dropped (a half-open socket). */
     private val idleTimeout: Duration = 15.seconds,
 ) : SessionSource {
-
-    override fun open(payload: PairingPayload): Flow<Envelope> = flow {
-        val connection = connectFirstReachable(payload)
-        try {
-            droppedOnIoError { connection.send(Envelope(auth = Auth(token = payload.token))) }
-            while (true) {
-                val envelope = receiveWithinIdleTimeout(connection)
-                if (envelope.done != null) break
-                envelope.error?.let { throw ScanFailure.Domain.ModError(it.code) }
-                envelope.handshake?.let {
-                    if (it.protocol_version != PROTOCOL_VERSION) {
-                        throw ScanFailure.Domain.UnsupportedProtocolVersion(it.protocol_version)
+    override fun open(payload: PairingPayload): Flow<Envelope> =
+        flow {
+            val connection = connectFirstReachable(payload)
+            try {
+                droppedOnIoError { connection.send(Envelope(auth = Auth(token = payload.token))) }
+                while (true) {
+                    val envelope = receiveWithinIdleTimeout(connection)
+                    if (envelope.done != null) break
+                    envelope.error?.let { throw ScanFailure.Domain.ModError(it.code) }
+                    envelope.handshake?.let {
+                        if (it.protocol_version != PROTOCOL_VERSION) {
+                            throw ScanFailure.Domain.UnsupportedProtocolVersion(it.protocol_version)
+                        }
                     }
+                    emit(envelope)
                 }
-                emit(envelope)
+            } finally {
+                connection.close()
             }
-        } finally {
-            connection.close()
         }
-    }
 
     /**
      * Tries the hosts one at a time, in payload order, never in parallel. The mod's
@@ -76,11 +76,12 @@ internal class SessionClient(
             droppedOnIoError { connection.receive() } ?: throw ScanFailure.Network.Dropped()
         } ?: throw ScanFailure.Network.Dropped(IOException("no envelope for $idleTimeout"))
 
-    private inline fun <T> droppedOnIoError(block: () -> T): T = try {
-        block()
-    } catch (e: IOException) {
-        throw ScanFailure.Network.Dropped(e)
-    }
+    private inline fun <T> droppedOnIoError(block: () -> T): T =
+        try {
+            block()
+        } catch (e: IOException) {
+            throw ScanFailure.Network.Dropped(e)
+        }
 
     private companion object {
         const val PROTOCOL_VERSION = 3

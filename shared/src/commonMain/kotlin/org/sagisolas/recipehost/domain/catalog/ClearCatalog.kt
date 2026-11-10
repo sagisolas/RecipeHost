@@ -14,19 +14,20 @@ internal class ClearCatalog(
     private val catalog: CatalogDatabase,
     private val context: CoroutineContext,
 ) {
-    suspend operator fun invoke() = withContext(context) {
-        catalog.transaction {
-            catalog.recipeQueries.clearOutputs()
-            catalog.recipeQueries.clearInputs()
-            catalog.recipeQueries.clear()
-            catalog.iconQueries.clear()
-            catalog.iconQueries.clearAtlases()
-            catalog.recipeLayoutQueries.clear()
-            // Deleting items fires the triggers that empty item_fts.
-            catalog.itemQueries.clear()
-            catalog.versionSelectionQueries.clear()
-            catalog.instanceQueries.clear()
-            catalog.modReleaseQueries.clear()
+    suspend operator fun invoke() =
+        withContext(context) {
+            catalog.transaction {
+                catalog.recipeQueries.clearOutputs()
+                catalog.recipeQueries.clearInputs()
+                catalog.recipeQueries.clear()
+                catalog.iconQueries.clear()
+                catalog.iconQueries.clearAtlases()
+                catalog.recipeLayoutQueries.clear()
+                // Deleting items fires the triggers that empty item_fts.
+                catalog.itemQueries.clear()
+                catalog.versionSelectionQueries.clear()
+                catalog.instanceQueries.clear()
+                catalog.modReleaseQueries.clear()
+            }
         }
-    }
 }

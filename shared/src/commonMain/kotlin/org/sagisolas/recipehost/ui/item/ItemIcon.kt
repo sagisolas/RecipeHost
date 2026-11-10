@@ -20,14 +20,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import kotlin.io.encoding.Base64
-import kotlin.math.floor
 import org.sagisolas.recipehost.domain.catalog.IconRegion
 import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.ui.AppTheme
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import kotlin.io.encoding.Base64
+import kotlin.math.floor
 
 /**
  * An item's Icon: its [icon] region of an `Icon atlas` from [atlases], drawn with
@@ -71,7 +71,11 @@ private const val ICON_TEXELS = 16
 
 /** The stack's Icon, or the missing texture when its id doesn't resolve to an Item. */
 @Composable
-internal fun StackIcon(stack: StackUi, atlases: IconAtlasCache, modifier: Modifier = Modifier) {
+internal fun StackIcon(
+    stack: StackUi,
+    atlases: IconAtlasCache,
+    modifier: Modifier = Modifier,
+) {
     val item = stack.item
     if (item != null) {
         ItemIcon(item.icon, atlases, modifier)
@@ -89,12 +93,19 @@ internal fun StackIcon(stack: StackUi, atlases: IconAtlasCache, modifier: Modifi
  * An atlas as loaded for one [id], so a stale atlas is never drawn with a new region after the
  * Icon moves to another atlas.
  */
-private class LoadedAtlas(val id: Long, val bitmap: ImageBitmap?)
+private class LoadedAtlas(
+    val id: Long,
+    val bitmap: ImageBitmap?,
+)
 
 /** Draws [icon] from [atlas], or `null` when the region falls outside it. */
-private fun regionPainter(atlas: ImageBitmap, icon: IconRegion): BitmapPainter? {
-    val fits = icon.x >= 0 && icon.y >= 0 && icon.size > 0 &&
-        icon.x + icon.size <= atlas.width && icon.y + icon.size <= atlas.height
+private fun regionPainter(
+    atlas: ImageBitmap,
+    icon: IconRegion,
+): BitmapPainter? {
+    val fits =
+        icon.x >= 0 && icon.y >= 0 && icon.size > 0 &&
+            icon.x + icon.size <= atlas.width && icon.y + icon.size <= atlas.height
     if (!fits) return null
     return BitmapPainter(atlas, IntOffset(icon.x, icon.y), IntSize(icon.size, icon.size), FilterQuality.None)
 }
@@ -103,9 +114,10 @@ private fun regionPainter(atlas: ImageBitmap, icon: IconRegion): BitmapPainter? 
 @Composable
 private fun ItemIconPreview() {
     val scope = rememberCoroutineScope()
-    val atlases = remember(scope) {
-        IconAtlasCache(scope, load = { id -> if (id == SAMPLE_ATLAS) SAMPLE_ICON_PNG else byteArrayOf(1, 2, 3) })
-    }
+    val atlases =
+        remember(scope) {
+            IconAtlasCache(scope, load = { id -> if (id == SAMPLE_ATLAS) SAMPLE_ICON_PNG else byteArrayOf(1, 2, 3) })
+        }
     AppTheme {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             McSlot { ItemIcon(IconRegion(SAMPLE_ATLAS, x = 0, y = 0, size = 16), atlases) }
@@ -120,7 +132,8 @@ private const val SAMPLE_ATLAS = 1L
 private const val BROKEN_ATLAS = 2L
 
 /** A one-cell atlas: a 16×16 framed blue square with an X, to show nearest-neighbour scaling. */
-private val SAMPLE_ICON_PNG: ByteArray = Base64.decode(
-    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mPQ0ND4TwlmABFRJ/7/l6s4QRIG6YEbABMgRTOIRjGAWEOQ" +
-        "1WAYQMgQdDmsBuAyBJsYTgPQNeByFV4DYBrxeYm2BlDkBYoCkaJopCghUZSUKc5MlGAAohE8i1zIsmoAAAAASUVORK5CYII=",
-)
+private val SAMPLE_ICON_PNG: ByteArray =
+    Base64.decode(
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXElEQVR42mPQ0ND4TwlmABFRJ/7/l6s4QRIG6YEbABMgRTOIRjGAWEOQ" +
+            "1WAYQMgQdDmsBuAyBJsYTgPQNeByFV4DYBrxeYm2BlDkBYoCkaJopCghUZSUKc5MlGAAohE8i1zIsmoAAAAASUVORK5CYII=",
+    )

@@ -4,8 +4,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.withContext
 import okio.IOException
 import org.sagisolas.recipehost.protocol.Envelope
 
@@ -18,7 +18,6 @@ internal class FakeSocketConnector(
     private val scope: TestScope,
     vararg attempts: Attempt,
 ) : SocketConnector {
-
     sealed interface Attempt {
         /** The connect never completes (until cancelled by a timeout). */
         data object Hang : Attempt
@@ -40,7 +39,11 @@ internal class FakeSocketConnector(
         ) : Attempt
     }
 
-    data class ConnectCall(val host: String, val port: Int, val atMillis: Long)
+    data class ConnectCall(
+        val host: String,
+        val port: Int,
+        val atMillis: Long,
+    )
 
     private val remaining = ArrayDeque(attempts.toList())
 
@@ -52,11 +55,20 @@ internal class FakeSocketConnector(
     var closedConnections = 0
         private set
 
-    override suspend fun connect(host: String, port: Int): EnvelopeConnection {
+    override suspend fun connect(
+        host: String,
+        port: Int,
+    ): EnvelopeConnection {
         connects += ConnectCall(host, port, scope.testScheduler.currentTime)
         return when (val attempt = remaining.removeFirstOrNull() ?: error("unexpected connect to $host")) {
-            Attempt.Hang -> awaitCancellation()
-            Attempt.Refuse -> throw IOException("connection refused: $host")
+            Attempt.Hang -> {
+                awaitCancellation()
+            }
+
+            Attempt.Refuse -> {
+                throw IOException("connection refused: $host")
+            }
+
             is Attempt.Accept -> {
                 if (attempt.connectMillis > 0) withContext(NonCancellable) { delay(attempt.connectMillis) }
                 ScriptedConnection(attempt).also { written += it.sent }
@@ -64,7 +76,9 @@ internal class FakeSocketConnector(
         }
     }
 
-    private inner class ScriptedConnection(attempt: Attempt.Accept) : EnvelopeConnection {
+    private inner class ScriptedConnection(
+        attempt: Attempt.Accept,
+    ) : EnvelopeConnection {
         val sent = mutableListOf<Envelope>()
         private val incoming = ArrayDeque(attempt.frames)
         private val failWith = attempt.failWith

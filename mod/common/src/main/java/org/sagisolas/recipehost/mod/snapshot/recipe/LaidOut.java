@@ -1,9 +1,8 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
+import java.util.List;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.List;
 
 /**
  * A recipe's `Recipe layout` and what each of its `Recipe slot`s shows: {@code stacks.get(i)} fills

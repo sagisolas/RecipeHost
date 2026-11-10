@@ -1,17 +1,8 @@
 package org.sagisolas.recipehost.mod.net;
 
-import org.junit.Test;
-import org.sagisolas.recipehost.protocol.Done;
-import org.sagisolas.recipehost.protocol.Envelope;
-import org.sagisolas.recipehost.protocol.EnvelopeFraming;
-import org.sagisolas.recipehost.protocol.Handshake;
-import org.sagisolas.recipehost.protocol.IconBatch;
-import org.sagisolas.recipehost.protocol.Item;
-import org.sagisolas.recipehost.protocol.ItemBatch;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.Recipe;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
-import org.sagisolas.recipehost.protocol.RecipeLayout;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,10 +13,17 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.EnvelopeFraming;
+import org.sagisolas.recipehost.protocol.Handshake;
+import org.sagisolas.recipehost.protocol.IconBatch;
+import org.sagisolas.recipehost.protocol.Item;
+import org.sagisolas.recipehost.protocol.ItemBatch;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
+import org.sagisolas.recipehost.protocol.Recipe;
+import org.sagisolas.recipehost.protocol.RecipeBatch;
+import org.sagisolas.recipehost.protocol.RecipeLayout;
 
 public class SnapshotSenderTest {
 
@@ -40,13 +38,16 @@ public class SnapshotSenderTest {
                 .build();
 
         ItemBatch items = ItemBatch.newBuilder()
-                .addAllItems(Collections.singletonList(
-                        Item.newBuilder().setId("minecraft:stick").setDisplayName("Stick").build()))
+                .addAllItems(Collections.singletonList(Item.newBuilder()
+                        .setId("minecraft:stick")
+                        .setDisplayName("Stick")
+                        .build()))
                 .build();
 
         RecipeBatch recipes = RecipeBatch.newBuilder()
-                .addAllRecipes(Collections.singletonList(
-                        Recipe.newBuilder().setTypeId("minecraft:crafting_shaped").build()))
+                .addAllRecipes(Collections.singletonList(Recipe.newBuilder()
+                        .setTypeId("minecraft:crafting_shaped")
+                        .build()))
                 .build();
 
         IconBatch icons = IconBatch.newBuilder()
@@ -85,7 +86,8 @@ public class SnapshotSenderTest {
     @Test
     public void aSnapshotWithNoBatchesIsHandshakeThenDone() throws Exception {
         Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
-        SnapshotSource source = framesOf(Envelope.newBuilder().setHandshake(handshake).build());
+        SnapshotSource source =
+                framesOf(Envelope.newBuilder().setHandshake(handshake).build());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         SnapshotSender.send(out, source);
@@ -101,8 +103,14 @@ public class SnapshotSenderTest {
         Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
         SnapshotSource exploding = () -> new Iterator<>() {
             boolean sentHandshake;
-            @Override public boolean hasNext() { return true; }
-            @Override public Envelope next() {
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public Envelope next() {
                 if (sentHandshake) throw new RuntimeException("boom");
                 sentHandshake = true;
                 return Envelope.newBuilder().setHandshake(handshake).build();

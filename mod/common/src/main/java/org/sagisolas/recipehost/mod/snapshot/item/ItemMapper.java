@@ -1,15 +1,14 @@
 package org.sagisolas.recipehost.mod.snapshot.item;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.client.resources.language.I18n;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 
 /**
  * Walks {@code BuiltInRegistries.ITEM} once and produces the two views the
@@ -33,12 +32,8 @@ public final class ItemMapper {
                     .build());
             namespacesWithItems.add(key.getNamespace());
         }
-        return new Result(
-                Collections.unmodifiableList(wireItems),
-                Collections.unmodifiableSet(namespacesWithItems));
+        return new Result(Collections.unmodifiableList(wireItems), Collections.unmodifiableSet(namespacesWithItems));
     }
 
-    public record Result(
-            List<org.sagisolas.recipehost.protocol.Item> wireItems,
-            Set<String> namespacesWithItems) {}
+    public record Result(List<org.sagisolas.recipehost.protocol.Item> wireItems, Set<String> namespacesWithItems) {}
 }

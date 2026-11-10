@@ -1,14 +1,13 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
-import org.sagisolas.recipehost.protocol.Recipe;
-import org.sagisolas.recipehost.protocol.RecipeBatch;
-import org.sagisolas.recipehost.protocol.Slot;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.sagisolas.recipehost.protocol.Recipe;
+import org.sagisolas.recipehost.protocol.RecipeBatch;
+import org.sagisolas.recipehost.protocol.Slot;
 
 /**
  * Builds a {@link RecipeBatch} that sends each repeated Slot once (ADR 0016): a Slot with two or
@@ -33,7 +32,10 @@ public final class SharedSlots {
             for (Slot slot : recipe.getLayoutStacksList()) builder.addLayoutStacks(refer(slot, occurrences, shared));
             out.add(builder.build());
         }
-        return RecipeBatch.newBuilder().addAllRecipes(out).addAllSharedSlots(shared.keySet()).build();
+        return RecipeBatch.newBuilder()
+                .addAllRecipes(out)
+                .addAllSharedSlots(shared.keySet())
+                .build();
     }
 
     private static void count(Map<Slot, Integer> occurrences, Slot slot) {

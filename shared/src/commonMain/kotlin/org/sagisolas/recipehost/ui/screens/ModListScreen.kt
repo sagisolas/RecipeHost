@@ -20,18 +20,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.ModListEntry
 import org.sagisolas.recipehost.presentation.ModListViewModel
-import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.mod_list_title
 import org.sagisolas.recipehost.shared.generated.resources.mod_release
 import org.sagisolas.recipehost.ui.designsystem.McDropdown
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /** Pushed onto the Items tab's stack: each mod with a dropdown of its releases, newest first. */
 @Composable
-internal fun ModListScreen(viewModel: ModListViewModel, navigator: Navigator, modifier: Modifier = Modifier) {
+internal fun ModListScreen(
+    viewModel: ModListViewModel,
+    navigator: Navigator,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
         McText(
@@ -45,7 +49,11 @@ internal fun ModListScreen(viewModel: ModListViewModel, navigator: Navigator, mo
 }
 
 @Composable
-private fun ModRows(viewModel: ModListViewModel, navigator: Navigator, mods: List<ModListEntry>) {
+private fun ModRows(
+    viewModel: ModListViewModel,
+    navigator: Navigator,
+    mods: List<ModListEntry>,
+) {
     LazyColumn(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -65,7 +73,11 @@ private fun ModRows(viewModel: ModListViewModel, navigator: Navigator, mods: Lis
 
 /** Tapping the row filters the grid by the mod; the dropdown picks its `Mod release`. */
 @Composable
-private fun ModRow(mod: ModListEntry, onClick: () -> Unit, onSelectRelease: (Long) -> Unit) {
+private fun ModRow(
+    mod: ModListEntry,
+    onClick: () -> Unit,
+    onSelectRelease: (Long) -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -74,10 +86,11 @@ private fun ModRow(mod: ModListEntry, onClick: () -> Unit, onSelectRelease: (Lon
         McText(mod.name, Modifier.weight(1f), color = McTheme.colors.textOnDark, maxLines = 2)
         val selected = mod.releases.single { it.id == mod.selectedReleaseId }
         // McDropdown's label isn't composable, so the "6.0.1 · MC 1.21.1" labels are resolved here.
-        val labels = mod.releases.associate { release ->
-            val label = release.mcVersion?.let { stringResource(Res.string.mod_release, release.version, it) }
-            release.id to (label ?: release.version)
-        }
+        val labels =
+            mod.releases.associate { release ->
+                val label = release.mcVersion?.let { stringResource(Res.string.mod_release, release.version, it) }
+                release.id to (label ?: release.version)
+            }
         McDropdown(
             options = mod.releases,
             selected = selected,

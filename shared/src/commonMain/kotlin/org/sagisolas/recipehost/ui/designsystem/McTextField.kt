@@ -33,25 +33,26 @@ internal fun McTextField(
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier
-            .height(McDimens.WidgetHeight)
-            .onFocusChanged { focused = it.isFocused },
+        modifier =
+            modifier
+                .height(McDimens.WidgetHeight)
+                .onFocusChanged { focused = it.isFocused },
         enabled = enabled,
         textStyle = McTheme.typography.body.copy(color = colors.onDark(enabled)),
         singleLine = true,
         cursorBrush = SolidColor(colors.textOnDark),
         decorationBox = { innerTextField ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .mcBackground(
-                        when {
-                            !enabled -> skin.textFieldDisabled
-                            focused -> skin.textFieldFocused
-                            else -> skin.textField
-                        },
-                    )
-                    .padding(horizontal = McDimens.WidgetPadding),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .mcBackground(
+                            when {
+                                !enabled -> skin.textFieldDisabled
+                                focused -> skin.textFieldFocused
+                                else -> skin.textField
+                            },
+                        ).padding(horizontal = McDimens.WidgetPadding),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 if (value.isEmpty() && hint.isNotEmpty()) {

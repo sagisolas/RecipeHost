@@ -1,5 +1,6 @@
 package org.sagisolas.recipehost.mod;
 
+import java.util.function.Function;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.sagisolas.recipehost.mod.pairing.ExecutorScheduler;
 import org.sagisolas.recipehost.mod.pairing.HostAddresses;
@@ -12,8 +13,6 @@ import org.sagisolas.recipehost.mod.snapshot.emi.EmiRecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.vanilla.VanillaRecipeSource;
 import org.sagisolas.recipehost.mod.ui.PairingButtonInstaller;
 
-import java.util.function.Function;
-
 /** Composition root: called once by each loader's entrypoint; creates and wires the mod's objects. */
 public final class RecipeHost {
 
@@ -23,7 +22,8 @@ public final class RecipeHost {
     private RecipeHost() {}
 
     public static void init() {
-        boolean emiLoaded = Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
+        boolean emiLoaded =
+                Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
         RenderThreadScheduler renderThread = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
                 new MinecraftListenerFactory(recipeSources(emiLoaded), renderThread),

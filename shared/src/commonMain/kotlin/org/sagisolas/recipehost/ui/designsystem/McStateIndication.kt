@@ -30,7 +30,8 @@ private class McStateIndicationNode(
     private val interactionSource: InteractionSource,
     private val textures: McStateTextures,
     private val enabled: Boolean,
-) : Modifier.Node(), DrawModifierNode {
+) : Modifier.Node(),
+    DrawModifierNode {
     private var pressed = false
 
     override fun onAttach() {
@@ -52,11 +53,12 @@ private class McStateIndicationNode(
     }
 
     override fun ContentDrawScope.draw() {
-        val texture = when {
-            !enabled -> textures.disabled
-            pressed -> textures.pressed
-            else -> textures.normal
-        }
+        val texture =
+            when {
+                !enabled -> textures.disabled
+                pressed -> textures.pressed
+                else -> textures.normal
+            }
         if (texture != null) with(texture.painter) { draw(size) }
         drawContent()
     }

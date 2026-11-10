@@ -5,10 +5,9 @@ import dev.emi.emi.api.widget.Bounds;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.Widget;
 import dev.emi.emi.api.widget.WidgetHolder;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 /**
  * The {@link WidgetHolder} passed to {@code EmiRecipe.addWidgets}: records the widgets of

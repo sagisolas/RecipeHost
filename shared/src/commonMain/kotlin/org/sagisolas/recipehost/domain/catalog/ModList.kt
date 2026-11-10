@@ -22,26 +22,33 @@ internal class ModList(
     /** Every mod with at least one release: minecraft first, then by name. */
     val mods: Flow<List<CatalogMod>> =
         catalog.modReleaseQueries.withSelection().asFlow().mapToList(context).map { rows ->
-            rows.groupBy { it.mod_id }
+            rows
+                .groupBy { it.mod_id }
                 .map { (modId, releases) -> releases.toMod(modId) }
-                .sortedWith(compareBy<CatalogMod> { it.modId != MINECRAFT }.thenBy { it.name.lowercase() }.thenBy { it.modId })
+                .sortedWith(
+                    compareBy<CatalogMod> { it.modId != MINECRAFT }.thenBy { it.name.lowercase() }.thenBy { it.modId },
+                )
         }
 
     /** Makes [releaseId] the selected release of [modId]; it must be one of that mod's releases. */
-    suspend fun select(modId: String, releaseId: Long) = withContext(context) {
+    suspend fun select(
+        modId: String,
+        releaseId: Long,
+    ) = withContext(context) {
         val owner = catalog.modReleaseQueries.modOf(releaseId).executeAsOneOrNull()
         require(owner == modId) { "release $releaseId is not a release of $modId" }
         catalog.versionSelectionQueries.choose(modId, releaseId)
     }
 }
 
-private fun List<WithSelection>.toMod(modId: String) = CatalogMod(
-    modId = modId,
-    // The rows come newest first, so a renamed mod shows its newest name.
-    name = first().name,
-    releases = map { ModRelease(it.id, it.version, it.mc_version) },
-    selectedReleaseId = first().selected_release_id,
-)
+private fun List<WithSelection>.toMod(modId: String) =
+    CatalogMod(
+        modId = modId,
+        // The rows come newest first, so a renamed mod shows its newest name.
+        name = first().name,
+        releases = map { ModRelease(it.id, it.version, it.mc_version) },
+        selectedReleaseId = first().selected_release_id,
+    )
 
 /** A mod in the `Catalog`: its [releases] newest first, and the one in the `Version selection`. */
 internal data class CatalogMod(
@@ -52,4 +59,8 @@ internal data class CatalogMod(
 )
 
 /** One `Mod release`: [version] of the mod for Minecraft [mcVersion]. */
-internal data class ModRelease(val id: Long, val version: String, val mcVersion: String)
+internal data class ModRelease(
+    val id: Long,
+    val version: String,
+    val mcVersion: String,
+)

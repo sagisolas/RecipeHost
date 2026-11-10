@@ -7,11 +7,14 @@ import androidx.compose.ui.text.font.FontFamily
 
 internal object McTheme {
     val colors: McColors
-        @Composable @ReadOnlyComposable get() = LocalMcColors.current
+        @Composable @ReadOnlyComposable
+        get() = LocalMcColors.current
     val skin: McSkin
-        @Composable @ReadOnlyComposable get() = LocalMcSkin.current
+        @Composable @ReadOnlyComposable
+        get() = LocalMcSkin.current
     val typography: McTypography
-        @Composable @ReadOnlyComposable get() = LocalMcTypography.current
+        @Composable @ReadOnlyComposable
+        get() = LocalMcTypography.current
 }
 
 /**

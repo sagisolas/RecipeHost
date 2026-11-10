@@ -1,5 +1,8 @@
 package org.sagisolas.recipehost.mod.net;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Iterator;
 import org.sagisolas.recipehost.protocol.Done;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
@@ -7,10 +10,6 @@ import org.sagisolas.recipehost.protocol.Error;
 import org.sagisolas.recipehost.protocol.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Iterator;
 
 /**
  * Streams a Snapshot to a byte sink: the source's frames in order, then Done. On any failure pulling
@@ -32,12 +31,14 @@ public final class SnapshotSender {
             // The app only learns "source failure"; the cause is only ever seen here.
             LOG.error("[recipehost] Snapshot failed while streaming; sending an Error frame", ex);
             Error error = Error.newBuilder().setCode(ErrorCode.SOURCE_FAILURE).build();
-            EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setError(error).build());
+            EnvelopeFraming.writeFrame(
+                    out, Envelope.newBuilder().setError(error).build());
             out.flush();
             if (ex instanceof IOException) throw (IOException) ex;
             throw new IOException(ex);
         }
-        EnvelopeFraming.writeFrame(out, Envelope.newBuilder().setDone(Done.getDefaultInstance()).build());
+        EnvelopeFraming.writeFrame(
+                out, Envelope.newBuilder().setDone(Done.getDefaultInstance()).build());
         out.flush();
     }
 }

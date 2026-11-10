@@ -57,7 +57,10 @@ internal fun ScanProgressScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         when (val current = state) {
-            is ScanProgressUiState.Running -> Steps(current.step)
+            is ScanProgressUiState.Running -> {
+                Steps(current.step)
+            }
+
             is ScanProgressUiState.Failed -> {
                 McText(
                     stringResource(messageOf(current.reason)),
@@ -66,7 +69,10 @@ internal fun ScanProgressScreen(
                 )
                 McButton(stringResource(Res.string.scan_again), onClick = viewModel::scanAgain)
             }
-            ScanProgressUiState.Committed -> Unit
+
+            ScanProgressUiState.Committed -> {
+                Unit
+            }
         }
     }
 }
@@ -74,11 +80,12 @@ internal fun ScanProgressScreen(
 /** The three steps: done and current ones in white, the ones still to come greyed out. */
 @Composable
 private fun Steps(step: Step) {
-    val reached = when (step) {
-        Step.Connecting -> 0
-        is Step.Items -> 1
-        is Step.Recipes -> 2
-    }
+    val reached =
+        when (step) {
+            Step.Connecting -> 0
+            is Step.Items -> 1
+            is Step.Recipes -> 2
+        }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         StepLine(stringResource(Res.string.scan_step_connecting), reached >= 0)
         StepLine(
@@ -101,16 +108,20 @@ private fun Steps(step: Step) {
 }
 
 @Composable
-private fun StepLine(text: String, reached: Boolean) {
+private fun StepLine(
+    text: String,
+    reached: Boolean,
+) {
     McText(text, color = if (reached) McTheme.colors.textOnDark else McTheme.colors.textHint)
 }
 
-private fun messageOf(reason: FailureReason): StringResource = when (reason) {
-    FailureReason.Unauthorized -> Res.string.scan_error_unauthorized
-    FailureReason.Busy -> Res.string.scan_error_busy
-    FailureReason.GameError -> Res.string.scan_error_game
-    FailureReason.VersionMismatch -> Res.string.scan_error_version_mismatch
-    FailureReason.InvalidCode -> Res.string.scan_error_invalid_code
-    FailureReason.Network -> Res.string.scan_error_network
-    FailureReason.Interrupted -> Res.string.scan_error_interrupted
-}
+private fun messageOf(reason: FailureReason): StringResource =
+    when (reason) {
+        FailureReason.Unauthorized -> Res.string.scan_error_unauthorized
+        FailureReason.Busy -> Res.string.scan_error_busy
+        FailureReason.GameError -> Res.string.scan_error_game
+        FailureReason.VersionMismatch -> Res.string.scan_error_version_mismatch
+        FailureReason.InvalidCode -> Res.string.scan_error_invalid_code
+        FailureReason.Network -> Res.string.scan_error_network
+        FailureReason.Interrupted -> Res.string.scan_error_interrupted
+    }

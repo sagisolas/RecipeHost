@@ -1,10 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.awt.image.BufferedImage;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 public class IconSheetTest {
 
@@ -17,8 +16,7 @@ public class IconSheetTest {
     private static int[] coordinatePixels() {
         int[] argb = new int[WIDTH * ROWS * CELL];
         for (int y = 0; y < ROWS * CELL; y++)
-            for (int x = 0; x < WIDTH; x++)
-                argb[y * WIDTH + x] = 0xFF000000 | (x << 8) | y;
+            for (int x = 0; x < WIDTH; x++) argb[y * WIDTH + x] = 0xFF000000 | (x << 8) | y;
         return argb;
     }
 

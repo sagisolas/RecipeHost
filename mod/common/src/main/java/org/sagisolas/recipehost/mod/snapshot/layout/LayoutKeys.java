@@ -1,10 +1,9 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import org.sagisolas.recipehost.mod.snapshot.Hashes;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
-
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.sagisolas.recipehost.mod.snapshot.Hashes;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 /**
  * The key of a `Recipe layout` known only once it is drawn, so equal layouts are sent and stored
@@ -27,7 +26,11 @@ final class LayoutKeys {
         for (int pixel : argb) buffer.putInt((pixel << 8) | (pixel >>> 24));
         buffer.putInt(slots.size());
         for (RecipeSlot slot : slots) {
-            buffer.putInt(slot.getX()).putInt(slot.getY()).putInt(slot.getWidth()).putInt(slot.getHeight()).putInt(slot.getRoleValue());
+            buffer.putInt(slot.getX())
+                    .putInt(slot.getY())
+                    .putInt(slot.getWidth())
+                    .putInt(slot.getHeight())
+                    .putInt(slot.getRoleValue());
         }
         return Hashes.truncatedSha256Hex(buffer.array());
     }

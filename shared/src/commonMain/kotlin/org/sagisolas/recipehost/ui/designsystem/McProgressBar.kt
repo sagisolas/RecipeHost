@@ -14,10 +14,11 @@ internal fun McProgressBar(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(McDimens.ProgressBarHeight)
-            .mcBackground(McTheme.skin.progressTrack),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(McDimens.ProgressBarHeight)
+                .mcBackground(McTheme.skin.progressTrack),
     ) {
         Box(
             Modifier

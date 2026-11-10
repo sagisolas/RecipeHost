@@ -1,13 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot.image;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
+import javax.imageio.ImageIO;
+import org.junit.Test;
 
 public class PngEncoderTest {
 

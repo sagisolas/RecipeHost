@@ -1,15 +1,14 @@
 package org.sagisolas.recipehost.mod.snapshot.emi;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 public class EmiRecipeMapperTest {
 
@@ -40,26 +39,36 @@ public class EmiRecipeMapperTest {
 
     @Test
     public void anIdFromEmiIsKeptAsItIsSyntheticOnesIncluded() {
-        assertEquals("minecraft:torch",
-                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH)).getId());
-        assertEquals("emi:/brewing/x",
-                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH)).getId());
+        assertEquals(
+                "minecraft:torch",
+                EmiRecipeMapper.map("minecraft:torch", "minecraft:crafting", List.of(List.of(STICK)), List.of(TORCH))
+                        .getId());
+        assertEquals(
+                "emi:/brewing/x",
+                EmiRecipeMapper.map("emi:/brewing/x", "minecraft:brewing", List.of(List.of(STICK)), List.of(TORCH))
+                        .getId());
     }
 
     @Test
     public void onlyItemStacksAreKeptAndAnInputWithNoItemsIsDropped() {
-        Recipe recipe = EmiRecipeMapper.map("create:mixing/x", "create:mixing",
+        Recipe recipe = EmiRecipeMapper.map(
+                "create:mixing/x",
+                "create:mixing",
                 List.of(List.of(WATER), List.of(WATER, STICK)),
                 List.of(WATER, TORCH));
 
-        assertEquals(List.of(Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build()), recipe.getInputsList());
+        assertEquals(
+                List.of(Slot.newBuilder()
+                        .addAllStacks(List.of(wire("minecraft:stick", 1)))
+                        .build()),
+                recipe.getInputsList());
         assertEquals(List.of(wire("minecraft:torch", 4)), recipe.getResultsList());
     }
 
     @Test
     public void anAmountTooLargeForTheWireCountIsCappedRatherThanWrapped() {
-        Recipe recipe = EmiRecipeMapper.map("x:y", "x:z",
-                List.of(), List.of(new EmiRecipeMapper.Stack("minecraft:torch", 5_000_000_000L)));
+        Recipe recipe = EmiRecipeMapper.map(
+                "x:y", "x:z", List.of(), List.of(new EmiRecipeMapper.Stack("minecraft:torch", 5_000_000_000L)));
 
         assertEquals(List.of(wire("minecraft:torch", Integer.MAX_VALUE)), recipe.getResultsList());
     }
@@ -68,10 +77,15 @@ public class EmiRecipeMapperTest {
     public void everyLayoutSlotGetsAnEntryWithItsItemsAndAFluidSlotStaysEmpty() {
         List<Slot> stacks = EmiRecipeMapper.layoutStacks(List.of(List.of(STICK), List.of(WATER), List.of(TORCH)));
 
-        assertEquals(List.of(
-                        Slot.newBuilder().addAllStacks(List.of(wire("minecraft:stick", 1))).build(),
+        assertEquals(
+                List.of(
+                        Slot.newBuilder()
+                                .addAllStacks(List.of(wire("minecraft:stick", 1)))
+                                .build(),
                         Slot.newBuilder().build(),
-                        Slot.newBuilder().addAllStacks(List.of(wire("minecraft:torch", 4))).build()),
+                        Slot.newBuilder()
+                                .addAllStacks(List.of(wire("minecraft:torch", 4)))
+                                .build()),
                 stacks);
     }
 }

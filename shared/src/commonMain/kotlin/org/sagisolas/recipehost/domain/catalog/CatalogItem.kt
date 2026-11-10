@@ -21,14 +21,19 @@ internal fun catalogItemOf(
     columns: Long?,
     cellSize: Long?,
 ): CatalogItem {
-    val icon = if (atlasId != null && cell != null && columns != null && cellSize != null) {
-        iconRegionOf(atlasId, cell.toInt(), columns.toInt(), cellSize.toInt())
-    } else {
-        null
-    }
+    val icon =
+        if (atlasId != null && cell != null && columns != null && cellSize != null) {
+            iconRegionOf(atlasId, cell.toInt(), columns.toInt(), cellSize.toInt())
+        } else {
+            null
+        }
     return CatalogItem(releaseId, itemId, displayName, icon)
 }
 
 /** Cell [cell] of a row-major atlas [columns] cells wide. */
-private fun iconRegionOf(atlasId: Long, cell: Int, columns: Int, cellSize: Int) =
-    IconRegion(atlasId, x = (cell % columns) * cellSize, y = (cell / columns) * cellSize, size = cellSize)
+private fun iconRegionOf(
+    atlasId: Long,
+    cell: Int,
+    columns: Int,
+    cellSize: Int,
+) = IconRegion(atlasId, x = (cell % columns) * cellSize, y = (cell / columns) * cellSize, size = cellSize)

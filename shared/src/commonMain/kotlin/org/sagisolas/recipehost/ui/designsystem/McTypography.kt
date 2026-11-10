@@ -13,11 +13,12 @@ internal data class McTypography(
     val title: TextStyle,
 ) {
     companion object {
-        fun of(family: FontFamily) = McTypography(
-            small = TextStyle(fontFamily = family, fontSize = 12.sp, lineHeight = 16.sp),
-            body = TextStyle(fontFamily = family, fontSize = 16.sp, lineHeight = 20.sp),
-            title = TextStyle(fontFamily = family, fontSize = 20.sp, lineHeight = 24.sp),
-        )
+        fun of(family: FontFamily) =
+            McTypography(
+                small = TextStyle(fontFamily = family, fontSize = 12.sp, lineHeight = 16.sp),
+                body = TextStyle(fontFamily = family, fontSize = 16.sp, lineHeight = 20.sp),
+                title = TextStyle(fontFamily = family, fontSize = 20.sp, lineHeight = 24.sp),
+            )
     }
 }
 

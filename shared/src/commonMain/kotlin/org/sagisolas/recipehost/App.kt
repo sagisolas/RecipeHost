@@ -11,11 +11,6 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import org.jetbrains.compose.resources.stringResource
-import org.sagisolas.recipehost.ui.navigation.Navigator
-import org.sagisolas.recipehost.ui.navigation.Route
-import org.sagisolas.recipehost.ui.navigation.Screen
-import org.sagisolas.recipehost.ui.navigation.Tab
-import org.sagisolas.recipehost.ui.navigation.rememberNavigator
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.placeholder_open_item
 import org.sagisolas.recipehost.shared.generated.resources.placeholder_settings
@@ -25,6 +20,11 @@ import org.sagisolas.recipehost.ui.PlaceholderScreen
 import org.sagisolas.recipehost.ui.RootScaffold
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
+import org.sagisolas.recipehost.ui.navigation.Navigator
+import org.sagisolas.recipehost.ui.navigation.Route
+import org.sagisolas.recipehost.ui.navigation.Screen
+import org.sagisolas.recipehost.ui.navigation.Tab
+import org.sagisolas.recipehost.ui.navigation.rememberNavigator
 import org.sagisolas.recipehost.ui.screens.ItemGridScreen
 import org.sagisolas.recipehost.ui.screens.ItemScreen
 import org.sagisolas.recipehost.ui.screens.ModListScreen
@@ -35,9 +35,10 @@ import org.sagisolas.recipehost.ui.screens.WelcomeScreen
 @Composable
 fun App(graph: AppGraph) {
     AppTheme {
-        val navigator = rememberNavigator {
-            if (graph.catalogEmptiness.isEmpty()) Route.Welcome else Route.Root
-        }
+        val navigator =
+            rememberNavigator {
+                if (graph.catalogEmptiness.isEmpty()) Route.Welcome else Route.Root
+            }
         LaunchedEffect(navigator) {
             graph.pairing.progressRequests.collect { navigator.showScanProgress() }
         }
@@ -49,19 +50,28 @@ fun App(graph: AppGraph) {
             NavDisplay(
                 backStack = listOf(navigator.route),
                 onBack = {},
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
+                entryDecorators =
+                    listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
                 entryProvider = { route ->
                     NavEntry(route) {
                         when (it) {
-                            Route.Welcome -> WelcomeScreen(viewModel { graph.welcomeViewModel() })
-                            Route.ScanProgress -> ScanProgressScreen(
-                                viewModel { graph.scanProgressViewModel() },
-                                onCommitted = { navigator.showRoot(Tab.Items) },
-                            )
-                            Route.Root -> RootScaffold(navigator) { screen -> TabScreen(screen, graph, navigator) }
+                            Route.Welcome -> {
+                                WelcomeScreen(viewModel { graph.welcomeViewModel() })
+                            }
+
+                            Route.ScanProgress -> {
+                                ScanProgressScreen(
+                                    viewModel { graph.scanProgressViewModel() },
+                                    onCommitted = { navigator.showRoot(Tab.Items) },
+                                )
+                            }
+
+                            Route.Root -> {
+                                RootScaffold(navigator) { screen -> TabScreen(screen, graph, navigator) }
+                            }
                         }
                     }
                 },
@@ -72,24 +82,40 @@ fun App(graph: AppGraph) {
 
 /** A screen inside a tab; each entry's `viewModel { }` is scoped to that entry. */
 @Composable
-private fun TabScreen(screen: Screen, graph: AppGraph, navigator: Navigator) {
+private fun TabScreen(
+    screen: Screen,
+    graph: AppGraph,
+    navigator: Navigator,
+) {
     when (screen) {
-        Screen.Grid -> ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.iconAtlases)
-        Screen.ModList -> ModListScreen(viewModel { graph.modListViewModel() }, navigator)
-        is Screen.Item -> ItemScreen(
-            viewModel { graph.itemViewModel(screen.itemId) },
-            navigator,
-            graph.iconAtlases,
-            graph.layoutImages,
-        )
+        Screen.Grid -> {
+            ItemGridScreen(viewModel { graph.itemGridViewModel() }, navigator, graph.iconAtlases)
+        }
+
+        Screen.ModList -> {
+            ModListScreen(viewModel { graph.modListViewModel() }, navigator)
+        }
+
+        is Screen.Item -> {
+            ItemScreen(
+                viewModel { graph.itemViewModel(screen.itemId) },
+                navigator,
+                graph.iconAtlases,
+                graph.layoutImages,
+            )
+        }
+
         // TODO(issue 10): Settings.
-        Screen.Settings -> PlaceholderScreen(
-            stringResource(Res.string.placeholder_settings),
-            actions = listOf(
-                PlaceholderAction(stringResource(Res.string.placeholder_open_item, "minecraft:stone")) {
-                    navigator.push(Screen.Item("minecraft:stone"))
-                },
-            ),
-        )
+        Screen.Settings -> {
+            PlaceholderScreen(
+                stringResource(Res.string.placeholder_settings),
+                actions =
+                    listOf(
+                        PlaceholderAction(stringResource(Res.string.placeholder_open_item, "minecraft:stone")) {
+                            navigator.push(Screen.Item("minecraft:stone"))
+                        },
+                    ),
+            )
+        }
     }
 }

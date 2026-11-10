@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
-import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
-import org.sagisolas.recipehost.domain.throttleLatest
 import org.sagisolas.recipehost.data.catalog.MINECRAFT
 import org.sagisolas.recipehost.data.catalog.namespaceOf
+import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
+import org.sagisolas.recipehost.domain.throttleLatest
 import org.sagisolas.recipehost.protocol.ItemStack
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeLayout
@@ -36,12 +36,20 @@ internal class ItemRecipes(
     private val catalog: CatalogDatabase,
     private val context: CoroutineContext,
 ) {
-    operator fun invoke(itemId: String, direction: RecipeDirection): Flow<List<RecipeGroup>> {
-        val query = when (direction) {
-            RecipeDirection.Recipes -> catalog.recipeQueries.selectedProducing(itemId, ::InstanceRecipe)
-            RecipeDirection.Uses -> catalog.recipeQueries.selectedConsuming(itemId, ::InstanceRecipe)
-        }
-        return query.asFlow().throttleLatest(CATALOG_REFRESH_PERIOD).mapToList(context).map { it.toGroups() }
+    operator fun invoke(
+        itemId: String,
+        direction: RecipeDirection,
+    ): Flow<List<RecipeGroup>> {
+        val query =
+            when (direction) {
+                RecipeDirection.Recipes -> catalog.recipeQueries.selectedProducing(itemId, ::InstanceRecipe)
+                RecipeDirection.Uses -> catalog.recipeQueries.selectedConsuming(itemId, ::InstanceRecipe)
+            }
+        return query
+            .asFlow()
+            .throttleLatest(CATALOG_REFRESH_PERIOD)
+            .mapToList(context)
+            .map { it.toGroups() }
     }
 }
 
@@ -49,7 +57,12 @@ internal class ItemRecipes(
  * A stored `Recipe layout` without its image: [width] and [height] in GUI px, and the `Recipe slot`s
  * the recipe's `layout_stacks` fill by index. The image is loaded by [key].
  */
-private data class StoredLayout(val key: String, val width: Int, val height: Int, val slots: List<RecipeSlot>)
+private data class StoredLayout(
+    val key: String,
+    val width: Int,
+    val height: Int,
+    val slots: List<RecipeSlot>,
+)
 
 /** A recipe as one `Instance` has it: the row shape both recipe queries map to. */
 private class InstanceRecipe(
@@ -68,11 +81,21 @@ private class InstanceRecipe(
      * Null unless the recipe's layout is stored: the query's left join gives all four or none. Its
      * slots are decoded only when the variant is shown.
      */
-    val layout: (() -> StoredLayout)? = if (layoutKey != null && layoutWidth != null && layoutHeight != null && layoutSlots != null) {
-        { StoredLayout(layoutKey, layoutWidth.toInt(), layoutHeight.toInt(), RecipeLayout.ADAPTER.decode(layoutSlots).slots) }
-    } else {
-        null
-    }
+    val layout: (() -> StoredLayout)? =
+        if (layoutKey != null && layoutWidth != null && layoutHeight != null &&
+            layoutSlots != null
+        ) {
+            {
+                StoredLayout(
+                    layoutKey,
+                    layoutWidth.toInt(),
+                    layoutHeight.toInt(),
+                    RecipeLayout.ADAPTER.decode(layoutSlots).slots,
+                )
+            }
+        } else {
+            null
+        }
 }
 
 /**
@@ -82,20 +105,25 @@ private class InstanceRecipe(
  * as the recipe queries return them.
  */
 private fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
-    groupBy { it.typeId }.map { (typeId, rows) ->
-        RecipeGroup(
-            typeId = typeId,
-            recipes = rows.groupBy { it.releaseId to it.recipeId }.map { (key, instances) ->
-                CatalogRecipe(releaseId = key.first, recipeId = key.second, variants = instances.toVariants())
-            },
-        )
-    }.sortedBy { namespaceOf(it.typeId) != MINECRAFT } // stable: false (the game's own) sorts first
+    groupBy { it.typeId }
+        .map { (typeId, rows) ->
+            RecipeGroup(
+                typeId = typeId,
+                recipes =
+                    rows.groupBy { it.releaseId to it.recipeId }.map { (key, instances) ->
+                        CatalogRecipe(releaseId = key.first, recipeId = key.second, variants = instances.toVariants())
+                    },
+            )
+        }.sortedBy { namespaceOf(it.typeId) != MINECRAFT } // stable: false (the game's own) sorts first
 
 /** Rows of one recipe, newest Instance first, collapsed by body hash; groupBy keeps first-seen order. */
 private fun List<InstanceRecipe>.toVariants(): List<RecipeVariant> =
     groupBy { it.bodyHash.toByteString() }.values.map { sameBody ->
         RecipeVariant(instanceNames = sameBody.map { it.instanceName }) {
-            recipeDisplayOf(Recipe.ADAPTER.decode(sameBody.first().body), sameBody.firstNotNullOfOrNull { it.layout }?.invoke())
+            recipeDisplayOf(
+                Recipe.ADAPTER.decode(sameBody.first().body),
+                sameBody.firstNotNullOfOrNull { it.layout }?.invoke(),
+            )
         }
     }
 
@@ -103,7 +131,10 @@ private fun List<InstanceRecipe>.toVariants(): List<RecipeVariant> =
  * [recipe] as drawn: in [layout] when it has one, whose slots the recipe's `layout_stacks` fill by
  * index (a slot past them stays empty), and generically otherwise.
  */
-private fun recipeDisplayOf(recipe: Recipe, layout: StoredLayout?): RecipeDisplay =
+private fun recipeDisplayOf(
+    recipe: Recipe,
+    layout: StoredLayout?,
+): RecipeDisplay =
     if (layout == null) {
         RecipeDisplay.Generic(
             inputs = recipe.inputs.map { slot -> slot.stacks.map(::displayStackOf) },
@@ -114,14 +145,23 @@ private fun recipeDisplayOf(recipe: Recipe, layout: StoredLayout?): RecipeDispla
             key = layout.key,
             width = layout.width,
             height = layout.height,
-            slots = layout.slots.mapIndexed { index, slot ->
-                displaySlotOf(slot, recipe.layout_stacks.getOrNull(index)?.stacks.orEmpty())
-            },
+            slots =
+                layout.slots.mapIndexed { index, slot ->
+                    displaySlotOf(
+                        slot,
+                        recipe.layout_stacks
+                            .getOrNull(index)
+                            ?.stacks
+                            .orEmpty(),
+                    )
+                },
         )
     }
 
-private fun displaySlotOf(slot: RecipeSlot, stacks: List<ItemStack>) =
-    DisplaySlot(slot.x, slot.y, slot.width, slot.height, stacks.map(::displayStackOf))
+private fun displaySlotOf(
+    slot: RecipeSlot,
+    stacks: List<ItemStack>,
+) = DisplaySlot(slot.x, slot.y, slot.width, slot.height, stacks.map(::displayStackOf))
 
 /** A wire count of 0 means 1. */
 private fun displayStackOf(stack: ItemStack) = DisplayStack(stack.item_id, stack.count.coerceAtLeast(1))

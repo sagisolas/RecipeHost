@@ -12,10 +12,11 @@ import kotlin.time.Duration.Companion.milliseconds
  * always gets through. For live Catalog queries during a Scan, whose batches change the tables many
  * times a second: the query re-runs at most once per [period] instead of once per batch.
  */
-internal fun <T> Flow<T>.throttleLatest(period: Duration): Flow<T> = conflate().transform {
-    emit(it)
-    delay(period)
-}
+internal fun <T> Flow<T>.throttleLatest(period: Duration): Flow<T> =
+    conflate().transform {
+        emit(it)
+        delay(period)
+    }
 
 /** How often a live Catalog query re-runs at most while the Catalog keeps changing. */
 internal val CATALOG_REFRESH_PERIOD: Duration = 300.milliseconds

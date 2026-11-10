@@ -26,8 +26,6 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
-import org.sagisolas.recipehost.ui.navigation.Navigator
-import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.grid_mods
 import org.sagisolas.recipehost.shared.generated.resources.grid_scan
@@ -41,8 +39,10 @@ import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTextField
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcTiledBackground
-import org.sagisolas.recipehost.ui.item.ItemIcon
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
+import org.sagisolas.recipehost.ui.item.ItemIcon
+import org.sagisolas.recipehost.ui.navigation.Navigator
+import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
@@ -87,7 +87,11 @@ internal fun ItemGridScreen(
 
 /** One Item: tap opens it, a long press shows its id until dismissed. */
 @Composable
-private fun ItemCell(item: CatalogItem, atlases: IconAtlasCache, onClick: () -> Unit) {
+private fun ItemCell(
+    item: CatalogItem,
+    atlases: IconAtlasCache,
+    onClick: () -> Unit,
+) {
     var showId by remember { mutableStateOf(false) }
     Box(
         Modifier.size(McDimens.SlotSize).combinedClickable(onLongClick = { showId = true }, onClick = onClick),

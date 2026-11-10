@@ -7,6 +7,9 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.logging.LogUtils;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -14,12 +17,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
-import org.slf4j.Logger;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
+import org.slf4j.Logger;
 
 /**
  * Owns one offscreen {@link RenderTarget} laid out as a grid of cells and
@@ -40,9 +39,11 @@ public final class IconRenderer implements AutoCloseable {
 
     /** Size of one item in GUI units, the coordinates {@code renderItem} draws in. */
     private static final Logger LOG = LogUtils.getLogger();
+
     private static final int ITEM = 16;
     /** Framebuffer pixels per GUI unit. */
     static final int SCALE = 2;
+
     static final int CELL = ITEM * SCALE;
     static final int COLUMNS = 16;
     static final int ROWS = 8;
@@ -89,8 +90,7 @@ public final class IconRenderer implements AutoCloseable {
         // bindWrite) spans it in pixels, which is what scales items by SCALE.
         RenderSystem.backupProjectionMatrix();
         RenderSystem.setProjectionMatrix(
-                new Matrix4f().setOrtho(0f, COLUMNS * ITEM, ROWS * ITEM, 0f, NEAR, FAR),
-                VertexSorting.ORTHOGRAPHIC_Z);
+                new Matrix4f().setOrtho(0f, COLUMNS * ITEM, ROWS * ITEM, 0f, NEAR, FAR), VertexSorting.ORTHOGRAPHIC_Z);
         Matrix4fStack modelView = RenderSystem.getModelViewStack();
         modelView.pushMatrix();
         modelView.translation(0f, 0f, GUI_DEPTH_OFFSET);
@@ -128,13 +128,15 @@ public final class IconRenderer implements AutoCloseable {
      * cell, and the Snapshot goes on; it is logged once per namespace.
      */
     private void draw(ItemStack stack, int x, int y) {
-        GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
+        GuiGraphics guiGraphics =
+                new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
         try {
             guiGraphics.renderItem(stack, x, y);
         } catch (RuntimeException | LinkageError e) {
             ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             if (failedNamespaces.add(id.getNamespace())) {
-                LOG.warn("[recipehost] Couldn't draw the Icon of {}; it ships blank (logged once per namespace)", id, e);
+                LOG.warn(
+                        "[recipehost] Couldn't draw the Icon of {}; it ships blank (logged once per namespace)", id, e);
             }
         } finally {
             guiGraphics.flush();

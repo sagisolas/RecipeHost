@@ -33,9 +33,10 @@ internal class ScanController(
         if (running?.isActive == true) return false
         // Right away, so Scan progress never shows the last Scan's end for the new one.
         _progress.value = ScanProgress.Connecting
-        running = scope.launch {
-            ingest.ingest(sessions.open(payload)).collect { _progress.value = it }
-        }
+        running =
+            scope.launch {
+                ingest.ingest(sessions.open(payload)).collect { _progress.value = it }
+            }
         return true
     }
 }

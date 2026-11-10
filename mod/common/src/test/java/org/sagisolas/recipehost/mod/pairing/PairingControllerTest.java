@@ -1,27 +1,27 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import com.google.protobuf.ByteString;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import com.google.protobuf.ByteString;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 public class PairingControllerTest {
 
     private final FakeFactory factory = new FakeFactory();
     private final FakeScheduler scheduler = new FakeScheduler();
-    private final Iterator<ByteString> tokens = List.of(token(1), token(2), token(3)).iterator();
+    private final Iterator<ByteString> tokens =
+            List.of(token(1), token(2), token(3)).iterator();
 
-    private final PairingController controller = new PairingController(
-            factory, scheduler, tokens::next, () -> List.of(addr("10.0.0.2")));
+    private final PairingController controller =
+            new PairingController(factory, scheduler, tokens::next, () -> List.of(addr("10.0.0.2")));
 
     @Test
     public void openBindsWithFreshTokenAndReturnsPairingUri() throws Exception {
@@ -29,7 +29,10 @@ public class PairingControllerTest {
 
         assertEquals(1, factory.bound.size());
         assertEquals(token(1), factory.bound.get(0).token);
-        assertEquals("recipehost://pair?v=1&h=10.0.0.2&p=4000&t=" + Base64.getUrlEncoder().withoutPadding().encodeToString(token(1).toByteArray()), uri);
+        assertEquals(
+                "recipehost://pair?v=1&h=10.0.0.2&p=4000&t="
+                        + Base64.getUrlEncoder().withoutPadding().encodeToString(token(1).toByteArray()),
+                uri);
     }
 
     @Test
@@ -108,7 +111,11 @@ public class PairingControllerTest {
     }
 
     private static InetAddress addr(String literal) {
-        try { return InetAddress.getByName(literal); } catch (Exception e) { throw new AssertionError(e); }
+        try {
+            return InetAddress.getByName(literal);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static final class FakeListener implements PairingController.Listener {
@@ -116,16 +123,29 @@ public class PairingControllerTest {
         final Runnable onSnapshotDelivered;
         final int port;
         boolean closed;
+
         FakeListener(ByteString token, Runnable onSnapshotDelivered, int port) {
-            this.token = token; this.onSnapshotDelivered = onSnapshotDelivered; this.port = port;
+            this.token = token;
+            this.onSnapshotDelivered = onSnapshotDelivered;
+            this.port = port;
         }
-        @Override public int port() { return port; }
-        @Override public void close() { closed = true; }
+
+        @Override
+        public int port() {
+            return port;
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
     }
 
     private static final class FakeFactory implements PairingController.ListenerFactory {
         final List<FakeListener> bound = new ArrayList<>();
-        @Override public PairingController.Listener bind(ByteString token, Runnable onSnapshotDelivered) {
+
+        @Override
+        public PairingController.Listener bind(ByteString token, Runnable onSnapshotDelivered) {
             FakeListener l = new FakeListener(token, onSnapshotDelivered, 4000 + bound.size());
             bound.add(l);
             return l;
@@ -134,10 +154,12 @@ public class PairingControllerTest {
 
     private static final class FakeScheduler implements PairingController.Scheduler {
         private record Task(Duration at, Runnable task, boolean[] cancelled) {}
+
         private final List<Task> tasks = new ArrayList<>();
         private Duration now = Duration.ZERO;
 
-        @Override public PairingController.Cancellable schedule(Runnable task, Duration delay) {
+        @Override
+        public PairingController.Cancellable schedule(Runnable task, Duration delay) {
             boolean[] cancelled = {false};
             tasks.add(new Task(now.plus(delay), task, cancelled));
             return () -> cancelled[0] = true;

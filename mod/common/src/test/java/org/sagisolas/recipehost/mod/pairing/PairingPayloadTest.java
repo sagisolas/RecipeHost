@@ -1,12 +1,11 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import com.google.protobuf.ByteString;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
+import com.google.protobuf.ByteString;
 import java.net.InetAddress;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 public class PairingPayloadTest {
 
@@ -24,8 +23,12 @@ public class PairingPayloadTest {
     @Test
     public void multipleHostsAreCommaSeparatedInInputOrder() throws Exception {
         String uri = PairingPayload.toUri(
-                List.of(InetAddress.getByName("10.0.0.2"), InetAddress.getByName("127.0.0.1"), InetAddress.getByName("192.168.1.5")),
-                1, ZERO_TOKEN);
+                List.of(
+                        InetAddress.getByName("10.0.0.2"),
+                        InetAddress.getByName("127.0.0.1"),
+                        InetAddress.getByName("192.168.1.5")),
+                1,
+                ZERO_TOKEN);
 
         assertEquals("recipehost://pair?v=1&h=10.0.0.2,127.0.0.1,192.168.1.5&p=1&t=" + ZERO_TOKEN_B64, uri);
     }
@@ -35,7 +38,7 @@ public class PairingPayloadTest {
         // fb ff bf encodes to "-_-_" in base64url ("+/+/" in standard base64).
         // 10 repeats + trailing fb ff → "-_8=" whose "=" must be stripped.
         byte[] raw = new byte[32];
-        for (int i = 0; i < 32; i++) raw[i] = (byte) new int[]{0xfb, 0xff, 0xbf}[i % 3];
+        for (int i = 0; i < 32; i++) raw[i] = (byte) new int[] {0xfb, 0xff, 0xbf}[i % 3];
 
         String uri = PairingPayload.toUri(List.of(InetAddress.getByName("10.0.0.2")), 1, ByteString.copyFrom(raw));
 
@@ -45,9 +48,9 @@ public class PairingPayloadTest {
     @Test
     public void ipv6HostsKeepColonsAndPercentEncodeScopeId() throws Exception {
         String uri = PairingPayload.toUri(
-                List.of(InetAddress.getByName("2001:db8::1"), InetAddress.getByName("fe80::1%1")),
-                1, ZERO_TOKEN);
+                List.of(InetAddress.getByName("2001:db8::1"), InetAddress.getByName("fe80::1%1")), 1, ZERO_TOKEN);
 
-        assertEquals("recipehost://pair?v=1&h=2001:db8:0:0:0:0:0:1,fe80:0:0:0:0:0:0:1%251&p=1&t=" + ZERO_TOKEN_B64, uri);
+        assertEquals(
+                "recipehost://pair?v=1&h=2001:db8:0:0:0:0:0:1,fe80:0:0:0:0:0:0:1%251&p=1&t=" + ZERO_TOKEN_B64, uri);
     }
 }

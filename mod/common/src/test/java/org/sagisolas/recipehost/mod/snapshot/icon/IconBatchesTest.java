@@ -1,17 +1,16 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
-import org.junit.Test;
-import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
-import org.sagisolas.recipehost.protocol.IconBatch;
+import static org.junit.Assert.assertEquals;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
+import javax.imageio.ImageIO;
+import org.junit.Test;
+import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
+import org.sagisolas.recipehost.protocol.IconBatch;
 
 public class IconBatchesTest {
 
@@ -39,14 +38,17 @@ public class IconBatchesTest {
         List<IconBatch> batches = drain(new IconBatches(
                 List.of("minecraft:a", "minecraft:b", "minecraft:c"), drawingAtMost(2), new PngEncoder()));
 
-        assertEquals(List.of(List.of("minecraft:a", "minecraft:b"), List.of("minecraft:c")),
+        assertEquals(
+                List.of(List.of("minecraft:a", "minecraft:b"), List.of("minecraft:c")),
                 batches.stream().map(IconBatch::getItemIdsList).toList());
     }
 
     @Test
     public void eachBatchIsTheSheetAsAnAtlasCutAfterItsLastRow() throws IOException {
-        IconBatch batch = drain(new IconBatches(List.of("minecraft:a"), drawingAtMost(4), new PngEncoder())).get(0);
-        BufferedImage atlas = ImageIO.read(new ByteArrayInputStream(batch.getPng().toByteArray()));
+        IconBatch batch = drain(new IconBatches(List.of("minecraft:a"), drawingAtMost(4), new PngEncoder()))
+                .get(0);
+        BufferedImage atlas =
+                ImageIO.read(new ByteArrayInputStream(batch.getPng().toByteArray()));
 
         assertEquals(CELL, batch.getCellSize());
         assertEquals(COLUMNS, batch.getColumns());
@@ -58,8 +60,13 @@ public class IconBatchesTest {
     public void theNextSheetIsRequestedBeforeTheCurrentBatchIsHandedBack() {
         List<List<String>> requested = new ArrayList<>();
         IconBatches.SheetRenderer drawing = drawingAtMost(1);
-        IconBatches batches = new IconBatches(List.of("minecraft:a", "minecraft:b"),
-                pending -> { requested.add(List.copyOf(pending)); return drawing.render(pending); }, new PngEncoder());
+        IconBatches batches = new IconBatches(
+                List.of("minecraft:a", "minecraft:b"),
+                pending -> {
+                    requested.add(List.copyOf(pending));
+                    return drawing.render(pending);
+                },
+                new PngEncoder());
 
         batches.next();
 

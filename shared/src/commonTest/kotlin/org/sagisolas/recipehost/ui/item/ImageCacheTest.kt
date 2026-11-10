@@ -17,110 +17,145 @@ import kotlin.test.assertSame
 class ImageCacheTest {
     private val png = byteArrayOf(1, 2, 3)
 
-    private fun TestScope.cache(load: suspend (Long) -> ByteArray?, decode: (ByteArray) -> ImageBitmap) =
-        IconAtlasCache(backgroundScope, load, decode)
+    private fun TestScope.cache(
+        load: suspend (Long) -> ByteArray?,
+        decode: (ByteArray) -> ImageBitmap,
+    ) = IconAtlasCache(backgroundScope, load, decode)
 
     @Test
-    fun eachAtlasIsLoadedAndDecodedOnce() = runTest {
-        var loads = 0
-        var decodes = 0
-        val cache = cache(load = { loads++; png }, decode = { decodes++; FakeImageBitmap() })
+    fun eachAtlasIsLoadedAndDecodedOnce() =
+        runTest {
+            var loads = 0
+            var decodes = 0
+            val cache =
+                cache(load = {
+                    loads++
+                    png
+                }, decode = {
+                    decodes++
+                    FakeImageBitmap()
+                })
 
-        val first = cache.get(1)
-        val second = cache.get(1)
-        cache.get(2)
+            val first = cache.get(1)
+            val second = cache.get(1)
+            cache.get(2)
 
-        assertSame(first, second)
-        assertEquals(2, loads)
-        assertEquals(2, decodes)
-    }
-
-    @Test
-    fun iconsWaitingForTheSameAtlasShareOneLoad() = runTest {
-        var loads = 0
-        val gate = CompletableDeferred<Unit>()
-        val cache = cache(load = { loads++; gate.await(); png }, decode = { FakeImageBitmap() })
-
-        val a = async { cache.get(1) }
-        val b = async { cache.get(1) }
-        testScheduler.runCurrent()
-        gate.complete(Unit)
-
-        assertSame(a.await(), b.await())
-        assertEquals(1, loads)
-    }
+            assertSame(first, second)
+            assertEquals(2, loads)
+            assertEquals(2, decodes)
+        }
 
     @Test
-    fun peekGivesTheAtlasOnlyOnceItIsDecoded() = runTest {
-        val bitmap = FakeImageBitmap()
-        val cache = cache(load = { png }, decode = { bitmap })
+    fun iconsWaitingForTheSameAtlasShareOneLoad() =
+        runTest {
+            var loads = 0
+            val gate = CompletableDeferred<Unit>()
+            val cache =
+                cache(load = {
+                    loads++
+                    gate.await()
+                    png
+                }, decode = { FakeImageBitmap() })
 
-        assertNull(cache.peek(1))
-        cache.get(1)
+            val a = async { cache.get(1) }
+            val b = async { cache.get(1) }
+            testScheduler.runCurrent()
+            gate.complete(Unit)
 
-        assertSame(bitmap, cache.peek(1))
-    }
-
-    @Test
-    fun aMissingAtlasGivesNoBitmapAndIsNotLoadedAgain() = runTest {
-        var loads = 0
-        val cache = cache(load = { loads++; null }, decode = { error("must not decode") })
-
-        assertNull(cache.get(1))
-        assertNull(cache.get(1))
-        assertEquals(1, loads)
-    }
-
-    @Test
-    fun theLeastRecentlyUsedAtlasIsDroppedPastCapacity() = runTest {
-        val loads = mutableListOf<Long>()
-        val cache = IconAtlasCache(backgroundScope, load = { loads += it; png }, decode = { FakeImageBitmap() }, capacity = 2)
-
-        cache.get(1)
-        cache.get(2)
-        cache.peek(1) // 1 is now more recent than 2
-        cache.get(3) // drops 2
-
-        assertNull(cache.peek(2))
-        cache.get(1)
-        cache.get(2)
-        assertEquals(listOf(1L, 2L, 3L, 2L), loads)
-    }
+            assertSame(a.await(), b.await())
+            assertEquals(1, loads)
+        }
 
     @Test
-    fun clearForgetsDecodedImagesAndLoadsStillInFlight() = runTest {
-        var loads = 0
-        val gate = CompletableDeferred<Unit>()
-        val cache = cache(load = { loads++; if (it == 2L) gate.await(); png }, decode = { FakeImageBitmap() })
-        val before = cache.get(1)
-        val inFlight = async { cache.get(2) }
-        testScheduler.runCurrent()
-        val generation = cache.generation
+    fun peekGivesTheAtlasOnlyOnceItIsDecoded() =
+        runTest {
+            val bitmap = FakeImageBitmap()
+            val cache = cache(load = { png }, decode = { bitmap })
 
-        cache.clear()
-        gate.complete(Unit)
-        inFlight.await()
+            assertNull(cache.peek(1))
+            cache.get(1)
 
-        assertNull(cache.peek(1))
-        assertNull(cache.peek(2), "a load started before clear isn't kept")
-        assertNotSame(before, cache.get(1))
-        assertEquals(3, loads)
-        assertEquals(generation + 1, cache.generation, "screens showing an image reload it")
-    }
+            assertSame(bitmap, cache.peek(1))
+        }
 
     @Test
-    fun anUndecodableAtlasGivesNoBitmap() = runTest {
-        val cache = cache(load = { png }, decode = { throw IllegalArgumentException("not a png") })
+    fun aMissingAtlasGivesNoBitmapAndIsNotLoadedAgain() =
+        runTest {
+            var loads = 0
+            val cache =
+                cache(load = {
+                    loads++
+                    null
+                }, decode = { error("must not decode") })
 
-        assertNull(cache.get(1))
-    }
+            assertNull(cache.get(1))
+            assertNull(cache.get(1))
+            assertEquals(1, loads)
+        }
 
     @Test
-    fun aFailingLoadGivesNoBitmap() = runTest {
-        val cache = cache(load = { throw IllegalStateException("database closed") }, decode = { FakeImageBitmap() })
+    fun theLeastRecentlyUsedAtlasIsDroppedPastCapacity() =
+        runTest {
+            val loads = mutableListOf<Long>()
+            val cache =
+                IconAtlasCache(backgroundScope, load = {
+                    loads += it
+                    png
+                }, decode = { FakeImageBitmap() }, capacity = 2)
 
-        assertNull(cache.get(1))
-    }
+            cache.get(1)
+            cache.get(2)
+            cache.peek(1) // 1 is now more recent than 2
+            cache.get(3) // drops 2
+
+            assertNull(cache.peek(2))
+            cache.get(1)
+            cache.get(2)
+            assertEquals(listOf(1L, 2L, 3L, 2L), loads)
+        }
+
+    @Test
+    fun clearForgetsDecodedImagesAndLoadsStillInFlight() =
+        runTest {
+            var loads = 0
+            val gate = CompletableDeferred<Unit>()
+            val cache =
+                cache(load = {
+                    loads++
+                    if (it == 2L) gate.await()
+                    png
+                }, decode = { FakeImageBitmap() })
+            val before = cache.get(1)
+            val inFlight = async { cache.get(2) }
+            testScheduler.runCurrent()
+            val generation = cache.generation
+
+            cache.clear()
+            gate.complete(Unit)
+            inFlight.await()
+
+            assertNull(cache.peek(1))
+            assertNull(cache.peek(2), "a load started before clear isn't kept")
+            assertNotSame(before, cache.get(1))
+            assertEquals(3, loads)
+            assertEquals(generation + 1, cache.generation, "screens showing an image reload it")
+        }
+
+    @Test
+    fun anUndecodableAtlasGivesNoBitmap() =
+        runTest {
+            val cache = cache(load = { png }, decode = { throw IllegalArgumentException("not a png") })
+
+            assertNull(cache.get(1))
+        }
+
+    @Test
+    fun aFailingLoadGivesNoBitmap() =
+        runTest {
+            val cache = cache(load = { throw IllegalStateException("database closed") }, decode = { FakeImageBitmap() })
+
+            assertNull(cache.get(1))
+        }
 }
 
 private class FakeImageBitmap : ImageBitmap {
@@ -129,8 +164,16 @@ private class FakeImageBitmap : ImageBitmap {
     override val config = ImageBitmapConfig.Argb8888
     override val colorSpace: ColorSpace = ColorSpaces.Srgb
     override val hasAlpha = true
+
     override fun prepareToDraw() = Unit
+
     override fun readPixels(
-        buffer: IntArray, startX: Int, startY: Int, width: Int, height: Int, bufferOffset: Int, stride: Int,
+        buffer: IntArray,
+        startX: Int,
+        startY: Int,
+        width: Int,
+        height: Int,
+        bufferOffset: Int,
+        stride: Int,
     ) = Unit
 }

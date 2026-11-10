@@ -15,10 +15,11 @@ internal fun McSlot(
     content: @Composable BoxScope.() -> Unit = {},
 ) {
     Box(
-        modifier = modifier
-            .size(McDimens.SlotSize)
-            .mcBackground(McTheme.skin.slot)
-            .padding(McDimens.SlotInset),
+        modifier =
+            modifier
+                .size(McDimens.SlotSize)
+                .mcBackground(McTheme.skin.slot)
+                .padding(McDimens.SlotInset),
         contentAlignment = Alignment.Center,
         content = content,
     )

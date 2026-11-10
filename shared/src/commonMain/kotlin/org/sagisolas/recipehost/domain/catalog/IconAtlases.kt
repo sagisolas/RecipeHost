@@ -15,7 +15,8 @@ internal class IconAtlases(
     private val context: CoroutineContext,
 ) {
     /** The atlas PNG, or `null` if it is gone (its cells were all replaced, or the Catalog cleared). */
-    suspend fun png(atlasId: Long): ByteArray? = withContext(context) {
-        catalog.iconQueries.atlasPng(atlasId).executeAsOneOrNull()
-    }
+    suspend fun png(atlasId: Long): ByteArray? =
+        withContext(context) {
+            catalog.iconQueries.atlasPng(atlasId).executeAsOneOrNull()
+        }
 }

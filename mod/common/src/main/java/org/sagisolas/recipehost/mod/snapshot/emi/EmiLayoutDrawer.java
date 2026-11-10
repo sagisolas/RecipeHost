@@ -9,14 +9,13 @@ import dev.emi.emi.api.widget.FillingArrowWidget;
 import dev.emi.emi.api.widget.GeneratedSlotWidget;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.Widget;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
-
-import java.util.List;
 
 /**
  * Draws a captured EMI recipe as its `Recipe layout` (ADR 0015): on the GUI's light panel
@@ -35,7 +34,9 @@ import java.util.List;
 final class EmiLayoutDrawer implements LayoutJob.Drawer {
 
     /** EMI's widget sheet; a filling arrow's empty frame sits at (44, 0). */
-    private static final ResourceLocation WIDGETS = ResourceLocation.fromNamespaceAndPath("emi", "textures/gui/widgets.png");
+    private static final ResourceLocation WIDGETS =
+            ResourceLocation.fromNamespaceAndPath("emi", "textures/gui/widgets.png");
+
     private static final int ARROW_U = 44;
     private static final int ARROW_V = 0;
     private static final float NO_DELTA = 0f;
@@ -55,8 +56,12 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
         this.width = capture.width();
         this.height = capture.height();
         this.widgets = capture.widgets();
-        this.slots = capture.slots().stream().map(captured -> padded(captured.slot())).toList();
-        this.slotStacks = capture.slots().stream().map(CapturingWidgetHolder.CapturedSlot::stack).toList();
+        this.slots = capture.slots().stream()
+                .map(captured -> padded(captured.slot()))
+                .toList();
+        this.slotStacks = capture.slots().stream()
+                .map(CapturingWidgetHolder.CapturedSlot::stack)
+                .toList();
     }
 
     /** The job that renders this layout for the recipe {@code recipeId} of category {@code typeId}. */
@@ -101,7 +106,10 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
     }
 
     private static RecipeSlot padded(RecipeSlot slot) {
-        return slot.toBuilder().setX(slot.getX() + PADDING).setY(slot.getY() + PADDING).build();
+        return slot.toBuilder()
+                .setX(slot.getX() + PADDING)
+                .setY(slot.getY() + PADDING)
+                .build();
     }
 
     private static boolean showsNonItem(EmiIngredient ingredient) {

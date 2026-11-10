@@ -1,5 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -14,14 +21,6 @@ import org.sagisolas.recipehost.mod.snapshot.layout.LayoutRenderer;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutSheet;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeAssembly;
 import org.sagisolas.recipehost.protocol.Envelope;
-
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The {@link Snapshot} of the running game: reads the item registry, the {@link RecipeSource}
@@ -43,6 +42,7 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
     private volatile IconRenderer iconRenderer;
     /** Set by {@link #close()}: a sheet still queued then must not create a renderer nobody closes. */
     private volatile boolean closed;
+
     private volatile LayoutRenderer layoutRenderer;
 
     public MinecraftSnapshotSource(RecipeSource recipeSource, RenderThread renderThread) {
@@ -66,7 +66,8 @@ public final class MinecraftSnapshotSource implements SnapshotSource, AutoClosea
         return new Snapshot.Contents(
                 Platform.minecraftVersion(),
                 minecraft.options.languageCode,
-                InstanceName.of(minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists),
+                InstanceName.of(
+                        minecraft.gameDirectory.toPath().toAbsolutePath().normalize(), Files::exists),
                 ModInfos.assemble(Platform.listMods(), ownerNamespaces),
                 items.wireItems(),
                 recipes);

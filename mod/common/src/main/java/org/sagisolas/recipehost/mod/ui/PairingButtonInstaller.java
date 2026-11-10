@@ -2,6 +2,8 @@ package org.sagisolas.recipehost.mod.ui;
 
 import com.mojang.logging.LogUtils;
 import io.nayuki.qrcodegen.QrCode;
+import java.io.IOException;
+import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -12,9 +14,6 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
 import org.sagisolas.recipehost.mod.pairing.PairingController;
 import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.util.function.Consumer;
 
 /**
  * Adds a vanilla-styled "QR" {@link Button} to the survival and creative inventory screens,

@@ -1,17 +1,16 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
 import com.mojang.logging.LogUtils;
-import org.sagisolas.recipehost.mod.snapshot.RenderThread;
-import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
-import org.sagisolas.recipehost.protocol.Recipe;
-import org.slf4j.Logger;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sagisolas.recipehost.mod.snapshot.RenderThread;
+import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
+import org.sagisolas.recipehost.protocol.Recipe;
+import org.slf4j.Logger;
 
 /**
  * Turns {@link RecipeCandidate}s into a Snapshot's recipes. It owns the rules every recipe source
@@ -55,7 +54,8 @@ public final class RecipeAssembly {
 
         private Prepared(List<Read> read) {
             this.read = List.copyOf(read);
-            this.namespaces = read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(Collectors.toUnmodifiableSet());
+            this.namespaces =
+                    read.stream().map(r -> namespaceOf(r.recipe().getId())).collect(Collectors.toUnmodifiableSet());
         }
 
         public int count() {
@@ -79,7 +79,10 @@ public final class RecipeAssembly {
             for (int i = 0; i < chunk.size(); i++) {
                 Recipe recipe = chunk.get(i).recipe();
                 Optional<LaidOut> layout = laidOut.get(i);
-                recipes.add(layout.map(l -> recipe.toBuilder().addAllLayoutStacks(l.stacks()).build()).orElse(recipe));
+                recipes.add(layout.map(l -> recipe.toBuilder()
+                                .addAllLayoutStacks(l.stacks())
+                                .build())
+                        .orElse(recipe));
                 layout.ifPresent(l -> layouts.add(l.job()));
             }
             return new LaidOutRecipes(recipes, layouts);
@@ -123,8 +126,10 @@ public final class RecipeAssembly {
             // one have the same body once fluids are left out.
             if (!ids.add(recipe.getId())) {
                 if (repeatingTypes.add(typeId)) {
-                    LOG.warn("[recipehost] recipes of {} repeat the id {}; only the first is sent (logged once per type)",
-                            typeId, recipe.getId());
+                    LOG.warn(
+                            "[recipehost] recipes of {} repeat the id {}; only the first is sent (logged once per type)",
+                            typeId,
+                            recipe.getId());
                 }
                 continue;
             }
@@ -156,7 +161,10 @@ public final class RecipeAssembly {
         } catch (RuntimeException | LinkageError e) {
             String typeId = read.candidate().typeId();
             if (failedLayouts.add(typeId)) {
-                LOG.warn("[recipehost] recipes of {} fail to lay out; they ship without a layout (logged once per type)", typeId, e);
+                LOG.warn(
+                        "[recipehost] recipes of {} fail to lay out; they ship without a layout (logged once per type)",
+                        typeId,
+                        e);
             }
             return Optional.empty();
         }

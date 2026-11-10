@@ -35,15 +35,15 @@ internal class ItemGridViewModel(
     scanProgress: StateFlow<ScanProgress?>,
     private val qr: QrPairing,
 ) : ViewModel() {
-
     private val searchText = MutableStateFlow("")
 
-    val state: StateFlow<ItemGridUiState> = combine(
-        searchText,
-        searchText.flatMapLatest { itemSearch.items(it) },
-        scanProgress.map(::iconProgressOf),
-    ) { text, items, iconProgress -> ItemGridUiState(text, items, iconProgress) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ItemGridUiState())
+    val state: StateFlow<ItemGridUiState> =
+        combine(
+            searchText,
+            searchText.flatMapLatest { itemSearch.items(it) },
+            scanProgress.map(::iconProgressOf),
+        ) { text, items, iconProgress -> ItemGridUiState(text, items, iconProgress) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ItemGridUiState())
 
     init {
         viewModelScope.launch {
@@ -64,6 +64,9 @@ private fun iconProgressOf(progress: ScanProgress?): Float? =
     (progress as? ScanProgress.Icons)?.takeIf { it.total > 0 }?.let { it.received.toFloat() / it.total }
 
 /** [text] with its `@` tokens replaced by `@[modId]` in front; the name words stay. */
-private fun withModFilter(text: String, modId: String): String =
+private fun withModFilter(
+    text: String,
+    modId: String,
+): String =
     (listOf("@$modId") + text.split(' ', '\t').filter { it.isNotEmpty() && !it.startsWith('@') })
         .joinToString(" ")

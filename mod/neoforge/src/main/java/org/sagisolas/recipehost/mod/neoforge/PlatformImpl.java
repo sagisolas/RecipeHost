@@ -1,5 +1,9 @@
 package org.sagisolas.recipehost.mod.neoforge;
 
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -10,11 +14,6 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.sagisolas.recipehost.mod.ModDescriptor;
-
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @OnlyIn(Dist.CLIENT)
 public final class PlatformImpl {
@@ -35,8 +34,8 @@ public final class PlatformImpl {
     }
 
     public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
-        NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post.class,
-                event -> callback.accept(event.getScreen(), event::addListener));
+        NeoForge.EVENT_BUS.addListener(
+                ScreenEvent.Init.Post.class, event -> callback.accept(event.getScreen(), event::addListener));
     }
 
     public static void onWorldLeave(Runnable callback) {

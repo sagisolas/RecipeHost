@@ -1,11 +1,6 @@
 package org.sagisolas.recipehost.mod.net;
 
 import com.google.protobuf.ByteString;
-import org.sagisolas.recipehost.protocol.Envelope;
-import org.sagisolas.recipehost.protocol.EnvelopeFraming;
-import org.sagisolas.recipehost.protocol.Error;
-import org.sagisolas.recipehost.protocol.ErrorCode;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
@@ -15,6 +10,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.sagisolas.recipehost.protocol.Envelope;
+import org.sagisolas.recipehost.protocol.EnvelopeFraming;
+import org.sagisolas.recipehost.protocol.Error;
+import org.sagisolas.recipehost.protocol.ErrorCode;
 
 /**
  * TCP listener that accepts a single authenticated {@code Session} at a time.
@@ -37,8 +36,12 @@ public final class SessionListener implements Closeable {
     private volatile Thread acceptThread;
     private volatile boolean closed = false;
 
-    private SessionListener(ServerSocket serverSocket, ByteString expectedToken, SnapshotSource source,
-                            Runnable onSnapshotDelivered, Runnable onTerminated) {
+    private SessionListener(
+            ServerSocket serverSocket,
+            ByteString expectedToken,
+            SnapshotSource source,
+            Runnable onSnapshotDelivered,
+            Runnable onTerminated) {
         this.serverSocket = serverSocket;
         this.expectedToken = expectedToken;
         this.source = source;
@@ -46,7 +49,8 @@ public final class SessionListener implements Closeable {
         this.onTerminated = onTerminated;
     }
 
-    public static SessionListener bind(InetAddress address, int port, ByteString expectedToken, SnapshotSource source) throws IOException {
+    public static SessionListener bind(InetAddress address, int port, ByteString expectedToken, SnapshotSource source)
+            throws IOException {
         return bind(address, port, expectedToken, source, () -> {}, () -> {});
     }
 
@@ -56,8 +60,14 @@ public final class SessionListener implements Closeable {
      * @param onTerminated        runs exactly once, after {@link #close()} and once no session is
      *                            streaming any more — the point at which {@code source} may be released.
      */
-    public static SessionListener bind(InetAddress address, int port, ByteString expectedToken, SnapshotSource source,
-                                       Runnable onSnapshotDelivered, Runnable onTerminated) throws IOException {
+    public static SessionListener bind(
+            InetAddress address,
+            int port,
+            ByteString expectedToken,
+            SnapshotSource source,
+            Runnable onSnapshotDelivered,
+            Runnable onTerminated)
+            throws IOException {
         ServerSocket ss = new ServerSocket(port, 4, address);
         return new SessionListener(ss, expectedToken, source, onSnapshotDelivered, onTerminated);
     }
@@ -90,7 +100,10 @@ public final class SessionListener implements Closeable {
                 // close() ran between accept() and the CAS above and saw no active session,
                 // or will see ours: either way the source must not be streamed from now.
                 sessionActive.set(false);
-                try { client.close(); } catch (IOException ignored) {}
+                try {
+                    client.close();
+                } catch (IOException ignored) {
+                }
                 terminateOnce();
                 return;
             }
@@ -105,7 +118,9 @@ public final class SessionListener implements Closeable {
         try {
             Envelope first = EnvelopeFraming.readFrame(new BufferedInputStream(client.getInputStream()));
             OutputStream out = new BufferedOutputStream(client.getOutputStream());
-            if (first == null || !first.hasAuth() || !expectedToken.equals(first.getAuth().getToken())) {
+            if (first == null
+                    || !first.hasAuth()
+                    || !expectedToken.equals(first.getAuth().getToken())) {
                 writeError(out, ErrorCode.UNAUTHORIZED);
                 return;
             }
@@ -114,7 +129,10 @@ public final class SessionListener implements Closeable {
         } catch (IOException ignored) {
             // Client disconnected or socket error — nothing to recover.
         } finally {
-            try { client.close(); } catch (IOException ignored) {}
+            try {
+                client.close();
+            } catch (IOException ignored) {
+            }
             sessionActive.set(false);
             if (closed) terminateOnce();
         }
@@ -123,7 +141,8 @@ public final class SessionListener implements Closeable {
     private static void sendErrorAndClose(Socket client, ErrorCode code) {
         try (Socket s = client) {
             writeError(new BufferedOutputStream(s.getOutputStream()), code);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private static void writeError(OutputStream out, ErrorCode code) throws IOException {

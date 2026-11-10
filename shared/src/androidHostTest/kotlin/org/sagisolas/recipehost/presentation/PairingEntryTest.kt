@@ -23,17 +23,17 @@ import kotlin.test.assertNull
 import kotlin.time.Clock
 
 class PairingEntryTest {
-
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CatalogDatabase.Schema.create(it) }
 
     /** Records each Session it opens and holds it open. */
     private class RecordingSource : SessionSource {
         val opened = mutableListOf<PairingPayload>()
 
-        override fun open(payload: PairingPayload) = flow<Nothing> {
-            opened += payload
-            awaitCancellation()
-        }
+        override fun open(payload: PairingPayload) =
+            flow<Nothing> {
+                opened += payload
+                awaitCancellation()
+            }
     }
 
     private val source = RecordingSource()
@@ -51,63 +51,68 @@ class PairingEntryTest {
         )
 
     @Test
-    fun aValidPairingUriStartsAScanAndShowsItsProgress() = runTest {
-        val entry = entry()
+    fun aValidPairingUriStartsAScanAndShowsItsProgress() =
+        runTest {
+            val entry = entry()
 
-        entry.start("recipehost://pair?v=1&h=192.168.1.5,10.0.0.2&p=51234&t=$ZERO_TOKEN")
-        runCurrent()
+            entry.start("recipehost://pair?v=1&h=192.168.1.5,10.0.0.2&p=51234&t=$ZERO_TOKEN")
+            runCurrent()
 
-        assertEquals(listOf(listOf("192.168.1.5", "10.0.0.2")), source.opened.map { it.hosts })
-        assertEquals(51234, source.opened.single().port)
-        assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
-    }
-
-    @Test
-    fun anUnparseablePairingUriShowsADomainErrorAndStartsNoScan() = runTest {
-        val entry = entry()
-
-        entry.start("recipehost://pair?v=2&h=192.168.1.5&p=51234&t=$ZERO_TOKEN")
-        runCurrent()
-
-        assertEquals(emptyList(), source.opened)
-        assertIs<PairingPayloadException.UnsupportedVersion>(entry.failure.value)
-        assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
-    }
+            assertEquals(listOf(listOf("192.168.1.5", "10.0.0.2")), source.opened.map { it.hosts })
+            assertEquals(51234, source.opened.single().port)
+            assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
+        }
 
     @Test
-    fun aValidUriClearsTheLastFailure() = runTest {
-        val entry = entry()
-        entry.start("not a pairing uri")
-        assertIs<PairingPayloadException.MalformedUri>(entry.failure.value)
+    fun anUnparseablePairingUriShowsADomainErrorAndStartsNoScan() =
+        runTest {
+            val entry = entry()
 
-        entry.start("recipehost://pair?v=1&h=192.168.1.5&p=51234&t=$ZERO_TOKEN")
-        assertNull(entry.failure.value)
-    }
+            entry.start("recipehost://pair?v=2&h=192.168.1.5&p=51234&t=$ZERO_TOKEN")
+            runCurrent()
 
-    @Test
-    fun theInAppScannerStartsAScanFromTheCodeItReads() = runTest {
-        scanned = "recipehost://pair?v=1&h=192.168.1.5&p=51234&t=$ZERO_TOKEN"
-        val entry = entry()
-
-        entry.scanQr()
-        runCurrent()
-
-        assertEquals(51234, source.opened.single().port)
-        assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
-    }
+            assertEquals(emptyList(), source.opened)
+            assertIs<PairingPayloadException.UnsupportedVersion>(entry.failure.value)
+            assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
+        }
 
     @Test
-    fun cancellingTheInAppScannerStaysWhereTheUserWas() = runTest {
-        scanned = null
-        val entry = entry()
+    fun aValidUriClearsTheLastFailure() =
+        runTest {
+            val entry = entry()
+            entry.start("not a pairing uri")
+            assertIs<PairingPayloadException.MalformedUri>(entry.failure.value)
 
-        entry.scanQr()
-        runCurrent()
+            entry.start("recipehost://pair?v=1&h=192.168.1.5&p=51234&t=$ZERO_TOKEN")
+            assertNull(entry.failure.value)
+        }
 
-        assertEquals(emptyList(), source.opened)
-        assertNull(entry.failure.value)
-        assertNull(withTimeoutOrNull(1) { entry.progressRequests.first() }, "no request to show Scan progress")
-    }
+    @Test
+    fun theInAppScannerStartsAScanFromTheCodeItReads() =
+        runTest {
+            scanned = "recipehost://pair?v=1&h=192.168.1.5&p=51234&t=$ZERO_TOKEN"
+            val entry = entry()
+
+            entry.scanQr()
+            runCurrent()
+
+            assertEquals(51234, source.opened.single().port)
+            assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
+        }
+
+    @Test
+    fun cancellingTheInAppScannerStaysWhereTheUserWas() =
+        runTest {
+            scanned = null
+            val entry = entry()
+
+            entry.scanQr()
+            runCurrent()
+
+            assertEquals(emptyList(), source.opened)
+            assertNull(entry.failure.value)
+            assertNull(withTimeoutOrNull(1) { entry.progressRequests.first() }, "no request to show Scan progress")
+        }
 
     private companion object {
         /** 32 zero bytes, base64url without padding. */

@@ -1,5 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
+import java.util.List;
+import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.RegistryAccess;
@@ -8,9 +10,6 @@ import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.recipe.LaidOut;
 import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeCandidate;
 import org.sagisolas.recipehost.protocol.Recipe;
-
-import java.util.List;
-import java.util.Optional;
 
 /** The level's {@code RecipeManager}, mapped by the vanilla dispatch, with the companion mod's own layouts. */
 public final class VanillaRecipeSource implements RecipeSource {

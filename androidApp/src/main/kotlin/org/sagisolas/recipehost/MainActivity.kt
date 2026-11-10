@@ -14,7 +14,6 @@ import org.sagisolas.recipehost.data.catalog.CatalogDatabase
  * activity alive across configuration changes, so the graph (and a running Scan) isn't rebuilt.
  */
 class MainActivity : ComponentActivity() {
-
     private lateinit var graph: AppGraph
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,10 +22,11 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        graph = AppGraph(
-            driver = AndroidSqliteDriver(CatalogDatabase.Schema, applicationContext, DATABASE_NAME),
-            qrScanner = GmsQrScanner(this),
-        )
+        graph =
+            AppGraph(
+                driver = AndroidSqliteDriver(CatalogDatabase.Schema, applicationContext, DATABASE_NAME),
+                qrScanner = GmsQrScanner(this),
+            )
         // A restored activity was already handed this intent before the process died.
         if (savedInstanceState == null) routePairingLink(intent)
 

@@ -1,18 +1,17 @@
 package org.sagisolas.recipehost.mod.pairing;
 
+import com.google.protobuf.ByteString;
 import com.mojang.logging.LogUtils;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.function.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import com.google.protobuf.ByteString;
 import org.sagisolas.recipehost.mod.net.SessionListener;
 import org.sagisolas.recipehost.mod.snapshot.MinecraftSnapshotSource;
 import org.sagisolas.recipehost.mod.snapshot.RecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.function.Function;
 
 /** Binds a real {@link SessionListener} on all interfaces, serving the current client level. */
 public final class MinecraftListenerFactory implements PairingController.ListenerFactory {
@@ -40,8 +39,8 @@ public final class MinecraftListenerFactory implements PairingController.Listene
         try {
             // Source is released only once the listener is closed AND no session is streaming,
             // so a grace-period unbind never pulls GL resources out from under an active Snapshot.
-            listener = SessionListener.bind(InetAddress.getByName("0.0.0.0"), 0, token, source,
-                    onSnapshotDelivered, () -> {
+            listener = SessionListener.bind(
+                    InetAddress.getByName("0.0.0.0"), 0, token, source, onSnapshotDelivered, () -> {
                         source.close();
                         LOG.info("[recipehost] listener on port {} terminated; snapshot source released", port[0]);
                     });
@@ -54,8 +53,15 @@ public final class MinecraftListenerFactory implements PairingController.Listene
         LOG.info("[recipehost] listener started on 0.0.0.0:{}", port[0]);
 
         return new PairingController.Listener() {
-            @Override public int port() { return listener.port(); }
-            @Override public void close() throws IOException { listener.close(); }
+            @Override
+            public int port() {
+                return listener.port();
+            }
+
+            @Override
+            public void close() throws IOException {
+                listener.close();
+            }
         };
     }
 }

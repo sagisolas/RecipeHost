@@ -1,13 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 public class RecipeMapperTest {
 
@@ -17,30 +16,21 @@ public class RecipeMapperTest {
     private static final Slot C = slotOf("minecraft:c");
 
     private static Slot slotOf(String itemId) {
-        return Slot.newBuilder().addAllStacks(List.of(ItemStack.newBuilder().setItemId(itemId).setCount(1).build())).build();
+        return Slot.newBuilder()
+                .addAllStacks(List.of(
+                        ItemStack.newBuilder().setItemId(itemId).setCount(1).build()))
+                .build();
     }
 
     @Test
     public void aTwoByTwoPatternSitsTopLeftAndKeepsItsEmptyCell() {
-        assertEquals(
-                List.of(A, E, E,
-                        B, C, E,
-                        E, E, E),
-                RecipeMapper.craftingGrid(List.of(A, E, B, C), 2, 2));
+        assertEquals(List.of(A, E, E, B, C, E, E, E, E), RecipeMapper.craftingGrid(List.of(A, E, B, C), 2, 2));
     }
 
     @Test
     public void aOneWidePatternIsCentredInTheGridLikeTheRecipeBookPlacesIt() {
-        assertEquals(
-                List.of(E, A, E,
-                        E, B, E,
-                        E, E, E),
-                RecipeMapper.craftingGrid(List.of(A, B), 1, 2));
-        assertEquals(
-                List.of(E, E, E,
-                        E, A, E,
-                        E, E, E),
-                RecipeMapper.craftingGrid(List.of(A), 1, 1));
+        assertEquals(List.of(E, A, E, E, B, E, E, E, E), RecipeMapper.craftingGrid(List.of(A, B), 1, 2));
+        assertEquals(List.of(E, E, E, E, A, E, E, E, E), RecipeMapper.craftingGrid(List.of(A), 1, 1));
     }
 
     @Test
@@ -62,7 +52,8 @@ public class RecipeMapperTest {
                 List.of(A, B, result),
                 RecipeMapper.layoutStacks(
                         List.of(slot(RecipeSlot.Role.INPUT), slot(RecipeSlot.Role.INPUT), slot(RecipeSlot.Role.OUTPUT)),
-                        List.of(A, B), result));
+                        List.of(A, B),
+                        result));
     }
 
     @Test
@@ -72,7 +63,12 @@ public class RecipeMapperTest {
         assertEquals(
                 List.of(A, E, E, result),
                 RecipeMapper.layoutStacks(
-                        List.of(slot(RecipeSlot.Role.INPUT), slot(RecipeSlot.Role.INPUT), slot(RecipeSlot.Role.CATALYST), slot(RecipeSlot.Role.OUTPUT)),
-                        List.of(A), result));
+                        List.of(
+                                slot(RecipeSlot.Role.INPUT),
+                                slot(RecipeSlot.Role.INPUT),
+                                slot(RecipeSlot.Role.CATALYST),
+                                slot(RecipeSlot.Role.OUTPUT)),
+                        List.of(A),
+                        result));
     }
 }

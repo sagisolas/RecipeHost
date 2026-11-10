@@ -22,7 +22,6 @@ import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ItemGridViewModelTest {
-
     private val catalog = CatalogFixture()
     private val progress = MutableStateFlow<ScanProgress?>(null)
     private val modFilters = ModFilterRequests()
@@ -37,92 +36,97 @@ class ItemGridViewModelTest {
         catalog.close()
     }
 
-    private fun viewModel() = ItemGridViewModel(
-        ItemSearch(catalog.database, EmptyCoroutineContext),
-        modFilters,
-        progress,
-        QrPairing { scansRequested++ },
-    )
+    private fun viewModel() =
+        ItemGridViewModel(
+            ItemSearch(catalog.database, EmptyCoroutineContext),
+            modFilters,
+            progress,
+            QrPairing { scansRequested++ },
+        )
 
-    private suspend fun scanAtm() = catalog.scan(
-        "ATM",
-        minecraft,
-        create6,
-        items = listOf(
-            "minecraft:stone" to "Stone",
-            "minecraft:cobblestone" to "Cobblestone",
-            "create:cogwheel" to "Cogwheel",
-            "create:andesite_casing" to "Andesite Casing",
-        ),
-    )
+    private suspend fun scanAtm() =
+        catalog.scan(
+            "ATM",
+            minecraft,
+            create6,
+            items =
+                listOf(
+                    "minecraft:stone" to "Stone",
+                    "minecraft:cobblestone" to "Cobblestone",
+                    "create:cogwheel" to "Cogwheel",
+                    "create:andesite_casing" to "Andesite Casing",
+                ),
+        )
 
     private val ItemGridViewModel.itemIds get() = state.value.items.map { it.itemId }
 
+    @Test
+    fun showsEveryItemOfTheVersionSelection() =
+        runTest {
+            scanAtm()
+            val viewModel = viewModel()
+            runCurrent()
+
+            assertEquals(
+                listOf("minecraft:cobblestone", "minecraft:stone", "create:andesite_casing", "create:cogwheel"),
+                viewModel.itemIds,
+            )
+        }
 
     @Test
-    fun showsEveryItemOfTheVersionSelection() = runTest {
-        scanAtm()
-        val viewModel = viewModel()
-        runCurrent()
+    fun searchTextReachesTheQuery() =
+        runTest {
+            scanAtm()
+            val viewModel = viewModel()
 
-        assertEquals(
-            listOf("minecraft:cobblestone", "minecraft:stone", "create:andesite_casing", "create:cogwheel"),
-            viewModel.itemIds,
-        )
-    }
+            viewModel.onSearchTextChange("stone")
+            runCurrent()
+            assertEquals(listOf("minecraft:stone"), viewModel.itemIds)
 
-    @Test
-    fun searchTextReachesTheQuery() = runTest {
-        scanAtm()
-        val viewModel = viewModel()
-
-        viewModel.onSearchTextChange("stone")
-        runCurrent()
-                assertEquals(listOf("minecraft:stone"), viewModel.itemIds)
-
-        viewModel.onSearchTextChange("@create cas")
-        runCurrent()
-        assertEquals(listOf("create:andesite_casing"), viewModel.itemIds)
-    }
+            viewModel.onSearchTextChange("@create cas")
+            runCurrent()
+            assertEquals(listOf("create:andesite_casing"), viewModel.itemIds)
+        }
 
     @Test
-    fun aChosenModReplacesTheModFilterAndKeepsTheNameWords() = runTest {
-        scanAtm()
-        val viewModel = viewModel()
-        viewModel.onSearchTextChange("@mine c")
-        runCurrent()
+    fun aChosenModReplacesTheModFilterAndKeepsTheNameWords() =
+        runTest {
+            scanAtm()
+            val viewModel = viewModel()
+            viewModel.onSearchTextChange("@mine c")
+            runCurrent()
 
-        modFilters.request("create")
-        runCurrent()
+            modFilters.request("create")
+            runCurrent()
 
-        assertEquals("@create c", viewModel.state.value.searchText)
-        assertEquals(listOf("create:andesite_casing", "create:cogwheel"), viewModel.itemIds)
-    }
-
-    @Test
-    fun aThinBarFollowsArrivingIcons() = runTest {
-        val viewModel = viewModel()
-
-        progress.value = ScanProgress.Icons(received = 250, total = 1000)
-        runCurrent()
-        assertEquals(0.25f, viewModel.state.value.iconProgress)
-
-        progress.value = ScanProgress.Done
-        runCurrent()
-        assertNull(viewModel.state.value.iconProgress)
-
-        progress.value = ScanProgress.Failed(RuntimeException("Wi-Fi off"))
-        runCurrent()
-        assertNull(viewModel.state.value.iconProgress, "a Scan that stopped during Icons leaves the grid as it is")
-    }
-
-
+            assertEquals("@create c", viewModel.state.value.searchText)
+            assertEquals(listOf("create:andesite_casing", "create:cogwheel"), viewModel.itemIds)
+        }
 
     @Test
-    fun theScanButtonOpensTheScanner() = runTest {
-        viewModel().scan()
-        runCurrent()
+    fun aThinBarFollowsArrivingIcons() =
+        runTest {
+            val viewModel = viewModel()
 
-        assertEquals(1, scansRequested)
-    }
+            progress.value = ScanProgress.Icons(received = 250, total = 1000)
+            runCurrent()
+            assertEquals(0.25f, viewModel.state.value.iconProgress)
+
+            progress.value = ScanProgress.Done
+            runCurrent()
+            assertNull(viewModel.state.value.iconProgress)
+
+            progress.value = ScanProgress.Failed(RuntimeException("Wi-Fi off"))
+            runCurrent()
+            assertNull(viewModel.state.value.iconProgress, "a Scan that stopped during Icons leaves the grid as it is")
+        }
+
+    @Test
+    fun theScanButtonOpensTheScanner() =
+        runTest {
+            viewModel().scan()
+            runCurrent()
+
+            assertEquals(1, scansRequested)
+        }
 }

@@ -1,8 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
-import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeCandidate;
-
 import java.util.List;
+import org.sagisolas.recipehost.mod.snapshot.recipe.RecipeCandidate;
 
 /**
  * Where a Snapshot's {@code Recipe}s come from: the vanilla dispatch, or EMI when it's loaded

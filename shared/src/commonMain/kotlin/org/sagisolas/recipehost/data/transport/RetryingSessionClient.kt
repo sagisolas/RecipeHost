@@ -15,8 +15,9 @@ import org.sagisolas.recipehost.protocol.Envelope
  * failed attempt never completes, so its frames never reach the consumer as a complete
  * `Snapshot`.
  */
-internal class RetryingSessionClient(private val source: SessionSource) : SessionSource {
-
+internal class RetryingSessionClient(
+    private val source: SessionSource,
+) : SessionSource {
     override fun open(payload: PairingPayload): Flow<Envelope> =
         source.open(payload).retryWhen { cause, attempt -> cause is ScanFailure.Network && attempt == 0L }
 }

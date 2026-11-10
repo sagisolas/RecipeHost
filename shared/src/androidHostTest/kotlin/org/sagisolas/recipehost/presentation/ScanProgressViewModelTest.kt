@@ -21,7 +21,6 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ScanProgressViewModelTest {
-
     private val progress = MutableStateFlow<ScanProgress?>(null)
     private val pairingFailure = MutableStateFlow<PairingPayloadException?>(null)
     private var scansRequested = 0
@@ -58,7 +57,6 @@ class ScanProgressViewModelTest {
         progress.value = ScanProgress.Done
         assertEquals(ScanProgressUiState.Committed, viewModel.state.value)
     }
-
 
     @Test
     fun showsWhyTheModRefused() {

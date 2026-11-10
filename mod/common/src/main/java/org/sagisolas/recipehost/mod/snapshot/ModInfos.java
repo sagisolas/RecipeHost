@@ -1,12 +1,11 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
-import org.sagisolas.recipehost.mod.ModDescriptor;
-import org.sagisolas.recipehost.protocol.ModInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import org.sagisolas.recipehost.mod.ModDescriptor;
+import org.sagisolas.recipehost.protocol.ModInfo;
 
 /**
  * Builds the {@code Handshake}'s {@link ModInfo} list: one entry per namespace

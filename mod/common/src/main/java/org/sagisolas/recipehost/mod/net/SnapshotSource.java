@@ -1,8 +1,7 @@
 package org.sagisolas.recipehost.mod.net;
 
-import org.sagisolas.recipehost.protocol.Envelope;
-
 import java.util.Iterator;
+import org.sagisolas.recipehost.protocol.Envelope;
 
 /**
  * The `Snapshot` a {@link SnapshotSender} streams to the mobile app, as its frames in wire order:

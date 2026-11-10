@@ -15,7 +15,8 @@ internal class LayoutImages(
     private val context: CoroutineContext,
 ) {
     /** The layout's PNG, or `null` if no recipe uses the layout any more (or the Catalog was cleared). */
-    suspend fun png(key: String): ByteArray? = withContext(context) {
-        catalog.recipeLayoutQueries.pngOf(key).executeAsOneOrNull()
-    }
+    suspend fun png(key: String): ByteArray? =
+        withContext(context) {
+            catalog.recipeLayoutQueries.pngOf(key).executeAsOneOrNull()
+        }
 }

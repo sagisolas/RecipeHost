@@ -13,7 +13,10 @@ import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 
 /** One placeholder action button: its label and what it does. */
-internal class PlaceholderAction(val label: String, val onClick: () -> Unit)
+internal class PlaceholderAction(
+    val label: String,
+    val onClick: () -> Unit,
+)
 
 /** Stands in for a route or screen until its real screen lands (issues 08-10). */
 @Composable

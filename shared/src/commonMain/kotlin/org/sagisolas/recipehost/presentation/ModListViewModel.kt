@@ -12,7 +12,9 @@ import org.sagisolas.recipehost.domain.catalog.CatalogMod
 import org.sagisolas.recipehost.domain.catalog.ModList
 
 /** What the mod list shows: minecraft first, then by name. */
-internal data class ModListUiState(val mods: List<ModListEntry> = emptyList())
+internal data class ModListUiState(
+    val mods: List<ModListEntry> = emptyList(),
+)
 
 /** One mod's row: its [releases] newest first, and the one in the `Version selection`. */
 internal data class ModListEntry(
@@ -35,13 +37,16 @@ internal class ModListViewModel(
     private val modList: ModList,
     private val modFilters: ModFilterRequests,
 ) : ViewModel() {
-
-    val state: StateFlow<ModListUiState> = modList.mods
-        .map { mods -> ModListUiState(mods.map(::entryOf)) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ModListUiState())
+    val state: StateFlow<ModListUiState> =
+        modList.mods
+            .map { mods -> ModListUiState(mods.map(::entryOf)) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ModListUiState())
 
     /** Saves [releaseId] as [modId]'s `Version selection`; the grid follows it. */
-    fun select(modId: String, releaseId: Long) {
+    fun select(
+        modId: String,
+        releaseId: Long,
+    ) {
         viewModelScope.launch { modList.select(modId, releaseId) }
     }
 
@@ -49,12 +54,14 @@ internal class ModListViewModel(
     fun chooseMod(modId: String) = modFilters.request(modId)
 }
 
-private fun entryOf(mod: CatalogMod) = ModListEntry(
-    modId = mod.modId,
-    name = mod.name,
-    releases = mod.releases.map {
-        ReleaseOption(it.id, it.version, it.mcVersion.takeUnless { mod.modId == MINECRAFT })
-    },
-    // ModList only lists mods with a release; with no selection saved yet, the newest one shows.
-    selectedReleaseId = mod.selectedReleaseId ?: mod.releases.first().id,
-)
+private fun entryOf(mod: CatalogMod) =
+    ModListEntry(
+        modId = mod.modId,
+        name = mod.name,
+        releases =
+            mod.releases.map {
+                ReleaseOption(it.id, it.version, it.mcVersion.takeUnless { mod.modId == MINECRAFT })
+            },
+        // ModList only lists mods with a release; with no selection saved yet, the newest one shows.
+        selectedReleaseId = mod.selectedReleaseId ?: mod.releases.first().id,
+    )

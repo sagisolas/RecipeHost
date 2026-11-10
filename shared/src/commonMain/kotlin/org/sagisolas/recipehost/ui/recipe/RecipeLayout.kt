@@ -40,8 +40,8 @@ import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
-import org.sagisolas.recipehost.ui.item.StackIcon
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
+import org.sagisolas.recipehost.ui.item.StackIcon
 
 /**
  * Draws a recipe in the layout its ViewModel chose for it: a captured `Recipe layout` (ADR 0015)
@@ -63,10 +63,20 @@ internal fun RecipeLayout(
 /** The inputs in a wrapped row, an arrow, then the results, each in an [McSlot]. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GenericLayout(layout: RecipeLayoutUi.Generic, atlases: IconAtlasCache, onOpen: (String) -> Unit) {
+private fun GenericLayout(
+    layout: RecipeLayoutUi.Generic,
+    atlases: IconAtlasCache,
+    onOpen: (String) -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         FlowRow(Modifier.weight(1f, fill = false)) {
-            layout.inputs.forEach { McSlot { it?.let { stack -> StackCell(stack, atlases, onOpen, Modifier.fillMaxSize()) } } }
+            layout.inputs.forEach {
+                McSlot {
+                    it?.let { stack ->
+                        StackCell(stack, atlases, onOpen, Modifier.fillMaxSize())
+                    }
+                }
+            }
         }
         McText("→", color = McTheme.colors.textOnDark, style = McTheme.typography.title)
         FlowRow {
@@ -97,7 +107,11 @@ private fun CapturedLayout(
         val size = with(density) { Modifier.size((layout.width * scale).toDp(), (layout.height * scale).toDp()) }
         Box(size) {
             if (image != null) {
-                Image(BitmapPainter(image, filterQuality = FilterQuality.None), contentDescription = null, Modifier.fillMaxSize())
+                Image(
+                    BitmapPainter(image, filterQuality = FilterQuality.None),
+                    contentDescription = null,
+                    Modifier.fillMaxSize(),
+                )
             }
             layout.slots.forEach { slot ->
                 val rect = slot.scaled(scale)
@@ -121,7 +135,10 @@ private fun CapturedLayout(
  * when [images] is cleared, since a Scan may have replaced the image under the same key.
  */
 @Composable
-private fun layoutImage(key: String, images: LayoutImageCache): ImageBitmap? {
+private fun layoutImage(
+    key: String,
+    images: LayoutImageCache,
+): ImageBitmap? {
     val generation = images.generation
     val loaded by produceState<LoadedImage?>(null, key, generation, images) {
         value = LoadedImage(key, generation, images.get(key))
@@ -130,14 +147,23 @@ private fun layoutImage(key: String, images: LayoutImageCache): ImageBitmap? {
 }
 
 /** An image as loaded for one [key] and cache [generation], so a stale one is never drawn. */
-private class LoadedImage(val key: String, val generation: Int, val bitmap: ImageBitmap?)
+private class LoadedImage(
+    val key: String,
+    val generation: Int,
+    val bitmap: ImageBitmap?,
+)
 
 /**
  * A stack filling [modifier]'s box: its Icon, its count bottom-right when above 1. Tap opens the
  * Item, a long press shows its name and id until dismissed.
  */
 @Composable
-private fun StackCell(stack: StackUi, atlases: IconAtlasCache, onOpen: (String) -> Unit, modifier: Modifier) {
+private fun StackCell(
+    stack: StackUi,
+    atlases: IconAtlasCache,
+    onOpen: (String) -> Unit,
+    modifier: Modifier,
+) {
     // Keyed by the stack: when the alternatives cycle, an open popup closes instead of changing Item.
     var showId by remember(stack.itemId) { mutableStateOf(false) }
     var height by remember { mutableIntStateOf(0) }
@@ -177,12 +203,19 @@ private fun LayoutSlotUi.scaled(scale: Int) = scaledRect(x, y, width, height, sc
  * fits in [availableWidthPx], so nearest-neighbour scaling keeps every texture pixel the same
  * size. A layout wider than the space is still drawn at 1.
  */
-internal fun layoutScale(availableWidthPx: Int, layoutWidth: Int): Int =
-    if (layoutWidth <= 0) 1 else (availableWidthPx / layoutWidth).coerceAtLeast(1)
+internal fun layoutScale(
+    availableWidthPx: Int,
+    layoutWidth: Int,
+): Int = if (layoutWidth <= 0) 1 else (availableWidthPx / layoutWidth).coerceAtLeast(1)
 
 /** A `Recipe slot`'s rectangle in GUI px, in screen px at [scale]. */
-internal fun scaledRect(x: Int, y: Int, width: Int, height: Int, scale: Int): IntRect =
-    IntRect(left = x * scale, top = y * scale, right = (x + width) * scale, bottom = (y + height) * scale)
+internal fun scaledRect(
+    x: Int,
+    y: Int,
+    width: Int,
+    height: Int,
+    scale: Int,
+): IntRect = IntRect(left = x * scale, top = y * scale, right = (x + width) * scale, bottom = (y + height) * scale)
 
 /** How much of the screen width a captured layout may take. */
 private const val LAYOUT_WIDTH_FRACTION = 0.8f

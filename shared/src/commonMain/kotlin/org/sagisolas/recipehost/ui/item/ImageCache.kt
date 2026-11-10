@@ -83,11 +83,12 @@ internal class ImageCache<K : Any>(
         return bitmap
     }
 
-    private suspend fun loadAndDecode(key: K): ImageBitmap? = try {
-        load(key)?.let(decode)
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        null
-    }
+    private suspend fun loadAndDecode(key: K): ImageBitmap? =
+        try {
+            load(key)?.let(decode)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
 }

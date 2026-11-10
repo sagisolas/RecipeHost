@@ -13,8 +13,9 @@ internal data class WelcomeUiState(
 )
 
 /** The Welcome screen, shown while the `Catalog` is empty. */
-internal class WelcomeViewModel(private val qr: QrPairing) : ViewModel() {
-
+internal class WelcomeViewModel(
+    private val qr: QrPairing,
+) : ViewModel() {
     private val _state = MutableStateFlow(WelcomeUiState())
     val state: StateFlow<WelcomeUiState> = _state.asStateFlow()
 

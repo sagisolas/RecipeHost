@@ -15,8 +15,10 @@ import org.sagisolas.recipehost.protocol.Envelope
  * `:protocol`; both sides are pinned by the same golden vectors in their tests.
  */
 internal object EnvelopeFraming {
-
-    fun write(sink: BufferedSink, envelope: Envelope) {
+    fun write(
+        sink: BufferedSink,
+        envelope: Envelope,
+    ) {
         val body = Envelope.ADAPTER.encodeByteString(envelope)
         ProtoWriter(sink).writeVarint32(body.size)
         sink.write(body)

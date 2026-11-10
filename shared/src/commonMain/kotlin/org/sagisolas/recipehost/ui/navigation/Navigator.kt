@@ -21,6 +21,7 @@ import kotlin.uuid.Uuid
 @Serializable
 internal sealed interface Route {
     @Serializable data object Welcome : Route
+
     @Serializable data object ScanProgress : Route
 
     /** The tabs, each showing the top of its own stack above the bottom bar. */
@@ -31,9 +32,14 @@ internal sealed interface Route {
 @Serializable
 internal sealed interface Screen {
     @Serializable data object Grid : Screen
+
     @Serializable data object ModList : Screen
+
     @Serializable data object Settings : Screen
-    @Serializable data class Item(val itemId: String) : Screen
+
+    @Serializable data class Item(
+        val itemId: String,
+    ) : Screen
 }
 
 /**
@@ -42,7 +48,10 @@ internal sealed interface Screen {
  * and ViewModels.
  */
 @Serializable
-internal data class StackEntry(val screen: Screen, val id: String) : NavKey {
+internal data class StackEntry(
+    val screen: Screen,
+    val id: String,
+) : NavKey {
     @OptIn(ExperimentalUuidApi::class)
     constructor(screen: Screen) : this(screen, Uuid.random().toString())
 }
@@ -52,7 +61,9 @@ internal data class StackEntry(val screen: Screen, val id: String) : NavKey {
  * its bar item in `RootScaffold`.
  */
 @Serializable
-internal enum class Tab(val root: Screen) {
+internal enum class Tab(
+    val root: Screen,
+) {
     Items(Screen.Grid),
     Settings(Screen.Settings),
 }
@@ -63,11 +74,13 @@ internal fun interface CatalogEmptiness {
 }
 
 /** Lets `rememberNavBackStack` save [StackEntry] keys on every platform, iOS included. */
-private val navKeys = SavedStateConfiguration {
-    serializersModule = SerializersModule {
-        polymorphic(NavKey::class) { subclass(StackEntry::class, StackEntry.serializer()) }
+private val navKeys =
+    SavedStateConfiguration {
+        serializersModule =
+            SerializersModule {
+                polymorphic(NavKey::class) { subclass(StackEntry::class, StackEntry.serializer()) }
+            }
     }
-}
 
 /**
  * The [Navigator] for the app's UI. Navigation 3 and Compose save and restore all of it (back
@@ -76,12 +89,14 @@ private val navKeys = SavedStateConfiguration {
  */
 @Composable
 internal fun rememberNavigator(startRoute: () -> Route): Navigator {
-    val route = rememberSerializable(stateSerializer = Route.serializer()) {
-        mutableStateOf(startRoute())
-    }
-    val selectedTab = rememberSerializable(stateSerializer = Tab.serializer()) {
-        mutableStateOf(Tab.Items)
-    }
+    val route =
+        rememberSerializable(stateSerializer = Route.serializer()) {
+            mutableStateOf(startRoute())
+        }
+    val selectedTab =
+        rememberSerializable(stateSerializer = Tab.serializer()) {
+            mutableStateOf(Tab.Items)
+        }
     val stacks = Tab.entries.associateWith { rememberNavBackStack(navKeys, StackEntry(it.root)) }
     return remember(route, selectedTab, stacks) { Navigator(route, selectedTab, stacks) }
 }

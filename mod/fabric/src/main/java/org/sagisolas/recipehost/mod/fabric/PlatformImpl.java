@@ -1,5 +1,8 @@
 package org.sagisolas.recipehost.mod.fabric;
 
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -10,10 +13,6 @@ import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import org.sagisolas.recipehost.mod.ModDescriptor;
-
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 @Environment(EnvType.CLIENT)
 public final class PlatformImpl {
@@ -34,8 +33,8 @@ public final class PlatformImpl {
     }
 
     public static void onScreenInit(BiConsumer<Screen, Consumer<AbstractWidget>> callback) {
-        ScreenEvents.AFTER_INIT.register((client, screen, width, height) ->
-                callback.accept(screen, Screens.getButtons(screen)::add));
+        ScreenEvents.AFTER_INIT.register(
+                (client, screen, width, height) -> callback.accept(screen, Screens.getButtons(screen)::add));
     }
 
     public static void onWorldLeave(Runnable callback) {

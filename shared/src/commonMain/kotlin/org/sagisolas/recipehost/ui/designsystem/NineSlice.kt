@@ -39,12 +39,13 @@ internal class NineSlicePainter(
     }
 
     override fun DrawScope.onDraw() {
-        val slices = nineSlice(
-            sourceSize = IntSize(image.width, image.height),
-            border = border,
-            targetSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
-            borderScale = pixelSize.toPx(),
-        )
+        val slices =
+            nineSlice(
+                sourceSize = IntSize(image.width, image.height),
+                border = border,
+                targetSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                borderScale = pixelSize.toPx(),
+            )
         for ((src, dst) in slices) {
             drawImage(
                 image = image,
@@ -62,12 +63,20 @@ internal class NineSlicePainter(
 
 /** Border widths of a nine-slice texture, in texture pixels. */
 @Immutable
-internal data class SliceInsets(val left: Int, val top: Int, val right: Int, val bottom: Int) {
+internal data class SliceInsets(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+) {
     constructor(all: Int) : this(all, all, all, all)
 }
 
 /** One piece of a nine-slice: the [src] rect of the texture drawn into the [dst] rect. */
-internal data class Slice(val src: IntRect, val dst: IntRect)
+internal data class Slice(
+    val src: IntRect,
+    val dst: IntRect,
+)
 
 /**
  * Splits a texture of [sourceSize] with [border] into corners, edges and centre, and places them
@@ -97,7 +106,12 @@ internal fun nineSlice(
 }
 
 /** Splits [length] into start border, middle and end border; borders shrink to fit if needed. */
-private fun targetBounds(length: Int, start: Int, end: Int, scale: Float): IntArray {
+private fun targetBounds(
+    length: Int,
+    start: Int,
+    end: Int,
+    scale: Float,
+): IntArray {
     var startPx = (start * scale).roundToInt()
     var endPx = (end * scale).roundToInt()
     if (startPx + endPx > length) {

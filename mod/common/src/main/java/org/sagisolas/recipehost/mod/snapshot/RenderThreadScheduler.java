@@ -1,9 +1,8 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
-import net.minecraft.client.Minecraft;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.function.LongFunction;
+import net.minecraft.client.Minecraft;
 
 /**
  * Runs Snapshot work on Minecraft's render thread in slices that fit a per-frame budget,
@@ -20,6 +19,7 @@ public final class RenderThreadScheduler implements RenderThread {
 
     /** Touched only on the render thread. */
     private long lastSliceEnd = Long.MIN_VALUE / 2;
+
     private long spentThisFrame;
 
     @Override

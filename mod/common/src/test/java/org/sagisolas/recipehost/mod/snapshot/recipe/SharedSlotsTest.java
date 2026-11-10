@@ -1,14 +1,13 @@
 package org.sagisolas.recipehost.mod.snapshot.recipe;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 public class SharedSlotsTest {
 
@@ -17,8 +16,14 @@ public class SharedSlotsTest {
 
     @Test
     public void aSlotWithAlternativesThatRepeatsInTheBatchIsSentOnce() {
-        Recipe chest = Recipe.newBuilder().setId("minecraft:chest").addInputs(PLANKS).addInputs(PLANKS).addLayoutStacks(PLANKS).build();
-        Recipe stick = Recipe.newBuilder().setId("minecraft:stick").addInputs(PLANKS).build();
+        Recipe chest = Recipe.newBuilder()
+                .setId("minecraft:chest")
+                .addInputs(PLANKS)
+                .addInputs(PLANKS)
+                .addLayoutStacks(PLANKS)
+                .build();
+        Recipe stick =
+                Recipe.newBuilder().setId("minecraft:stick").addInputs(PLANKS).build();
 
         RecipeBatch batch = SharedSlots.batchOf(List.of(chest, stick));
 
@@ -32,7 +37,11 @@ public class SharedSlotsTest {
     @Test
     public void aSingleItemSlotOrOneSeenOnceStaysAsItIs() {
         Slot once = slotOf("minecraft:iron_ingot", "minecraft:gold_ingot");
-        Recipe a = Recipe.newBuilder().setId("minecraft:a").addInputs(STICK).addInputs(once).build();
+        Recipe a = Recipe.newBuilder()
+                .setId("minecraft:a")
+                .addInputs(STICK)
+                .addInputs(once)
+                .build();
         Recipe b = Recipe.newBuilder().setId("minecraft:b").addInputs(STICK).build();
 
         RecipeBatch batch = SharedSlots.batchOf(List.of(a, b));
@@ -43,7 +52,8 @@ public class SharedSlotsTest {
 
     private static Slot slotOf(String... itemIds) {
         Slot.Builder slot = Slot.newBuilder();
-        for (String id : itemIds) slot.addStacks(ItemStack.newBuilder().setItemId(id).setCount(1));
+        for (String id : itemIds)
+            slot.addStacks(ItemStack.newBuilder().setItemId(id).setCount(1));
         return slot.build();
     }
 }

@@ -1,13 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot.emi;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.jetbrains.annotations.Nullable;
 import org.sagisolas.recipehost.mod.snapshot.Hashes;
 import org.sagisolas.recipehost.protocol.ItemStack;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.Slot;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Builds the wire {@link Recipe} for one EMI recipe from plain views of its stacks, so the
@@ -30,14 +29,17 @@ final class EmiRecipeMapper {
         for (List<Stack> input : inputs) {
             List<ItemStack> items = itemStacks(input);
             // An input with no items (a fluid) is visible only in the layout (ADR 0015).
-            if (!items.isEmpty()) slots.add(Slot.newBuilder().addAllStacks(items).build());
+            if (!items.isEmpty())
+                slots.add(Slot.newBuilder().addAllStacks(items).build());
         }
         Recipe body = Recipe.newBuilder()
                 .setTypeId(categoryId)
                 .addAllInputs(slots)
                 .addAllResults(itemStacks(outputs))
                 .build();
-        return body.toBuilder().setId(id != null ? id : fabricatedId(categoryId, body)).build();
+        return body.toBuilder()
+                .setId(id != null ? id : fabricatedId(categoryId, body))
+                .build();
     }
 
     /**
@@ -56,7 +58,10 @@ final class EmiRecipeMapper {
         List<ItemStack> items = new ArrayList<>(stacks.size());
         for (Stack stack : stacks) {
             if (stack.itemId() == null) continue;
-            items.add(ItemStack.newBuilder().setItemId(stack.itemId()).setCount((int) Math.min(stack.amount(), Integer.MAX_VALUE)).build());
+            items.add(ItemStack.newBuilder()
+                    .setItemId(stack.itemId())
+                    .setCount((int) Math.min(stack.amount(), Integer.MAX_VALUE))
+                    .build());
         }
         return items;
     }

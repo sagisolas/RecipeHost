@@ -1,13 +1,13 @@
 package org.sagisolas.recipehost.mod.snapshot.image;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageOutputStream;
-import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 /**
  * Encodes Icon atlases and layouts to PNG with one reused {@link ImageWriter} and an in-memory
@@ -17,7 +17,8 @@ import java.io.UncheckedIOException;
  */
 public final class PngEncoder {
 
-    private final ImageWriter writer = ImageIO.getImageWritersByFormatName("png").next();
+    private final ImageWriter writer =
+            ImageIO.getImageWritersByFormatName("png").next();
 
     public byte[] encode(BufferedImage image) {
         ByteArrayOutputStream out = new ByteArrayOutputStream(8192);

@@ -1,10 +1,6 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
 import com.google.protobuf.UnsafeByteOperations;
-import org.sagisolas.recipehost.mod.snapshot.RenderThread;
-import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
-import org.sagisolas.recipehost.protocol.IconBatch;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,6 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
+import org.sagisolas.recipehost.mod.snapshot.RenderThread;
+import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
+import org.sagisolas.recipehost.protocol.IconBatch;
 
 /**
  * Turns the Snapshot's item ids into its {@link IconBatch}es, one `Icon atlas` per rendered sheet

@@ -1,8 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.icon;
 
-import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
-
 import java.awt.image.BufferedImage;
+import org.sagisolas.recipehost.mod.snapshot.image.NativeImages;
 
 /**
  * One read-back of {@link IconRenderer}'s grid: square icons laid out row-major,
@@ -16,6 +15,7 @@ public final class IconSheet {
     private final int count;
     /** Top-down ARGB, or null until {@link #readback} is converted. */
     private int[] argb;
+
     private final int[] readback;
 
     /**
@@ -40,7 +40,8 @@ public final class IconSheet {
      */
     static IconSheet fromReadback(int columns, int cell, int rows, int count, int[] abgrBottomUp) {
         if (abgrBottomUp.length != columns * cell * rows * cell) {
-            throw new IllegalArgumentException("a " + columns + "x" + rows + " sheet read back " + abgrBottomUp.length + " pixels");
+            throw new IllegalArgumentException(
+                    "a " + columns + "x" + rows + " sheet read back " + abgrBottomUp.length + " pixels");
         }
         return new IconSheet(columns, cell, count, null, abgrBottomUp);
     }

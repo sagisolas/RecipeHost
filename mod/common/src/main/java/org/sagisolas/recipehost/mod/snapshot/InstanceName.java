@@ -20,7 +20,9 @@ final class InstanceName {
         Path parent = gameDir.getParent();
         boolean minecraftFolder = folder.equals(".minecraft") || folder.equals("minecraft");
         // Prism and MultiMC keep the game directory one level below instance.cfg.
-        if (minecraftFolder && parent != null && parent.getFileName() != null
+        if (minecraftFolder
+                && parent != null
+                && parent.getFileName() != null
                 && exists.test(parent.resolve("instance.cfg"))) {
             return parent.getFileName().toString();
         }

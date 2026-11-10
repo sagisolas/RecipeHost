@@ -38,12 +38,12 @@ class PairingEntry internal constructor(
      * this only shows the running one. Call from the main thread.
      */
     fun start(uri: String) {
-        PairingPayload.parse(uri)
+        PairingPayload
+            .parse(uri)
             .onSuccess {
                 mutableFailure.value = null
                 scans.start(it)
-            }
-            .onFailure { mutableFailure.value = it as PairingPayloadException }
+            }.onFailure { mutableFailure.value = it as PairingPayloadException }
         progressRequestChannel.trySend(Unit)
     }
 

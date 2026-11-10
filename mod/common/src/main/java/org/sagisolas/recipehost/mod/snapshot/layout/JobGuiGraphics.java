@@ -1,12 +1,11 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 /**
  * The {@link GuiGraphics} one {@link LayoutJob} draws with: clipped to the job's rectangle

@@ -73,13 +73,14 @@ internal fun McPressable(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = modifier.clickable(
-            interactionSource = interactionSource,
-            indication = McStateIndication(textures, enabled),
-            enabled = enabled,
-            role = role,
-            onClick = onClick,
-        ),
+        modifier =
+            modifier.clickable(
+                interactionSource = interactionSource,
+                indication = McStateIndication(textures, enabled),
+                enabled = enabled,
+                role = role,
+                onClick = onClick,
+            ),
         contentAlignment = contentAlignment,
         content = content,
     )

@@ -10,11 +10,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,16 +26,16 @@ import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import org.jetbrains.compose.resources.stringResource
-import org.sagisolas.recipehost.ui.navigation.Navigator
-import org.sagisolas.recipehost.ui.navigation.Screen
-import org.sagisolas.recipehost.ui.navigation.StackEntry
-import org.sagisolas.recipehost.ui.navigation.Tab
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.tab_items
 import org.sagisolas.recipehost.shared.generated.resources.tab_settings
 import org.sagisolas.recipehost.ui.designsystem.McBottomBar
 import org.sagisolas.recipehost.ui.designsystem.McBottomBarItem
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.navigation.Navigator
+import org.sagisolas.recipehost.ui.navigation.Screen
+import org.sagisolas.recipehost.ui.navigation.StackEntry
+import org.sagisolas.recipehost.ui.navigation.Tab
 
 /**
  * The bottom-navigation root: a `NavDisplay` of the tabs in use above the [McBottomBar], which
@@ -48,17 +48,19 @@ internal fun RootScaffold(
     screen: @Composable (Screen) -> Unit,
 ) {
     // Every tab keeps its decorated entries, so a hidden tab keeps its saved state and ViewModels.
-    val entries = Tab.entries.associateWith { tab ->
-        rememberDecoratedNavEntries(
-            backStack = navigator.stacks.getValue(tab),
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator(),
-            ),
-            // The default content key is the key's toString(), which includes StackEntry's unique id.
-            entryProvider = { key -> NavEntry(key) { screen((it as StackEntry).screen) } },
-        )
-    }
+    val entries =
+        Tab.entries.associateWith { tab ->
+            rememberDecoratedNavEntries(
+                backStack = navigator.stacks.getValue(tab),
+                entryDecorators =
+                    listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                // The default content key is the key's toString(), which includes StackEntry's unique id.
+                entryProvider = { key -> NavEntry(key) { screen((it as StackEntry).screen) } },
+            )
+        }
     val items = Tab.entries.map { barItem(it) }
     Column(modifier.fillMaxSize()) {
         NavDisplay(
@@ -90,8 +92,18 @@ internal fun Modifier.tabScreenInsetsPadding(): Modifier =
 
 /** Shows the new screen and hides the old one only at the very end of the (seeked) transition. */
 private fun swapAtEnd(): ContentTransform =
-    fadeIn(keyframes { durationMillis = SWAP_MILLIS; 0f at SWAP_MILLIS - 1 }) togetherWith
-        fadeOut(keyframes { durationMillis = SWAP_MILLIS; 1f at SWAP_MILLIS - 1 })
+    fadeIn(
+        keyframes {
+            durationMillis = SWAP_MILLIS
+            0f at SWAP_MILLIS - 1
+        },
+    ) togetherWith
+        fadeOut(
+            keyframes {
+                durationMillis = SWAP_MILLIS
+                1f at SWAP_MILLIS - 1
+            },
+        )
 
 private const val SWAP_MILLIS = 100
 
@@ -101,9 +113,10 @@ private fun barItem(tab: Tab): McBottomBarItem {
     // TODO(issue 11): real tab icons; the missing texture stands in until then.
     val missingTexture = McTheme.skin.missingTexture
     val icon = remember(missingTexture) { BitmapPainter(missingTexture, filterQuality = FilterQuality.None) }
-    val label = when (tab) {
-        Tab.Items -> stringResource(Res.string.tab_items)
-        Tab.Settings -> stringResource(Res.string.tab_settings)
-    }
+    val label =
+        when (tab) {
+            Tab.Items -> stringResource(Res.string.tab_items)
+            Tab.Settings -> stringResource(Res.string.tab_settings)
+        }
     return McBottomBarItem(label, icon)
 }

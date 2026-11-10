@@ -16,7 +16,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class EnvelopeFramingTest {
-
     // Golden vectors: the exact frame bytes for a few envelopes. The same hex
     // literals live in the Java EnvelopeFramingTest (:protocol), so both sides
     // are pinned to identical bytes. Keep the two copies in sync.
@@ -43,20 +42,26 @@ class EnvelopeFramingTest {
 
     private val authEnvelope = Envelope(auth = Auth(token = ByteArray(32) { it.toByte() }.toByteString()))
 
-    private val itemBatchEnvelope = Envelope(
-        item_batch = ItemBatch(
-            items = listOf(
-                Item(id = "minecraft:stone", display_name = "Stone"),
-                Item(id = "minecraft:granite", display_name = "Granite"),
-                Item(id = "minecraft:polished_granite", display_name = "Polished Granite"),
-                Item(id = "minecraft:diorite", display_name = "Diorite"),
-                Item(id = "minecraft:polished_diorite", display_name = "Polished Diorite"),
-                Item(id = "minecraft:andesite", display_name = "Andesite"),
-            ),
-        ),
-    )
+    private val itemBatchEnvelope =
+        Envelope(
+            item_batch =
+                ItemBatch(
+                    items =
+                        listOf(
+                            Item(id = "minecraft:stone", display_name = "Stone"),
+                            Item(id = "minecraft:granite", display_name = "Granite"),
+                            Item(id = "minecraft:polished_granite", display_name = "Polished Granite"),
+                            Item(id = "minecraft:diorite", display_name = "Diorite"),
+                            Item(id = "minecraft:polished_diorite", display_name = "Polished Diorite"),
+                            Item(id = "minecraft:andesite", display_name = "Andesite"),
+                        ),
+                ),
+        )
 
-    private fun assertGolden(envelope: Envelope, hex: String) {
+    private fun assertGolden(
+        envelope: Envelope,
+        hex: String,
+    ) {
         val expected = hex.decodeHex()
 
         val written = Buffer()

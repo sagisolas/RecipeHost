@@ -31,14 +31,15 @@ internal data class PairingPayload(
         private val DIGITS = Regex("[0-9]+")
 
         fun parse(uri: String): Result<PairingPayload> {
-            val params = try {
-                Url(uri).takeIf { it.protocol.name == SCHEME && it.host == HOST }?.parameters
-                    ?: return fail(MalformedUri("expected a $SCHEME://$HOST URI"))
-            } catch (e: URLParserException) {
-                return fail(MalformedUri(e.message ?: "unparseable URI"))
-            } catch (e: URLDecodeException) {
-                return fail(MalformedUri(e.message ?: "bad percent escape"))
-            }
+            val params =
+                try {
+                    Url(uri).takeIf { it.protocol.name == SCHEME && it.host == HOST }?.parameters
+                        ?: return fail(MalformedUri("expected a $SCHEME://$HOST URI"))
+                } catch (e: URLParserException) {
+                    return fail(MalformedUri(e.message ?: "unparseable URI"))
+                } catch (e: URLDecodeException) {
+                    return fail(MalformedUri(e.message ?: "bad percent escape"))
+                }
 
             val version = params["v"] ?: return fail(MalformedUri("missing v"))
             if (version != SUPPORTED_VERSION) return fail(UnsupportedVersion(version))
@@ -48,8 +49,9 @@ internal data class PairingPayload(
             if (hosts.any { it.isEmpty() }) return fail(MalformedUri("empty host in h"))
 
             val rawPort = params["p"] ?: return fail(MalformedUri("missing p"))
-            val port = rawPort.takeIf { DIGITS.matches(it) }?.toIntOrNull()?.takeIf { it in PORT_RANGE }
-                ?: return fail(MalformedUri("p out of range: $rawPort"))
+            val port =
+                rawPort.takeIf { DIGITS.matches(it) }?.toIntOrNull()?.takeIf { it in PORT_RANGE }
+                    ?: return fail(MalformedUri("p out of range: $rawPort"))
 
             val rawToken = params["t"] ?: return fail(MalformedUri("missing t"))
             val token = decodeToken(rawToken) ?: return fail(BadToken())
@@ -64,23 +66,30 @@ internal data class PairingPayload(
          * stdlib decoder is strict: it rejects other alphabets, padding and non-zero pad bits.
          */
         private fun decodeToken(value: String): ByteString? {
-            val bytes = try {
-                BASE64URL_NO_PADDING.decode(value)
-            } catch (_: IllegalArgumentException) {
-                return null
-            }
+            val bytes =
+                try {
+                    BASE64URL_NO_PADDING.decode(value)
+                } catch (_: IllegalArgumentException) {
+                    return null
+                }
             return bytes.takeIf { it.size == TOKEN_BYTES }?.toByteString()
         }
     }
 }
 
 /** Why [PairingPayload.parse] rejected a URI. */
-internal sealed class PairingPayloadException(message: String) : Exception(message) {
+internal sealed class PairingPayloadException(
+    message: String,
+) : Exception(message) {
     /** The payload's `v` is not one this app understands. */
-    class UnsupportedVersion(val version: String) : PairingPayloadException("unsupported pairing payload version $version")
+    class UnsupportedVersion(
+        val version: String,
+    ) : PairingPayloadException("unsupported pairing payload version $version")
 
     /** Not a `recipehost://pair` URI, or `v`, `h` or `p` is missing or invalid. */
-    class MalformedUri(reason: String) : PairingPayloadException("malformed pairing URI: $reason")
+    class MalformedUri(
+        reason: String,
+    ) : PairingPayloadException("malformed pairing URI: $reason")
 
     /** The token is not base64url without padding, or does not decode to 32 bytes. */
     class BadToken : PairingPayloadException("pairing token must be 32 bytes of base64url without padding")

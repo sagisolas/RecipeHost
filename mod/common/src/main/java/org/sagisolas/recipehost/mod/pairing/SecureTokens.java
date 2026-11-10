@@ -1,7 +1,6 @@
 package org.sagisolas.recipehost.mod.pairing;
 
 import com.google.protobuf.ByteString;
-
 import java.security.SecureRandom;
 import java.util.function.Supplier;
 

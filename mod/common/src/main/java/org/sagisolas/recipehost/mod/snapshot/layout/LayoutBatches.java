@@ -1,15 +1,8 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
 import com.google.protobuf.UnsafeByteOperations;
-import org.sagisolas.recipehost.mod.snapshot.RenderThread;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.RecipeLayout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,7 +11,12 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
+import org.sagisolas.recipehost.protocol.RecipeLayout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Turns {@link LayoutJob}s into the Snapshot's {@link LayoutBatch}es, one per
@@ -52,6 +50,7 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     private final List<LayoutJob> pending;
     /** How many jobs from the front of {@code pending} are drawn; the rest are still to come. */
     private int done;
+
     private final SheetRenderer renderer;
     private final PngEncoder encoder;
     private final Set<String> sentKeys = new HashSet<>();
@@ -70,7 +69,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     public boolean hasNext() {
         while (next == null && done < pending.size()) {
             List<RecipeLayout> layouts = nextLayouts();
-            if (!layouts.isEmpty()) next = LayoutBatch.newBuilder().addAllLayouts(layouts).build();
+            if (!layouts.isEmpty())
+                next = LayoutBatch.newBuilder().addAllLayouts(layouts).build();
         }
         return next != null;
     }
@@ -131,7 +131,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
                 merged.add(job);
             }
         }
-        merged.replaceAll(job -> job.parameterKey() == null ? job : job.withRecipeIds(recipeIdsOfKey.get(job.parameterKey())));
+        merged.replaceAll(
+                job -> job.parameterKey() == null ? job : job.withRecipeIds(recipeIdsOfKey.get(job.parameterKey())));
         return merged;
     }
 
@@ -157,7 +158,10 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     }
 
     private static RecipeLayout recipeIdsOnly(String key, LayoutJob job) {
-        return RecipeLayout.newBuilder().setKey(key).addAllRecipeIds(job.recipeIds()).build();
+        return RecipeLayout.newBuilder()
+                .setKey(key)
+                .addAllRecipeIds(job.recipeIds())
+                .build();
     }
 
     private void logOncePerType(LayoutJob job, Throwable cause) {

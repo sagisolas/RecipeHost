@@ -1,8 +1,10 @@
 package org.sagisolas.recipehost.protocol;
 
-import com.google.protobuf.ByteString;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
+import com.google.protobuf.ByteString;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -11,10 +13,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import org.junit.Test;
 
 public class EnvelopeFramingTest {
 
@@ -65,12 +64,10 @@ public class EnvelopeFramingTest {
 
     // varint(36), Envelope.auth (field 7, LEN 34), Auth.token (field 1, LEN 32) = bytes 0x00..0x1f.
     private static final String AUTH_HEX =
-            "243a220a20"
-            + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+            "243a220a20" + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
     // varint(217) = d9 01 (two bytes), Envelope.item_batch (field 2, LEN 214), six Items.
-    private static final String ITEM_BATCH_HEX =
-            "d90112d601"
+    private static final String ITEM_BATCH_HEX = "d90112d601"
             + "0a180a0f6d696e6563726166743a73746f6e65120553746f6e65"
             + "0a1c0a116d696e6563726166743a6772616e69746512074772616e697465"
             + "0a2e0a1a6d696e6563726166743a706f6c69736865645f6772616e6974651210506f6c6973686564204772616e697465"
@@ -85,17 +82,22 @@ public class EnvelopeFramingTest {
     private static Envelope authEnvelope() {
         byte[] token = new byte[32];
         for (int i = 0; i < 32; i++) token[i] = (byte) i;
-        return Envelope.newBuilder().setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token))).build();
+        return Envelope.newBuilder()
+                .setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)))
+                .build();
     }
 
     private static Envelope itemBatchEnvelope() {
-        return Envelope.newBuilder().setItemBatch(ItemBatch.newBuilder().addAllItems(List.of(
-                item("minecraft:stone", "Stone"),
-                item("minecraft:granite", "Granite"),
-                item("minecraft:polished_granite", "Polished Granite"),
-                item("minecraft:diorite", "Diorite"),
-                item("minecraft:polished_diorite", "Polished Diorite"),
-                item("minecraft:andesite", "Andesite")))).build();
+        return Envelope.newBuilder()
+                .setItemBatch(ItemBatch.newBuilder()
+                        .addAllItems(List.of(
+                                item("minecraft:stone", "Stone"),
+                                item("minecraft:granite", "Granite"),
+                                item("minecraft:polished_granite", "Polished Granite"),
+                                item("minecraft:diorite", "Diorite"),
+                                item("minecraft:polished_diorite", "Polished Diorite"),
+                                item("minecraft:andesite", "Andesite"))))
+                .build();
     }
 
     private static Item item(String id, String displayName) {
@@ -107,7 +109,10 @@ public class EnvelopeFramingTest {
 
         ByteArrayOutputStream written = new ByteArrayOutputStream();
         EnvelopeFraming.writeFrame(written, envelope);
-        assertEquals("encoded frame bytes", HexFormat.of().formatHex(expected), HexFormat.of().formatHex(written.toByteArray()));
+        assertEquals(
+                "encoded frame bytes",
+                HexFormat.of().formatHex(expected),
+                HexFormat.of().formatHex(written.toByteArray()));
 
         InputStream source = new ByteArrayInputStream(expected);
         assertEquals("decoded envelope", envelope, EnvelopeFraming.readFrame(source));
@@ -140,7 +145,9 @@ public class EnvelopeFramingTest {
                 .setId("minecraft:glass")
                 .setTypeId("minecraft:smelting")
                 .addAllLayoutStacks(List.of(
-                        Slot.newBuilder().addAllStacks(List.of(stack("minecraft:sand"), stack("minecraft:red_sand"))).build(),
+                        Slot.newBuilder()
+                                .addAllStacks(List.of(stack("minecraft:sand"), stack("minecraft:red_sand")))
+                                .build(),
                         Slot.getDefaultInstance(),
                         Slot.newBuilder().addStacks(stack("minecraft:glass")).build()))
                 .build();
@@ -161,7 +168,13 @@ public class EnvelopeFramingTest {
     }
 
     private static RecipeSlot slot(int x, int y, RecipeSlot.Role role) {
-        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(18).setHeight(18).setRole(role).build();
+        return RecipeSlot.newBuilder()
+                .setX(x)
+                .setY(y)
+                .setWidth(18)
+                .setHeight(18)
+                .setRole(role)
+                .build();
     }
 
     private static ItemStack stack(String itemId) {

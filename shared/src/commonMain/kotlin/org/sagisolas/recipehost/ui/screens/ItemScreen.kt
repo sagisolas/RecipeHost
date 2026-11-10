@@ -62,27 +62,35 @@ internal fun ItemScreen(
             onSelect = { viewModel.selectTab(ItemTab.entries[it]) },
         )
         when {
-            state.header == null -> Unit
-            state.sections.isEmpty() -> McText(
-                stringResource(Res.string.item_no_recipes),
-                Modifier.fillMaxWidth().padding(16.dp),
-                color = McTheme.colors.textOnDark,
-            )
-            else -> LazyColumn(
-                Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                items(state.sections, key = { it.typeId }) { section ->
-                    RecipeSection(
-                        section,
-                        atlases,
-                        layoutImages,
-                        onPrevious = { viewModel.previous(section.typeId) },
-                        onNext = { viewModel.next(section.typeId) },
-                        onSelectVariant = { viewModel.selectVariant(section.typeId, it) },
-                        onOpen = open,
-                    )
+            state.header == null -> {
+                Unit
+            }
+
+            state.sections.isEmpty() -> {
+                McText(
+                    stringResource(Res.string.item_no_recipes),
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    color = McTheme.colors.textOnDark,
+                )
+            }
+
+            else -> {
+                LazyColumn(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(state.sections, key = { it.typeId }) { section ->
+                        RecipeSection(
+                            section,
+                            atlases,
+                            layoutImages,
+                            onPrevious = { viewModel.previous(section.typeId) },
+                            onNext = { viewModel.next(section.typeId) },
+                            onSelectVariant = { viewModel.selectVariant(section.typeId, it) },
+                            onOpen = open,
+                        )
+                    }
                 }
             }
         }
@@ -91,7 +99,10 @@ internal fun ItemScreen(
 
 /** The Item's Icon, then its display name over its id. An unresolved Item shows only its id. */
 @Composable
-private fun Header(item: StackUi?, atlases: IconAtlasCache) {
+private fun Header(
+    item: StackUi?,
+    atlases: IconAtlasCache,
+) {
     Row(
         Modifier.fillMaxWidth().padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -101,8 +112,18 @@ private fun Header(item: StackUi?, atlases: IconAtlasCache) {
             McSlot { StackIcon(item, atlases) }
         }
         Column {
-            McText(item?.item?.displayName ?: "", color = McTheme.colors.textOnDark, style = McTheme.typography.title, maxLines = 2)
-            McText(item?.item?.itemId ?: "", color = McTheme.colors.textOnDark, style = McTheme.typography.small, maxLines = 1)
+            McText(
+                item?.item?.displayName ?: "",
+                color = McTheme.colors.textOnDark,
+                style = McTheme.typography.title,
+                maxLines = 2,
+            )
+            McText(
+                item?.item?.itemId ?: "",
+                color = McTheme.colors.textOnDark,
+                style = McTheme.typography.small,
+                maxLines = 1,
+            )
         }
     }
 }

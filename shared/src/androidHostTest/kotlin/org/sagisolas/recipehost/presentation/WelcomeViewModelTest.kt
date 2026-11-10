@@ -13,7 +13,6 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WelcomeViewModelTest {
-
     @BeforeTest
     fun setMain() = Dispatchers.setMain(UnconfinedTestDispatcher())
 

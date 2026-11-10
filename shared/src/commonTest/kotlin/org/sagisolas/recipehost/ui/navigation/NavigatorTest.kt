@@ -8,16 +8,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class NavigatorTest {
-
     /** Built the way `rememberNavigator` builds it, minus the saving, which Navigation 3 owns. */
-    private fun navigator(start: Route = Route.Root) = Navigator(
-        route = mutableStateOf(start),
-        selectedTab = mutableStateOf(Tab.Items),
-        stacks = Tab.entries.associateWith { NavBackStack<NavKey>(StackEntry(it.root)) },
-    )
+    private fun navigator(start: Route = Route.Root) =
+        Navigator(
+            route = mutableStateOf(start),
+            selectedTab = mutableStateOf(Tab.Items),
+            stacks = Tab.entries.associateWith { NavBackStack<NavKey>(StackEntry(it.root)) },
+        )
 
     /** What `NavDisplay` is given: Items' stack, then the selected tab's. */
-    private val Navigator.displayed get() = tabsInUse.flatMap { tab -> stacks.getValue(tab).map { (it as StackEntry).screen } }
+    private val Navigator.displayed get() =
+        tabsInUse.flatMap { tab ->
+            stacks.getValue(tab).map { (it as StackEntry).screen }
+        }
 
     @Test
     fun pushAndPopWithinTheCurrentTab() {
@@ -104,9 +107,16 @@ class NavigatorTest {
         navigator.selectTab(Tab.Settings)
         navigator.push(Screen.Item("minecraft:stone"))
 
-        val ids = navigator.stacks.values.flatten().map { (it as StackEntry).id }
+        val ids =
+            navigator.stacks.values
+                .flatten()
+                .map { (it as StackEntry).id }
         assertEquals(ids.size, ids.toSet().size, "every entry, in every tab, has its own id")
-        val stones = navigator.stacks.getValue(Tab.Items).filter { (it as StackEntry).screen == Screen.Item("minecraft:stone") }
+        val stones =
+            navigator.stacks.getValue(Tab.Items).filter {
+                (it as StackEntry).screen ==
+                    Screen.Item("minecraft:stone")
+            }
         assertNotEquals(stones[0], stones[1])
     }
 }

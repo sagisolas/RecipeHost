@@ -1,13 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import org.junit.Test;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
-
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import org.junit.Test;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 public class LayoutKeysTest {
 
@@ -21,11 +20,17 @@ public class LayoutKeysTest {
     }
 
     private static RecipeSlot slot(int x, int y, RecipeSlot.Role role) {
-        return RecipeSlot.newBuilder().setX(x).setY(y).setWidth(18).setHeight(18).setRole(role).build();
+        return RecipeSlot.newBuilder()
+                .setX(x)
+                .setY(y)
+                .setWidth(18)
+                .setHeight(18)
+                .setRole(role)
+                .build();
     }
 
-    private static final List<RecipeSlot> SLOTS = List.of(
-            slot(0, 0, RecipeSlot.Role.INPUT), slot(40, 0, RecipeSlot.Role.OUTPUT));
+    private static final List<RecipeSlot> SLOTS =
+            List.of(slot(0, 0, RecipeSlot.Role.INPUT), slot(40, 0, RecipeSlot.Role.OUTPUT));
 
     @Test
     public void equalPixelsAndRectanglesGiveTheSameKey() {
@@ -67,6 +72,6 @@ public class LayoutKeysTest {
         // A 1x1 transparent-black layout with no slots hashes the 16 bytes
         // width=1, height=1 (big-endian ints), RGBA 00000000, slot count 0.
         // sha256(00000001 00000001 00000000 00000000) truncated to 128 bits.
-        assertEquals("d66c3b2546298fcb2c1a95a86cf0c952", LayoutKeys.contentHash(new int[]{0}, 1, 1, List.of()));
+        assertEquals("d66c3b2546298fcb2c1a95a86cf0c952", LayoutKeys.contentHash(new int[] {0}, 1, 1, List.of()));
     }
 }

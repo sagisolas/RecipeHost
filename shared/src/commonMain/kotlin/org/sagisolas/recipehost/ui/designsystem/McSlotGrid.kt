@@ -32,12 +32,13 @@ internal fun McSlotGrid(
         modifier = modifier.mcVerticalScrollbar(state),
         state = state,
         // The grid subtracts this padding before FixedSize counts the columns.
-        contentPadding = PaddingValues(
-            start = McDimens.ListEdgePadding,
-            top = verticalPadding,
-            end = McDimens.ScrollbarGutter,
-            bottom = verticalPadding,
-        ),
+        contentPadding =
+            PaddingValues(
+                start = McDimens.ListEdgePadding,
+                top = verticalPadding,
+                end = McDimens.ScrollbarGutter,
+                bottom = verticalPadding,
+            ),
         horizontalArrangement = Arrangement.Start,
         content = content,
     )

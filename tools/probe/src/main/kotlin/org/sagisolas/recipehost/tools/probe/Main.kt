@@ -15,29 +15,33 @@ import kotlin.system.exitProcess
 
 /** Usage: probe 'recipehost://pair?v=1&h=…&p=…&t=…'  (copy the URI from the game log). */
 fun main(args: Array<String>) {
-    val uri = args.getOrNull(0) ?: run {
-        System.err.println("usage: probe '<pairing payload URI from the game log>'")
-        exitProcess(2)
-    }
-    val query = URI(uri).rawQuery.split("&").associate {
-        val (k, v) = it.split("=", limit = 2)
-        k to URLDecoder.decode(v, Charsets.UTF_8)
-    }
+    val uri =
+        args.getOrNull(0) ?: run {
+            System.err.println("usage: probe '<pairing payload URI from the game log>'")
+            exitProcess(2)
+        }
+    val query =
+        URI(uri).rawQuery.split("&").associate {
+            val (k, v) = it.split("=", limit = 2)
+            k to URLDecoder.decode(v, Charsets.UTF_8)
+        }
     val hosts = query.getValue("h").split(",")
     val port = query.getValue("p").toInt()
-    val token: ByteString = runCatching { ByteString.copyFrom(Base64.getUrlDecoder().decode(query.getValue("t"))) }
-        .getOrElse { error("token is not valid base64url") }
+    val token: ByteString =
+        runCatching { ByteString.copyFrom(Base64.getUrlDecoder().decode(query.getValue("t"))) }
+            .getOrElse { error("token is not valid base64url") }
 
     // Hosts are unfiltered (see GLOSSARY: Pairing payload) — try each until one connects.
-    val socket = hosts.firstNotNullOfOrNull { host ->
-        runCatching { Socket().apply { connect(InetSocketAddress(host, port), 1000) } }
-            .onFailure { println("[probe] $host:$port unreachable: ${it.message}") }
-            .getOrNull()
-            ?.also { println("[probe] connected to $host:$port") }
-    } ?: run {
-        System.err.println("[probe] no host reachable")
-        exitProcess(1)
-    }
+    val socket =
+        hosts.firstNotNullOfOrNull { host ->
+            runCatching { Socket().apply { connect(InetSocketAddress(host, port), 1000) } }
+                .onFailure { println("[probe] $host:$port unreachable: ${it.message}") }
+                .getOrNull()
+                ?.also { println("[probe] connected to $host:$port") }
+        } ?: run {
+            System.err.println("[probe] no host reachable")
+            exitProcess(1)
+        }
 
     socket.use { socket ->
         val out = BufferedOutputStream(socket.getOutputStream())

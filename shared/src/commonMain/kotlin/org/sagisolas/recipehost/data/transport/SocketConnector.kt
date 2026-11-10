@@ -9,7 +9,10 @@ internal fun interface SocketConnector {
      * Connects to [host]:[port]. Throws [IOException] if the host refuses or can't be reached;
      * callers bound the wait with their own timeout, so this must stay cancellable.
      */
-    suspend fun connect(host: String, port: Int): EnvelopeConnection
+    suspend fun connect(
+        host: String,
+        port: Int,
+    ): EnvelopeConnection
 }
 
 /** One open connection, already framing [Envelope]s in both directions. */

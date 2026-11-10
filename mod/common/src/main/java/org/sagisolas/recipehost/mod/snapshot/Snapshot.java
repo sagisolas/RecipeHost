@@ -1,5 +1,12 @@
 package org.sagisolas.recipehost.mod.snapshot;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.sagisolas.recipehost.mod.net.SnapshotSource;
 import org.sagisolas.recipehost.mod.net.WireProtocol;
 import org.sagisolas.recipehost.mod.snapshot.icon.IconBatches;
@@ -16,14 +23,6 @@ import org.sagisolas.recipehost.protocol.ItemBatch;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
 import org.sagisolas.recipehost.protocol.ModInfo;
 import org.sagisolas.recipehost.protocol.RecipeBatch;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * A `Snapshot` as its frames: the {@link Handshake}, then items and recipes in fixed-size batches,
@@ -73,18 +72,28 @@ public final class Snapshot implements SnapshotSource {
         // This session's layouts, gathered as its recipe batches are laid out.
         List<LayoutJob> layoutJobs = new ArrayList<>();
         List<Supplier<Iterator<Envelope>>> parts = List.of(
-                () -> List.of(Envelope.newBuilder().setHandshake(handshake()).build()).iterator(),
-                () -> map(itemBatches(), batch -> Envelope.newBuilder().setItemBatch(batch).build()),
-                () -> map(recipeBatches(layoutJobs), batch -> Envelope.newBuilder().setRecipeBatch(batch).build()),
-                () -> map(iconBatches(), batch -> Envelope.newBuilder().setIconBatch(batch).build()),
-                () -> map(layoutBatches(layoutJobs), batch -> Envelope.newBuilder().setLayoutBatch(batch).build()));
+                () -> List.of(Envelope.newBuilder().setHandshake(handshake()).build())
+                        .iterator(),
+                () -> map(
+                        itemBatches(),
+                        batch -> Envelope.newBuilder().setItemBatch(batch).build()),
+                () -> map(
+                        recipeBatches(layoutJobs),
+                        batch -> Envelope.newBuilder().setRecipeBatch(batch).build()),
+                () -> map(
+                        iconBatches(),
+                        batch -> Envelope.newBuilder().setIconBatch(batch).build()),
+                () -> map(
+                        layoutBatches(layoutJobs),
+                        batch -> Envelope.newBuilder().setLayoutBatch(batch).build()));
         return new Iterator<>() {
             private int part = 0;
             private Iterator<Envelope> current = Collections.emptyIterator();
 
             @Override
             public boolean hasNext() {
-                while (!current.hasNext() && part < parts.size()) current = parts.get(part++).get();
+                while (!current.hasNext() && part < parts.size())
+                    current = parts.get(part++).get();
                 return current.hasNext();
             }
 
@@ -110,7 +119,10 @@ public final class Snapshot implements SnapshotSource {
     }
 
     private synchronized Iterator<ItemBatch> itemBatches() {
-        return batched(contents().items(), ITEM_BATCH_SIZE, chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
+        return batched(
+                contents().items(),
+                ITEM_BATCH_SIZE,
+                chunk -> ItemBatch.newBuilder().addAllItems(chunk).build());
     }
 
     /**
@@ -121,8 +133,14 @@ public final class Snapshot implements SnapshotSource {
         RecipeAssembly.Prepared recipes = contents().recipes();
         return new Iterator<>() {
             int i = 0;
-            @Override public boolean hasNext() { return i < recipes.count(); }
-            @Override public RecipeBatch next() {
+
+            @Override
+            public boolean hasNext() {
+                return i < recipes.count();
+            }
+
+            @Override
+            public RecipeBatch next() {
                 if (!hasNext()) throw new NoSuchElementException();
                 int end = Math.min(i + RECIPE_BATCH_SIZE, recipes.count());
                 RecipeAssembly.LaidOutRecipes laidOut = recipes.layOut(i, end);
@@ -148,16 +166,29 @@ public final class Snapshot implements SnapshotSource {
 
     private static <T, R> Iterator<R> map(Iterator<T> it, Function<T, R> f) {
         return new Iterator<>() {
-            @Override public boolean hasNext() { return it.hasNext(); }
-            @Override public R next() { return f.apply(it.next()); }
+            @Override
+            public boolean hasNext() {
+                return it.hasNext();
+            }
+
+            @Override
+            public R next() {
+                return f.apply(it.next());
+            }
         };
     }
 
     private static <T, B> Iterator<B> batched(List<T> src, int size, Function<List<T>, B> build) {
         return new Iterator<>() {
             int i = 0;
-            @Override public boolean hasNext() { return i < src.size(); }
-            @Override public B next() {
+
+            @Override
+            public boolean hasNext() {
+                return i < src.size();
+            }
+
+            @Override
+            public B next() {
                 if (!hasNext()) throw new NoSuchElementException();
                 int end = Math.min(i + size, src.size());
                 B b = build.apply(src.subList(i, end));

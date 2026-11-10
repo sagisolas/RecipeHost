@@ -19,14 +19,16 @@ loom {
     silentMojangMappingsLicense()
 }
 
-val common = configurations.create("common") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-}
-val shadowBundle = configurations.create("shadowBundle") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-}
+val common =
+    configurations.create("common") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
+val shadowBundle =
+    configurations.create("shadowBundle") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
 
 configurations.named("compileClasspath").configure { extendsFrom(common) }
 configurations.named("runtimeClasspath").configure { extendsFrom(common) }
@@ -65,13 +67,14 @@ tasks.withType<JavaCompile>().configureEach {
 // The shipped jar must hold :mod:common's classes too. Architectury's template packs them with
 // the Shadow plugin; a plain Jar does the same: this module's classes plus common's production
 // output (shadowBundle), which remapJar then remaps into the shipped jar.
-val bundledJar = tasks.register<Jar>("bundledJar") {
-    archiveClassifier = "dev-bundled"
-    from(zipTree(tasks.jar.flatMap { it.archiveFile }))
-    from(shadowBundle.elements.map { files -> files.map { zipTree(it) } })
-    exclude("architectury.common.json", "META-INF/MANIFEST.MF")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
+val bundledJar =
+    tasks.register<Jar>("bundledJar") {
+        archiveClassifier = "dev-bundled"
+        from(zipTree(tasks.jar.flatMap { it.archiveFile }))
+        from(shadowBundle.elements.map { files -> files.map { zipTree(it) } })
+        exclude("architectury.common.json", "META-INF/MANIFEST.MF")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 tasks.remapJar {
     inputFile = bundledJar.flatMap { it.archiveFile }
 }

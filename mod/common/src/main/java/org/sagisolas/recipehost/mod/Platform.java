@@ -1,12 +1,11 @@
 package org.sagisolas.recipehost.mod;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.Screen;
-
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.Screen;
 
 /**
  * Loader-agnostic access to the handful of operations the companion mod can't do

@@ -1,30 +1,34 @@
 package org.sagisolas.recipehost.mod.snapshot.layout;
 
-import com.google.protobuf.ByteString;
-import org.junit.Test;
-import org.sagisolas.recipehost.protocol.LayoutBatch;
-import org.sagisolas.recipehost.protocol.RecipeLayout;
-import org.sagisolas.recipehost.protocol.RecipeSlot;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-import javax.imageio.ImageIO;
+import com.google.protobuf.ByteString;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import javax.imageio.ImageIO;
+import org.junit.Test;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
+import org.sagisolas.recipehost.protocol.LayoutBatch;
+import org.sagisolas.recipehost.protocol.RecipeLayout;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 
 public class LayoutBatchesTest {
 
     private static final String BROKEN_TYPE = "test:broken";
     private static final int RED = 0xFFFF0000;
     private static final int BLUE = 0xFF0000FF;
-    private static final List<RecipeSlot> SLOTS = List.of(
-            RecipeSlot.newBuilder().setX(1).setY(1).setWidth(2).setHeight(2).setRole(RecipeSlot.Role.INPUT).build());
+    private static final List<RecipeSlot> SLOTS = List.of(RecipeSlot.newBuilder()
+            .setX(1)
+            .setY(1)
+            .setWidth(2)
+            .setHeight(2)
+            .setRole(RecipeSlot.Role.INPUT)
+            .build());
 
     /**
      * Stands in for the GL renderer: takes up to {@code perSheet} jobs, lays them
@@ -65,8 +69,7 @@ public class LayoutBatchesTest {
                 }
                 int colour = colours.get(job.recipeIds().get(0));
                 for (int row = 0; row < job.height(); row++)
-                    for (int col = 0; col < job.width(); col++)
-                        argb[row * width + x + col] = colour;
+                    for (int col = 0; col < job.width(); col++) argb[row * width + x + col] = colour;
                 placed.add(new LayoutSheet.Placed(job, x, 0));
                 x += job.width();
             }
@@ -109,8 +112,8 @@ public class LayoutBatchesTest {
     public void aRepeatedKeyIsSentOnceWithItsPngThenAsRecipeIdsOnly() throws IOException {
         FakeSheets sheets = new FakeSheets(2, Map.of("r:a", RED, "r:b", BLUE, "r:c", RED));
 
-        List<LayoutBatch> batches = drain(new LayoutBatches(
-                List.of(hashed("r:a"), hashed("r:b"), hashed("r:c")), sheets, new PngEncoder()));
+        List<LayoutBatch> batches = drain(
+                new LayoutBatches(List.of(hashed("r:a"), hashed("r:b"), hashed("r:c")), sheets, new PngEncoder()));
 
         assertEquals(2, batches.size());
         RecipeLayout a = batches.get(0).getLayoutsList().get(0);
@@ -125,7 +128,12 @@ public class LayoutBatchesTest {
         assertEquals(BLUE, pixelOf(b.getPng()));
         assertFalse("different pixels, different keys", a.getKey().equals(b.getKey()));
 
-        assertEquals(RecipeLayout.newBuilder().setKey(a.getKey()).addAllRecipeIds(List.of("r:c")).build(), c);
+        assertEquals(
+                RecipeLayout.newBuilder()
+                        .setKey(a.getKey())
+                        .addAllRecipeIds(List.of("r:c"))
+                        .build(),
+                c);
     }
 
     @Test
@@ -134,11 +142,15 @@ public class LayoutBatchesTest {
 
         List<LayoutBatch> batches = drain(new LayoutBatches(
                 List.of(keyed("test:grid/3x3", "r:1"), hashed("r:other"), keyed("test:grid/3x3", "r:2")),
-                sheets, new PngEncoder()));
+                sheets,
+                new PngEncoder()));
 
-        assertEquals(List.of(List.of("r:1", "r:2"), List.of("r:other")),
+        assertEquals(
+                List.of(List.of("r:1", "r:2"), List.of("r:other")),
                 sheets.rendered.stream().map(LayoutJob::recipeIds).toList());
-        List<RecipeLayout> layouts = batches.stream().flatMap(batch -> batch.getLayoutsList().stream()).toList();
+        List<RecipeLayout> layouts = batches.stream()
+                .flatMap(batch -> batch.getLayoutsList().stream())
+                .toList();
         assertEquals(2, layouts.size());
         assertEquals("test:grid/3x3", layouts.get(0).getKey());
         assertEquals(List.of("r:1", "r:2"), layouts.get(0).getRecipeIdsList());
@@ -149,10 +161,15 @@ public class LayoutBatchesTest {
     public void aJobThatDrawsNothingShipsWithoutALayout() {
         FakeSheets sheets = new FakeSheets(2, Map.of("r:blank", 0x00000000, "r:ok", BLUE));
 
-        List<LayoutBatch> batches = drain(new LayoutBatches(List.of(hashed("r:blank"), hashed("r:ok")), sheets, new PngEncoder()));
+        List<LayoutBatch> batches =
+                drain(new LayoutBatches(List.of(hashed("r:blank"), hashed("r:ok")), sheets, new PngEncoder()));
 
-        assertEquals(List.of(List.of("r:ok")),
-                batches.stream().flatMap(batch -> batch.getLayoutsList().stream()).map(layout -> layout.getRecipeIdsList()).toList());
+        assertEquals(
+                List.of(List.of("r:ok")),
+                batches.stream()
+                        .flatMap(batch -> batch.getLayoutsList().stream())
+                        .map(layout -> layout.getRecipeIdsList())
+                        .toList());
     }
 
     @Test

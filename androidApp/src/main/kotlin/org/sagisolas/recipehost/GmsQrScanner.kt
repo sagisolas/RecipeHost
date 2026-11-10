@@ -14,16 +14,21 @@ import kotlin.coroutines.resumeWithException
  * camera UI and needs no camera permission. Needs Google Play services: without them [scan]
  * throws, and the `recipehost://pair` deep link from any camera app still works.
  */
-internal class GmsQrScanner(context: Context) : QrScanner {
-    private val client = GmsBarcodeScanning.getClient(
-        context,
-        GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build(),
-    )
+internal class GmsQrScanner(
+    context: Context,
+) : QrScanner {
+    private val client =
+        GmsBarcodeScanning.getClient(
+            context,
+            GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build(),
+        )
 
-    override suspend fun scan(): String? = suspendCancellableCoroutine { continuation ->
-        client.startScan()
-            .addOnSuccessListener { continuation.resume(it.rawValue) }
-            .addOnCanceledListener { continuation.resume(null) }
-            .addOnFailureListener { continuation.resumeWithException(it) }
-    }
+    override suspend fun scan(): String? =
+        suspendCancellableCoroutine { continuation ->
+            client
+                .startScan()
+                .addOnSuccessListener { continuation.resume(it.rawValue) }
+                .addOnCanceledListener { continuation.resume(null) }
+                .addOnFailureListener { continuation.resumeWithException(it) }
+        }
 }

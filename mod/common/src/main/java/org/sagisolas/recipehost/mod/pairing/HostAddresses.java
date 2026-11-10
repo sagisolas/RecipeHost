@@ -1,8 +1,5 @@
 package org.sagisolas.recipehost.mod.pairing;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.UncheckedIOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -12,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The local addresses a phone could use to reach this machine. Drops only addresses no
@@ -57,13 +56,19 @@ public final class HostAddresses {
                 .sorted(Comparator.comparing(a -> !(a instanceof Inet4Address))) // stable: IPv4 first
                 .toList();
         if (!usable.isEmpty()) return usable;
-        LOG.warn("[recipehost] no usable host address found; pairing payload lists all {} unfiltered", candidates.size());
+        LOG.warn(
+                "[recipehost] no usable host address found; pairing payload lists all {} unfiltered",
+                candidates.size());
         return candidates.stream().map(Candidate::address).toList();
     }
 
     private static boolean usable(Candidate c) {
         InetAddress a = c.address();
-        return c.up() && !c.loopback() && !c.pointToPoint() && !c.virtual()
-                && !a.isLoopbackAddress() && !a.isLinkLocalAddress();
+        return c.up()
+                && !c.loopback()
+                && !c.pointToPoint()
+                && !c.virtual()
+                && !a.isLoopbackAddress()
+                && !a.isLinkLocalAddress();
     }
 }

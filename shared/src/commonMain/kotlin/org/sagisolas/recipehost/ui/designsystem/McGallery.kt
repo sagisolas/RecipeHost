@@ -1,12 +1,12 @@
-    package org.sagisolas.recipehost.ui.designsystem
+package org.sagisolas.recipehost.ui.designsystem
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,10 +32,11 @@ import androidx.compose.ui.unit.dp
 internal fun McGallery(modifier: Modifier = Modifier) {
     Column(Modifier.fillMaxSize().mcBackground(McTheme.skin.screen).then(modifier)) {
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             McPanel(Modifier.fillMaxWidth()) {
@@ -119,7 +120,10 @@ internal fun McGallery(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
+private fun Section(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         McText(title, color = McTheme.colors.textOnDark, style = McTheme.typography.small)
         content()

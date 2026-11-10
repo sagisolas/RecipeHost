@@ -1,15 +1,14 @@
 package org.sagisolas.recipehost.mod.pairing;
 
 import com.google.protobuf.ByteString;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Owns the listener lifecycle behind the QR screen (ADR 0001): bind on open with a
@@ -47,8 +46,11 @@ public final class PairingController {
     /** Bumped per {@link #open()}, so callbacks from an earlier pairing can be told apart. */
     private int generation;
 
-    public PairingController(ListenerFactory factory, Scheduler scheduler,
-                             Supplier<ByteString> tokens, Supplier<List<InetAddress>> hosts) {
+    public PairingController(
+            ListenerFactory factory,
+            Scheduler scheduler,
+            Supplier<ByteString> tokens,
+            Supplier<List<InetAddress>> hosts) {
         this.factory = factory;
         this.scheduler = scheduler;
         this.tokens = tokens;
@@ -69,8 +71,10 @@ public final class PairingController {
         // Guarded by generation: cancel() can't stop a timer that's already running.
         pendingUnbind = scheduler.schedule(() -> unbindIfCurrent(gen, "grace period expired"), GRACE);
         if (current != null) {
-            LOG.info("[recipehost] QR screen closed; listener on port {} stops in {} s",
-                    current.port(), GRACE.toSeconds());
+            LOG.info(
+                    "[recipehost] QR screen closed; listener on port {} stops in {} s",
+                    current.port(),
+                    GRACE.toSeconds());
         }
     }
 
