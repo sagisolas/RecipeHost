@@ -13,6 +13,8 @@ import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
+import org.sagisolas.recipehost.domain.catalog.CatalogCounts
+import org.sagisolas.recipehost.domain.catalog.CatalogStats
 import org.sagisolas.recipehost.domain.catalog.ClearCatalog
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import kotlin.coroutines.EmptyCoroutineContext
@@ -46,10 +48,15 @@ class SettingsViewModelTest {
         SettingsViewModel(
             clearCatalog = { (!refuseClear).also { if (it) clear() } },
             scanProgress = progress,
+            counts = CatalogStats(catalog.database, EmptyCoroutineContext).counts,
         )
 
     private suspend fun scanAtm() =
         catalog.scan("ATM", minecraft, create6, items = listOf("minecraft:stone" to "Stone"))
+
+    /** What [scanAtm] leaves: minecraft and create, one Item, no recipes. */
+    private val atm = CatalogCounts(mods = 2, items = 1, recipes = 0)
+    private val empty = CatalogCounts(mods = 0, items = 0, recipes = 0)
 
     private suspend fun itemNames() = search.items("").first().map { it.displayName }
 
@@ -68,9 +75,21 @@ class SettingsViewModelTest {
 
             assertEquals(emptyList(), itemNames())
             assertEquals(
-                SettingsUiState(clearEnabled = true, confirming = false, cleared = true),
+                SettingsUiState(counts = empty, clearEnabled = true, confirming = false, cleared = true),
                 viewModel.state.value,
             )
+        }
+
+    @Test
+    fun countsFollowTheCatalog() =
+        runTest {
+            val viewModel = viewModel()
+            runCurrent()
+            assertEquals(empty, viewModel.state.value.counts)
+
+            scanAtm()
+            runCurrent()
+            assertEquals(atm, viewModel.state.value.counts)
         }
 
     @Test
@@ -86,7 +105,7 @@ class SettingsViewModelTest {
 
             assertEquals(listOf("Stone"), itemNames())
             assertEquals(
-                SettingsUiState(clearEnabled = true, confirming = false, cleared = false),
+                SettingsUiState(counts = atm, clearEnabled = true, confirming = false, cleared = false),
                 viewModel.state.value,
             )
         }
@@ -102,7 +121,7 @@ class SettingsViewModelTest {
             runCurrent()
 
             assertEquals(
-                SettingsUiState(clearEnabled = false, confirming = false, cleared = false),
+                SettingsUiState(counts = atm, clearEnabled = false, confirming = false, cleared = false),
                 viewModel.state.value,
             )
             viewModel.confirmClear()
@@ -113,7 +132,7 @@ class SettingsViewModelTest {
             refuseClear = false
             runCurrent()
             assertEquals(
-                SettingsUiState(clearEnabled = true, confirming = false, cleared = false),
+                SettingsUiState(counts = atm, clearEnabled = true, confirming = false, cleared = false),
                 viewModel.state.value,
             )
         }

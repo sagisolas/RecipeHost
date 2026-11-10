@@ -1,0 +1,7 @@
+-- What the Settings tab counts. Every Mod release counts, so two versions of one mod are two.
+-- A recipe kept for several Instances (ADR 0011) counts once per (release, recipe id).
+counts:
+SELECT
+    (SELECT COUNT(*) FROM mod_release) AS mods,
+    (SELECT COUNT(*) FROM item) AS items,
+    (SELECT COUNT(*) FROM (SELECT DISTINCT release_id, recipe_id FROM recipe)) AS recipes;

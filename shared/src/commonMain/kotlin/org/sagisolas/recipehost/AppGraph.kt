@@ -14,6 +14,7 @@ import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.transport.KtorSocketConnector
 import org.sagisolas.recipehost.data.transport.RetryingSessionClient
 import org.sagisolas.recipehost.data.transport.SessionClient
+import org.sagisolas.recipehost.domain.catalog.CatalogStats
 import org.sagisolas.recipehost.domain.catalog.ClearCatalog
 import org.sagisolas.recipehost.domain.catalog.IconAtlases
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
@@ -65,6 +66,7 @@ class AppGraph(
     internal val modList = ModList(catalog, Dispatchers.IO)
     internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
     internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
+    private val catalogStats = CatalogStats(catalog, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
     internal val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
@@ -108,7 +110,7 @@ class AppGraph(
 
     internal fun itemViewModel(itemId: String) = ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke)
 
-    internal fun settingsViewModel() = SettingsViewModel(scans::clearCatalog, scans.progress)
+    internal fun settingsViewModel() = SettingsViewModel(scans::clearCatalog, scans.progress, catalogStats.counts)
 }
 
 /** Decoded Icon atlases kept: 64 sheets of 16×8 32 px cells, about 32 MB (ADR 0014). */

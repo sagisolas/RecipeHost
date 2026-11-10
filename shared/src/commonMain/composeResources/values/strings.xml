@@ -32,6 +32,10 @@
     <string name="item_no_recipes">No recipes</string>
     <string name="item_from_instances">From %1$s</string>
 
+    <string name="settings_catalog">Catalog</string>
+    <string name="settings_mods">Mods</string>
+    <string name="settings_items">Items</string>
+    <string name="settings_recipes">Recipes</string>
     <string name="settings_clear_catalog">Clear Catalog</string>
     <string name="settings_clear_confirm">Delete every scanned item and recipe from this device? Scan again to get them back.</string>
     <string name="settings_clear">Clear</string>
