@@ -1,0 +1,5 @@
+# Formatting-only commits that git blame should skip.
+# Enable once per clone: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: reformat the codebase with ktlint and palantir-java-format
+598aca439744848ecf0714e13550ee22e9549093
