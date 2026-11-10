@@ -28,7 +28,7 @@ internal fun McTabs(
                 modifier = Modifier.weight(1f).fillMaxHeight().semantics { this.selected = selected },
                 role = Role.Tab,
             ) {
-                McText(title, maxLines = 1)
+                McText(title, color = McTheme.colors.text, maxLines = 1)
             }
         }
     }

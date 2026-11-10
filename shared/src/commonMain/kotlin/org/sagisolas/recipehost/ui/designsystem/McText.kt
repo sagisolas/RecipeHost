@@ -11,7 +11,7 @@ import androidx.compose.ui.text.style.TextOverflow
 internal fun McText(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = McTheme.colors.text,
+    color: Color = McTheme.contentColor,
     style: TextStyle = McTheme.typography.body,
     maxLines: Int = Int.MAX_VALUE,
 ) {
