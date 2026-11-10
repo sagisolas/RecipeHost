@@ -4,4 +4,4 @@ The companion mod expands every ingredient tag into its items (the mobile app ne
 
 A table per batch rather than one for the whole Snapshot keeps each batch decodable on its own: a dropped stream still commits nothing half-resolved, and no state carries between frames. Interning in the Catalog too (stack lists as rows, `recipe_input` over lists) was rejected for now: it changes every recipe query and the stored body format for a storage gain nobody has measured.
 
-Nothing is published yet, so this amends protocol version 2 rather than bumping it.
+This bumps the protocol version to 3, although nothing is published. An app built before this change reads every shared Slot as an empty one: tag inputs vanished silently from the Item screen when a new mod met an older app build. A version bump turns that mismatch into the app's clear "unsupported protocol version" error.

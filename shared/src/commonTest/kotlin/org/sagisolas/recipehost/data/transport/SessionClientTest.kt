@@ -26,7 +26,7 @@ class SessionClientTest {
 
     private val token = ByteArray(32) { it.toByte() }.toByteString()
 
-    private val handshake = Envelope(handshake = Handshake(protocol_version = 2, instance_name = "Pack"))
+    private val handshake = Envelope(handshake = Handshake(protocol_version = 3, instance_name = "Pack"))
     private val items = Envelope(item_batch = ItemBatch(items = listOf(Item(id = "minecraft:stone", display_name = "Stone"))))
     private val done = Envelope(done = Done())
 
@@ -123,17 +123,18 @@ class SessionClientTest {
     }
 
     @Test
-    fun aProtocolVersionOtherThanOneIsADomainFailureWithNoRetry() = runTest {
+    fun aModOfAnotherProtocolVersionIsADomainFailureWithNoRetry() = runTest {
+        // Version 2 sends no shared Slots: an app reading them as v2 would show their Slots empty.
         val connector = FakeSocketConnector(
             this,
-            Accept(listOf(Envelope(handshake = Handshake(protocol_version = 3)), items, done)),
+            Accept(listOf(Envelope(handshake = Handshake(protocol_version = 2)), items, done)),
         )
         val received = mutableListOf<Envelope>()
 
         val failure = runCatching { client(connector).open(payload("192.168.1.10")).collect { received += it } }
             .exceptionOrNull()
 
-        assertEquals(3, assertIs<ScanFailure.Domain.UnsupportedProtocolVersion>(failure).version)
+        assertEquals(2, assertIs<ScanFailure.Domain.UnsupportedProtocolVersion>(failure).version)
         assertEquals(emptyList(), received)
         assertEquals(1, connector.connects.size)
     }
