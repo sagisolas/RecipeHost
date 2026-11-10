@@ -1,6 +1,6 @@
 # Set up code formatting and reformat the codebase
 
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -36,3 +36,11 @@ The repo has no formatter or `.editorconfig`. Code style is kept by hand across 
 - The check task passes on a clean checkout after the reformat commit.
 - The reformat commit builds, and the full test suite passes (`./gradlew test :shared:testAndroidHostTest`).
 - `git blame` skips the reformat commit when `.git-blame-ignore-revs` is configured.
+
+## Comments
+
+**Triage decisions (2026-11-11):**
+- Kotlin: ktlint 1.8.0 with `ktlint_official`, accepting every rule it enforces (this replaces "turn off rules that fight the project's style"). `@Composable` functions stay exempt from function naming.
+- Java: palantir-java-format 2.103.0 with defaults. It doesn't read `.editorconfig`; the `[*.java]` keys only steer the IDE.
+- Check: on demand (`spotlessCheck` / `spotlessApply`) plus a versioned pre-commit hook in `.githooks/` (`git config core.hooksPath .githooks`); not part of `./gradlew check` until CI exists.
+- ktlint violations it can't fix were fixed by hand in a separate commit: `PairingEntry` backing properties renamed (underscore backing properties are only allowed for public properties), `ResolveStackTest` → `ResolveStacksTest`, `MainViewController` suppresses function naming (Swift calls it by name), and long test lines wrapped by hand.
