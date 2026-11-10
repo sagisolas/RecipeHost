@@ -17,11 +17,8 @@ class NavigatorTest {
             stacks = Tab.entries.associateWith { NavBackStack<NavKey>(StackEntry(it.root)) },
         )
 
-    /** What `NavDisplay` is given: Items' stack, then the selected tab's. */
-    private val Navigator.displayed get() =
-        tabsInUse.flatMap { tab ->
-            stacks.getValue(tab).map { (it as StackEntry).screen }
-        }
+    /** What `RootScaffold` gives `NavDisplay`: the selected tab's stack alone. */
+    private val Navigator.displayed get() = stacks.getValue(selectedTab).map { (it as StackEntry).screen }
 
     @Test
     fun pushAndPopWithinTheCurrentTab() {
@@ -52,29 +49,20 @@ class NavigatorTest {
     }
 
     @Test
-    fun backPopsTheCurrentTabThenGoesToItemsThenExits() {
+    fun backPopsTheCurrentTabThenExitsFromItsRoot() {
         val navigator = navigator()
         navigator.push(Screen.ModList)
         navigator.selectTab(Tab.Settings)
         navigator.push(Screen.Item("minecraft:stone"))
-        assertEquals(
-            listOf(Screen.Grid, Screen.ModList, Screen.Settings, Screen.Item("minecraft:stone")),
-            navigator.displayed,
-        )
-
-        navigator.pop()
-        assertEquals(Screen.Settings, navigator.currentScreen)
-
-        navigator.pop()
-        assertEquals(Tab.Items, navigator.selectedTab)
-        assertEquals(Screen.ModList, navigator.currentScreen)
+        assertEquals(listOf(Screen.Settings, Screen.Item("minecraft:stone")), navigator.displayed)
 
         navigator.pop()
         assertEquals(
-            listOf(Screen.Grid),
+            listOf(Screen.Settings),
             navigator.displayed,
             "one entry left, so NavDisplay leaves back to the system and the app exits",
         )
+        assertEquals(Tab.Settings, navigator.selectedTab, "back never switches tabs")
     }
 
     @Test

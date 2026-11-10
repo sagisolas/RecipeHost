@@ -102,10 +102,9 @@ internal fun rememberNavigator(startRoute: () -> Route): Navigator {
 }
 
 /**
- * Navigation over state that Navigation 3 owns, following its "multiple back stacks" recipe:
- * one stack per [Tab], and the displayed stack is Items' followed by the selected tab's, so back
- * from any tab's root lands on Items and the app is left from the Items root. `NavDisplay`
- * handles back itself and calls [pop].
+ * Navigation over state that Navigation 3 owns: one stack per [Tab], of which only the selected
+ * tab's is displayed. Back pops within that tab, and at its root leaves the app; the bottom bar
+ * is never part of back. `NavDisplay` handles back itself and calls [pop].
  */
 internal class Navigator(
     route: MutableState<Route>,
@@ -119,10 +118,6 @@ internal class Navigator(
     var selectedTab: Tab by selectedTab
         private set
 
-    /** The tabs whose stacks are displayed, in order: Items, then the selected tab if it isn't Items. */
-    val tabsInUse: List<Tab>
-        get() = if (selectedTab == Tab.Items) listOf(Tab.Items) else listOf(Tab.Items, selectedTab)
-
     val currentScreen: Screen get() = (stacks.getValue(selectedTab).last() as StackEntry).screen
 
     /** Pushes [screen] onto the current tab's stack, as a new entry even if it's already there. */
@@ -130,13 +125,13 @@ internal class Navigator(
         stacks.getValue(selectedTab).add(StackEntry(screen))
     }
 
-    /** Back, from `NavDisplay`: pops the current tab, or at its root, switches to Items. */
+    /**
+     * Back, from `NavDisplay`: pops the current tab. `NavDisplay` never calls it at a tab's root,
+     * where back is the system's and leaves the app.
+     */
     fun pop() {
         val stack = stacks.getValue(selectedTab)
-        when {
-            stack.size > 1 -> stack.removeAt(stack.lastIndex)
-            selectedTab != Tab.Items -> selectedTab = Tab.Items
-        }
+        if (stack.size > 1) stack.removeAt(stack.lastIndex)
     }
 
     /** Switches to [tab], keeping its stack; reselecting the active tab pops it to its root. */

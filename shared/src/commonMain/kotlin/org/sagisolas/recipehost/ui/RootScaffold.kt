@@ -36,8 +36,8 @@ import org.sagisolas.recipehost.ui.navigation.Tab
 import org.sagisolas.recipehost.ui.navigation.noTransition
 
 /**
- * The bottom-navigation root: a `NavDisplay` of the tabs in use above the [McBottomBar], which
- * stays visible on pushed screens. Back is handled by `NavDisplay`, which calls [Navigator.pop].
+ * The bottom-navigation root: a `NavDisplay` of the selected tab's stack above the [McBottomBar],
+ * which stays visible on pushed screens. Back is handled by `NavDisplay`, which calls [Navigator.pop].
  */
 @Composable
 internal fun RootScaffold(
@@ -62,7 +62,7 @@ internal fun RootScaffold(
     val items = Tab.entries.map { barItem(it) }
     Column(modifier.fillMaxSize()) {
         NavDisplay(
-            entries = navigator.tabsInUse.flatMap { entries.getValue(it) },
+            entries = entries.getValue(navigator.selectedTab),
             onBack = navigator::pop,
             modifier = Modifier.weight(1f).fillMaxWidth(),
             // Screens swap with no animation. During the predictive back gesture the screen being
