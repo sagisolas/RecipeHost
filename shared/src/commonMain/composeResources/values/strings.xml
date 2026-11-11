@@ -55,6 +55,8 @@
     <string name="settings_clear_confirm">Delete every scanned item and recipe, and every bookmark, from this device? Scan again to get the items and recipes back.</string>
     <string name="settings_clear">Clear</string>
 
+    <string name="recipe_inputs_unknown">Inputs are unknown</string>
+
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
 </resources>

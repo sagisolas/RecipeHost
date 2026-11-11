@@ -1,0 +1,10 @@
+<!-- A "?" in the style of Minecraft's font: 5 by 7 square pixels, tinted where it's drawn. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="15dp"
+    android:height="21dp"
+    android:viewportWidth="5"
+    android:viewportHeight="7">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M1,0h3v1h-3z M0,1h1v1h-1z M4,1h1v2h-1z M3,3h1v1h-1z M2,4h1v1h-1z M2,6h1v1h-1z" />
+</vector>

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -32,9 +33,16 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.LayoutSlotUi
 import org.sagisolas.recipehost.presentation.RecipeLayoutUi
 import org.sagisolas.recipehost.presentation.StackUi
+import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.pixel_arrow
+import org.sagisolas.recipehost.shared.generated.resources.pixel_question_mark
+import org.sagisolas.recipehost.shared.generated.resources.recipe_inputs_unknown
+import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McPanel
 import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McText
@@ -60,7 +68,10 @@ internal fun RecipeLayout(
     }
 }
 
-/** The inputs in a wrapped row, an arrow, then the results, each in an [McSlot]. */
+/**
+ * The inputs in a wrapped row, an arrow, then the results, each in an [McSlot]. A recipe with no
+ * inputs shows a pixel "?" in their place.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GenericLayout(
@@ -69,18 +80,55 @@ private fun GenericLayout(
     onOpen: (String) -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        FlowRow(Modifier.weight(1f, fill = false)) {
-            layout.inputs.forEach {
-                McSlot {
-                    it?.let { stack ->
-                        StackCell(stack, atlases, onOpen, Modifier.fillMaxSize())
+        if (layout.inputs.isEmpty()) {
+            UnknownInputs()
+        } else {
+            FlowRow(Modifier.weight(1f, fill = false)) {
+                layout.inputs.forEach {
+                    McSlot {
+                        it?.let { stack ->
+                            StackCell(stack, atlases, onOpen, Modifier.fillMaxSize())
+                        }
                     }
                 }
             }
         }
-        McText("→", color = McTheme.colors.textOnDark, style = McTheme.typography.title)
+        Image(
+            painterResource(Res.drawable.pixel_arrow),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(McTheme.colors.textOnDark),
+        )
         FlowRow {
             layout.results.forEach { McSlot { StackCell(it, atlases, onOpen, Modifier.fillMaxSize()) } }
+        }
+    }
+}
+
+/**
+ * A pixel "?", slot-sized so the row is as tall as one with inputs, tinted like the arrow. A long
+ * press explains it until dismissed, as a stack's name does.
+ */
+@Composable
+private fun UnknownInputs() {
+    val explanation = stringResource(Res.string.recipe_inputs_unknown)
+    var showExplanation by remember { mutableStateOf(false) }
+    var height by remember { mutableIntStateOf(0) }
+    Box(
+        Modifier
+            .size(McDimens.SlotSize)
+            .onSizeChanged { height = it.height }
+            .combinedClickable(onLongClick = { showExplanation = true }, onClick = {}),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painterResource(Res.drawable.pixel_question_mark),
+            contentDescription = explanation,
+            colorFilter = ColorFilter.tint(McTheme.colors.textOnDark),
+        )
+        if (showExplanation) {
+            Popup(offset = IntOffset(0, height), onDismissRequest = { showExplanation = false }) {
+                McPanel { McText(explanation) }
+            }
         }
     }
 }

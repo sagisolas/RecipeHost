@@ -1,0 +1,10 @@
+<!-- A right arrow in the style of the pixel "?": 9 by 7 square pixels, tinted where it's drawn. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="27dp"
+    android:height="21dp"
+    android:viewportWidth="9"
+    android:viewportHeight="7">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5,0h1v7h-1z M6,1h1v5h-1z M7,2h1v3h-1z M0,3h5v1h-5z M8,3h1v1h-1z" />
+</vector>
