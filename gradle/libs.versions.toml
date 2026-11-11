@@ -78,5 +78,3 @@ wire = { id = "com.squareup.wire", version.ref = "wire" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-# Convention plugin in buildSrc: how a loader module builds its shipped jar.
-recipehostLoaderJar = { id = "recipehost.loader-jar" }

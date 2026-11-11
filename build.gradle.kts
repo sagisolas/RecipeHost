@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
-    alias(libs.plugins.architecturyPlugin)
     alias(libs.plugins.wire) apply false
     alias(libs.plugins.sqldelight) apply false
     alias(libs.plugins.spotless)
@@ -35,11 +34,6 @@ spotless {
     }
 }
 
-architectury {
-    minecraft = providers.gradleProperty("mod_minecraft_version").get()
-}
-
 allprojects {
     group = "org.sagisolas.recipehost"
-    version = providers.gradleProperty("mod_version").orElse("0.0.0").get()
 }

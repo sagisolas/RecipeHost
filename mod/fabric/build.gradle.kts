@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.architecturyLoom)
     alias(libs.plugins.architecturyPlugin)
-    alias(libs.plugins.recipehostLoaderJar)
+    id("recipehost.loader-jar")
 }
 
 architectury {

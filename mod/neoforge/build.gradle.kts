@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.architecturyLoom)
     alias(libs.plugins.architecturyPlugin)
-    alias(libs.plugins.recipehostLoaderJar)
+    id("recipehost.loader-jar")
 }
 
 architectury {
@@ -43,7 +43,7 @@ dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
     mappings(loom.officialMojangMappings())
 
-    neoForge("net.neoforged:neoforge:${providers.gradleProperty("neoforge_version").get()}")
+    neoForge("net.neoforged:neoforge:${providers.gradleProperty("mod_neoforge_version").get()}")
 
     common(project(path = ":mod:common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionNeoForge"))

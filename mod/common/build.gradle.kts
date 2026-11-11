@@ -23,6 +23,7 @@ repositories {
 dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
     mappings(loom.officialMojangMappings())
+
     implementation(project(":protocol"))
     implementation(libs.qrcodegen)
     // Soft dependency (ADR 0008): EMI classes are only reached when EMI is loaded.
