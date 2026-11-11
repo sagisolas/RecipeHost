@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -16,31 +14,26 @@ import org.sagisolas.recipehost.mod.pairing.PairingController;
 import org.slf4j.Logger;
 
 /**
- * Adds a vanilla-styled "QR" {@link Button} to the survival and creative inventory screens,
- * in the bottom-left corner, matching EMI's buttons there (see {@link PairingButtonPlacement}).
+ * Adds the {@link PairingButton} to the survival and creative inventory screens, next to the
+ * recipe viewer's bottom-left buttons (see {@link PairingButtonPlacement}).
  */
 public final class PairingButtonInstaller {
 
     private static final Logger LOG = LogUtils.getLogger();
-    private static final Component LABEL = Component.literal("QR");
     private static final Component TOOLTIP = Component.literal("Pair with RecipeHost app");
 
     private final PairingController pairing;
-    private final boolean emiLoaded;
+    private final RecipeViewer viewer;
 
-    public PairingButtonInstaller(PairingController pairing, boolean emiLoaded) {
+    public PairingButtonInstaller(PairingController pairing, RecipeViewer viewer) {
         this.pairing = pairing;
-        this.emiLoaded = emiLoaded;
+        this.viewer = viewer;
     }
 
     public void install(Screen screen, Consumer<AbstractWidget> addWidget) {
         if (!(screen instanceof InventoryScreen || screen instanceof CreativeModeInventoryScreen)) return;
-        PairingButtonPlacement at = PairingButtonPlacement.of(screen.height, emiLoaded);
-        addWidget.accept(Button.builder(LABEL, b -> openPairing(screen))
-                .bounds(at.x(), at.y(), PairingButtonPlacement.SIZE, PairingButtonPlacement.SIZE)
-                .tooltip(Tooltip.create(TOOLTIP))
-                .createNarration(defaultNarration -> TOOLTIP.copy())
-                .build());
+        PairingButtonPlacement at = PairingButtonPlacement.of(screen.height, viewer);
+        addWidget.accept(new PairingButton(at, viewer, TOOLTIP, () -> openPairing(screen)));
     }
 
     private void openPairing(Screen parent) {

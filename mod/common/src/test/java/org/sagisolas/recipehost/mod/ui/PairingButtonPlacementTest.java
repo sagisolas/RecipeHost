@@ -7,13 +7,19 @@ import org.junit.Test;
 public class PairingButtonPlacementTest {
 
     @Test
-    public void withoutEmiSitsInBottomLeftCorner() {
-        assertEquals(new PairingButtonPlacement(2, 218), PairingButtonPlacement.of(240, false));
+    public void withoutRecipeViewerSitsInBottomLeftCorner() {
+        assertEquals(new PairingButtonPlacement(2, 218), PairingButtonPlacement.of(240, RecipeViewer.NONE));
     }
 
     @Test
-    public void withEmiSitsRightOfEmiConfigAndTreeButtons() {
-        // EMI draws its 20x20 buttons at x=2 and x=24, y=height-22.
-        assertEquals(new PairingButtonPlacement(46, 218), PairingButtonPlacement.of(240, true));
+    public void withEmiSitsAboveEmiConfigButton() {
+        // EMI draws its 20x20 config button at x=2, y=height-22.
+        assertEquals(new PairingButtonPlacement(2, 196), PairingButtonPlacement.of(240, RecipeViewer.EMI));
+    }
+
+    @Test
+    public void withJeiSitsRightOfJeiBookmarkAndHistoryButtons() {
+        // JEI draws its 20x20 buttons at x=6 and x=28, y=height-26.
+        assertEquals(new PairingButtonPlacement(50, 214), PairingButtonPlacement.of(240, RecipeViewer.JEI));
     }
 }

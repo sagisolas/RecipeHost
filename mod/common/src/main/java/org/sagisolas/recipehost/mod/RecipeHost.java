@@ -12,25 +12,25 @@ import org.sagisolas.recipehost.mod.snapshot.RenderThreadScheduler;
 import org.sagisolas.recipehost.mod.snapshot.emi.EmiRecipeSource;
 import org.sagisolas.recipehost.mod.snapshot.vanilla.VanillaRecipeSource;
 import org.sagisolas.recipehost.mod.ui.PairingButtonInstaller;
+import org.sagisolas.recipehost.mod.ui.RecipeViewer;
 
 /** Composition root: called once by each loader's entrypoint; creates and wires the mod's objects. */
 public final class RecipeHost {
 
     public static final String MOD_ID = "recipehost";
-    private static final String EMI_MOD_ID = "emi";
 
     private RecipeHost() {}
 
     public static void init() {
-        boolean emiLoaded =
-                Platform.listMods().stream().anyMatch(mod -> mod.id().equals(EMI_MOD_ID));
+        RecipeViewer viewer = RecipeViewer.detect(Platform.listMods());
+        boolean emiLoaded = viewer == RecipeViewer.EMI;
         RenderThreadScheduler renderThread = new RenderThreadScheduler();
         PairingController pairing = new PairingController(
                 new MinecraftListenerFactory(recipeSources(emiLoaded), renderThread),
                 new ExecutorScheduler("recipehost-pairing-timer"),
                 new SecureTokens(),
                 HostAddresses::all);
-        PairingButtonInstaller buttons = new PairingButtonInstaller(pairing, emiLoaded);
+        PairingButtonInstaller buttons = new PairingButtonInstaller(pairing, viewer);
 
         Platform.onScreenInit(buttons::install);
         Platform.onWorldLeave(pairing::worldLeft);
