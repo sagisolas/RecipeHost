@@ -13,6 +13,9 @@ internal object McDimens {
     /** Space between a widget's edge and its text. */
     val WidgetPadding = 8.dp
     val SquareButtonSize = 40.dp
+
+    /** The icon inside an [McIconButton]. */
+    val ButtonIconSize = 24.dp
     val SlotSize = 36.dp
 
     /** The slot's frame is 1/18 of its size on each side, so the content area is 16/18 of it. */

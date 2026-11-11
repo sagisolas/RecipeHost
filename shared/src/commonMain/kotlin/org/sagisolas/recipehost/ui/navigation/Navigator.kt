@@ -35,6 +35,8 @@ internal sealed interface Screen {
 
     @Serializable data object ModList : Screen
 
+    @Serializable data object Bookmarks : Screen
+
     @Serializable data object Settings : Screen
 
     @Serializable data class Item(
@@ -65,11 +67,17 @@ internal enum class Tab(
     val root: Screen,
 ) {
     Items(Screen.Grid),
+    Bookmarks(Screen.Bookmarks),
     Settings(Screen.Settings),
 }
 
 /** Answers whether the `Catalog` holds nothing yet, which makes Welcome the start route. */
 internal fun interface CatalogEmptiness {
+    fun isEmpty(): Boolean
+}
+
+/** Answers whether no `Bookmark` resolves, which keeps Items rather than Bookmarks the start tab. */
+internal fun interface BookmarksEmptiness {
     fun isEmpty(): Boolean
 }
 
@@ -85,17 +93,20 @@ private val navKeys =
 /**
  * The [Navigator] for the app's UI. Navigation 3 and Compose save and restore all of it (back
  * stacks, selected tab, full-screen route) across activity recreation and process death;
- * [startRoute] is only asked for on a fresh start.
+ * [startRoute] and [startTab] are only asked for on a fresh start.
  */
 @Composable
-internal fun rememberNavigator(startRoute: () -> Route): Navigator {
+internal fun rememberNavigator(
+    startRoute: () -> Route,
+    startTab: () -> Tab,
+): Navigator {
     val route =
         rememberSerializable(stateSerializer = Route.serializer()) {
             mutableStateOf(startRoute())
         }
     val selectedTab =
         rememberSerializable(stateSerializer = Tab.serializer()) {
-            mutableStateOf(Tab.Items)
+            mutableStateOf(startTab())
         }
     val stacks = Tab.entries.associateWith { rememberNavBackStack(navKeys, StackEntry(it.root)) }
     return remember(route, selectedTab, stacks) { Navigator(route, selectedTab, stacks) }

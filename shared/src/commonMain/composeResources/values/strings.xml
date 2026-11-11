@@ -1,5 +1,6 @@
 <resources>
     <string name="tab_items">Items</string>
+    <string name="tab_bookmarks">Bookmarks</string>
     <string name="tab_settings">Settings</string>
 
     <string name="scan_qr">Scan QR</string>
@@ -31,13 +32,17 @@
     <string name="item_tab_uses">Uses</string>
     <string name="item_no_recipes">No recipes</string>
     <string name="item_from_instances">From %1$s</string>
+    <string name="item_bookmark">Bookmark recipe</string>
+    <string name="item_unbookmark">Remove bookmark</string>
+    <string name="bookmarks_remove">Remove bookmark</string>
+    <string name="bookmarks_empty">No bookmarked recipes yet. Bookmark a recipe on an item's page to find it here.</string>
 
     <string name="settings_catalog">Catalog</string>
     <string name="settings_mods">Mods</string>
     <string name="settings_items">Items</string>
     <string name="settings_recipes">Recipes</string>
     <string name="settings_clear_catalog">Clear Catalog</string>
-    <string name="settings_clear_confirm">Delete every scanned item and recipe from this device? Scan again to get them back.</string>
+    <string name="settings_clear_confirm">Delete every scanned item and recipe, and every bookmark, from this device? Scan again to get the items and recipes back.</string>
     <string name="settings_clear">Clear</string>
 
     <string name="cancel">Cancel</string>

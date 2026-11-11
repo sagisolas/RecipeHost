@@ -353,6 +353,7 @@ class ItemRecipesTest {
                                 stacks = listOf(DisplayStack("minecraft:stick", 1)),
                             ),
                         ),
+                    results = listOf(DisplayStack("minecraft:stick", 1)),
                 ),
                 variant.display,
             )

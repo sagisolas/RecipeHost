@@ -23,8 +23,10 @@ import androidx.navigation3.ui.NavDisplay
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.ic_bookmark
 import org.sagisolas.recipehost.shared.generated.resources.ic_build
 import org.sagisolas.recipehost.shared.generated.resources.ic_grid_view
+import org.sagisolas.recipehost.shared.generated.resources.tab_bookmarks
 import org.sagisolas.recipehost.shared.generated.resources.tab_items
 import org.sagisolas.recipehost.shared.generated.resources.tab_settings
 import org.sagisolas.recipehost.ui.designsystem.McBottomBar
@@ -109,6 +111,15 @@ private const val SWAP_MILLIS = 100
 @Composable
 private fun barItem(tab: Tab): McBottomBarItem =
     when (tab) {
-        Tab.Items -> McBottomBarItem(stringResource(Res.string.tab_items), painterResource(Res.drawable.ic_grid_view))
-        Tab.Settings -> McBottomBarItem(stringResource(Res.string.tab_settings), painterResource(Res.drawable.ic_build))
+        Tab.Items -> {
+            McBottomBarItem(stringResource(Res.string.tab_items), painterResource(Res.drawable.ic_grid_view))
+        }
+
+        Tab.Bookmarks -> {
+            McBottomBarItem(stringResource(Res.string.tab_bookmarks), painterResource(Res.drawable.ic_bookmark))
+        }
+
+        Tab.Settings -> {
+            McBottomBarItem(stringResource(Res.string.tab_settings), painterResource(Res.drawable.ic_build))
+        }
     }

@@ -15,17 +15,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.ItemTab
 import org.sagisolas.recipehost.presentation.ItemViewModel
 import org.sagisolas.recipehost.presentation.RecipeSectionUi
 import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.shared.generated.resources.Res
-import org.sagisolas.recipehost.shared.generated.resources.item_from_instances
+import org.sagisolas.recipehost.shared.generated.resources.ic_bookmark
+import org.sagisolas.recipehost.shared.generated.resources.ic_bookmark_filled
+import org.sagisolas.recipehost.shared.generated.resources.item_bookmark
 import org.sagisolas.recipehost.shared.generated.resources.item_no_recipes
 import org.sagisolas.recipehost.shared.generated.resources.item_tab_recipes
 import org.sagisolas.recipehost.shared.generated.resources.item_tab_uses
-import org.sagisolas.recipehost.ui.designsystem.McDropdown
+import org.sagisolas.recipehost.shared.generated.resources.item_unbookmark
+import org.sagisolas.recipehost.ui.designsystem.McIconButton
 import org.sagisolas.recipehost.ui.designsystem.McPager
 import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McTabs
@@ -37,6 +41,7 @@ import org.sagisolas.recipehost.ui.item.StackIcon
 import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.recipe.RecipeLayout
+import org.sagisolas.recipehost.ui.recipe.RecipeVariantDropdown
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
@@ -87,6 +92,7 @@ internal fun ItemScreen(
                             layoutImages,
                             onPrevious = { viewModel.previous(section.typeId) },
                             onNext = { viewModel.next(section.typeId) },
+                            onToggleBookmark = { viewModel.toggleBookmark(section.typeId) },
                             onSelectVariant = { viewModel.selectVariant(section.typeId, it) },
                             onOpen = open,
                         )
@@ -129,8 +135,8 @@ private fun Header(
 }
 
 /**
- * One recipe type: its type id with the pager at the end, the "From <instance>" choice when the
- * recipe has several bodies, then the recipe.
+ * One recipe type: its type id with the bookmark button and the pager at the end, the
+ * "From <instance>" choice when the recipe has several bodies, then the recipe.
  */
 @Composable
 private fun RecipeSection(
@@ -139,6 +145,7 @@ private fun RecipeSection(
     layoutImages: LayoutImageCache,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onToggleBookmark: () -> Unit,
     onSelectVariant: (Int) -> Unit,
     onOpen: (String) -> Unit,
 ) {
@@ -151,19 +158,21 @@ private fun RecipeSection(
                 style = McTheme.typography.small,
                 maxLines = 2,
             )
+            BookmarkButton(section.bookmarked, onToggleBookmark)
             McPager(section.index, section.count, onPrevious, onNext)
         }
-        if (section.variants.isNotEmpty()) {
-            // McDropdown's label isn't composable, so the labels are resolved here.
-            val labels = section.variants.map { stringResource(Res.string.item_from_instances, it.joinToString(", ")) }
-            McDropdown(
-                options = section.variants.indices.toList(),
-                selected = section.selectedVariant,
-                onSelect = onSelectVariant,
-                label = { labels[it] },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        RecipeVariantDropdown(section.variants, section.selectedVariant, onSelectVariant)
         RecipeLayout(section.layout, atlases, layoutImages, onOpen)
     }
+}
+
+/** Bookmarks the recipe shown, or removes its bookmark: filled while it has one. */
+@Composable
+private fun BookmarkButton(
+    bookmarked: Boolean,
+    onToggle: () -> Unit,
+) {
+    val icon = if (bookmarked) Res.drawable.ic_bookmark_filled else Res.drawable.ic_bookmark
+    val label = if (bookmarked) Res.string.item_unbookmark else Res.string.item_bookmark
+    McIconButton(painterResource(icon), stringResource(label), onToggle)
 }

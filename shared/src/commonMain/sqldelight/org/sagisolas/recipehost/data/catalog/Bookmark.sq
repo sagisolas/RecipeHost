@@ -1,0 +1,44 @@
+-- A recipe id the user saved for quick access while crafting. It points at no Mod release or
+-- Instance: it shows the recipe under the Version selection, and is hidden while no selected
+-- release has that recipe.
+CREATE TABLE bookmark (
+    recipe_id TEXT NOT NULL PRIMARY KEY,
+    added_at INTEGER NOT NULL
+);
+
+insert:
+INSERT OR IGNORE INTO bookmark(recipe_id, added_at) VALUES (:recipeId, :addedAt);
+
+delete:
+DELETE FROM bookmark WHERE recipe_id = :recipeId;
+
+isBookmarked:
+SELECT count(*) FROM bookmark WHERE recipe_id = :recipeId;
+
+ids:
+SELECT recipe_id FROM bookmark;
+
+-- The bookmarks that resolve under the Version selection.
+resolvedCount:
+SELECT count(DISTINCT bookmark.recipe_id) FROM bookmark
+JOIN recipe ON recipe.recipe_id = bookmark.recipe_id
+JOIN version_selection ON version_selection.release_id = recipe.release_id;
+
+-- The bookmarked recipes of the selected releases, one row per Instance, in the shape of
+-- Recipe.selectedProducing: newest bookmark first and, within one recipe, the most recently
+-- scanned Instance first. A recipe id's namespace owns it, so one release at most is selected for it.
+selectedBookmarked:
+SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+    recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
+    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
+FROM bookmark
+JOIN recipe ON recipe.recipe_id = bookmark.recipe_id
+LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+    AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
+JOIN version_selection ON version_selection.release_id = recipe.release_id
+JOIN instance ON instance.id = recipe.instance_id
+ORDER BY bookmark.added_at DESC, recipe.recipe_id, instance.last_scanned_at DESC, instance.name;
+
+clear:
+DELETE FROM bookmark;

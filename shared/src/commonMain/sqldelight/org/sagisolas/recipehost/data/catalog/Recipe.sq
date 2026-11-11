@@ -15,6 +15,9 @@ CREATE TABLE recipe (
 
 CREATE INDEX recipe_by_instance_release ON recipe(instance_id, release_id);
 
+-- For finding a bookmarked recipe by its id.
+CREATE INDEX recipe_by_recipe_id ON recipe(recipe_id);
+
 -- For deleting the layouts no recipe points at.
 CREATE INDEX recipe_by_layout ON recipe(layout_key);
 

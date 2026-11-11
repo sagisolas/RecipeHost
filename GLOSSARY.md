@@ -100,6 +100,10 @@ _Avoid_: World, modpack, profile
 **Version selection**:
 The one `Mod release` currently chosen for each mod; what the item grid and recipe views show. Set to the releases of the latest `Scan`, then changed by the user picking a version in the mod list. Mods absent from a `Scan` keep their previous choice.
 
+**Bookmark**:
+A recipe id the user saved for quick access while crafting, listed in the Bookmarks tab newest first. It shows the recipe under the current `Version selection`, and is hidden (but kept) while no selected release has that recipe. Short-lived: cleared together with the `Catalog`.
+_Avoid_: Favorite, star
+
 ### Mod internals
 
 **Platform (class)**:

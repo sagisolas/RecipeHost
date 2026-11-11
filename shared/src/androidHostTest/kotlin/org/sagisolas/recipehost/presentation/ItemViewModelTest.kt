@@ -30,6 +30,7 @@ import kotlin.test.assertIs
 class ItemViewModelTest {
     private val recipes = MutableStateFlow<List<RecipeGroup>>(emptyList())
     private val uses = MutableStateFlow<List<RecipeGroup>>(emptyList())
+    private val bookmarks = MutableStateFlow<Set<String>>(emptySet())
 
     /** Every id resolves to an Item named after its path, except those in [unknown]. */
     private val unknown = mutableSetOf<String>()
@@ -46,6 +47,11 @@ class ItemViewModelTest {
                 itemId = itemId,
                 itemRecipes = { _, direction -> if (direction == RecipeDirection.Recipes) recipes else uses },
                 resolveStacks = { ids -> MutableStateFlow(ids.associateWith(::resolutionOf)) },
+                bookmarkedIds = bookmarks,
+                toggleRecipeBookmark = { id ->
+                    bookmarks.value =
+                        if (id in bookmarks.value) bookmarks.value - id else bookmarks.value + id
+                },
             )
         // The state is shared while the screen collects it, as the UI does.
         backgroundScope.launch { viewModel.state.collect {} }
@@ -258,6 +264,7 @@ class ItemViewModelTest {
                                 stacks = listOf(DisplayStack("minecraft:stick", 4)),
                             ),
                         ),
+                    results = listOf(DisplayStack("minecraft:stick", 4)),
                 )
             recipes.value =
                 listOf(
@@ -387,6 +394,68 @@ class ItemViewModelTest {
                 viewModel.state.value.sections
                     .map { it.recipeId },
             )
+        }
+
+    @Test
+    fun aSectionIsBookmarkedWhenTheRecipeItShowsIs() =
+        runTest {
+            recipes.value =
+                listOf(
+                    group(
+                        "minecraft:crafting_shaped",
+                        recipe("minecraft:stick"),
+                        recipe("minecraft:stick_from_bamboo"),
+                    ),
+                )
+            bookmarks.value = setOf("minecraft:stick_from_bamboo")
+            val viewModel = viewModel()
+            assertEquals(
+                false,
+                viewModel.state.value.sections
+                    .single()
+                    .bookmarked,
+            )
+
+            viewModel.next("minecraft:crafting_shaped")
+            runCurrent()
+
+            assertEquals(
+                true,
+                viewModel.state.value.sections
+                    .single()
+                    .bookmarked,
+                "the flag follows the pager",
+            )
+        }
+
+    @Test
+    fun togglingABookmarkBookmarksTheRecipeTheSectionShows() =
+        runTest {
+            recipes.value =
+                listOf(
+                    group(
+                        "minecraft:crafting_shaped",
+                        recipe("minecraft:stick"),
+                        recipe("minecraft:stick_from_bamboo"),
+                    ),
+                )
+            val viewModel = viewModel()
+            viewModel.next("minecraft:crafting_shaped")
+            runCurrent()
+
+            viewModel.toggleBookmark("minecraft:crafting_shaped")
+            runCurrent()
+            assertEquals(setOf("minecraft:stick_from_bamboo"), bookmarks.value)
+            assertEquals(
+                true,
+                viewModel.state.value.sections
+                    .single()
+                    .bookmarked,
+            )
+
+            viewModel.toggleBookmark("minecraft:crafting_shaped")
+            runCurrent()
+            assertEquals(emptySet(), bookmarks.value)
         }
 }
 

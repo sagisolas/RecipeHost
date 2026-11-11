@@ -9,10 +9,13 @@ internal sealed interface RecipeDisplay {
     /** Every item id the display shows, each alternative included, in display order. */
     val itemIds: List<String>
 
+    /** The recipe's results, whether or not a `Recipe slot` shows them; empty when it has none. */
+    val results: List<DisplayStack>
+
     /** The recipe's input Slots and its results, as the generic layout lays them out. */
     data class Generic(
         val inputs: List<List<DisplayStack>>,
-        val results: List<DisplayStack>,
+        override val results: List<DisplayStack>,
     ) : RecipeDisplay {
         override val itemIds get() = (inputs.flatten() + results).map { it.itemId }
     }
@@ -23,6 +26,7 @@ internal sealed interface RecipeDisplay {
         val width: Int,
         val height: Int,
         val slots: List<DisplaySlot>,
+        override val results: List<DisplayStack>,
     ) : RecipeDisplay {
         override val itemIds get() = slots.flatMap { slot -> slot.stacks.map { it.itemId } }
     }

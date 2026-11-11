@@ -3,26 +3,21 @@ package org.sagisolas.recipehost.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
-import org.sagisolas.recipehost.domain.recipes.DisplayStack
 import org.sagisolas.recipehost.domain.recipes.RecipeDirection
-import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeGroup
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
-import kotlin.time.Duration.Companion.milliseconds
 
 /** What the Item screen shows: the Item in its [header], and the [tab]'s sections. */
 internal data class ItemUiState(
@@ -37,7 +32,8 @@ internal enum class ItemTab { Recipes, Uses }
 
 /**
  * One recipe type's section, headed by [title]: the type's name, or its [typeId] when the `Catalog`
- * has no name for it. It shows the recipe at [index] of its [count], in its [selectedVariant].
+ * has no name for it. It shows the recipe at [index] of its [count], in its [selectedVariant];
+ * [bookmarked] says whether that recipe has a `Bookmark`.
  * [variants] lists each variant's Instance names, newest first, and is empty when the recipe has
  * only one body, so there is nothing to choose.
  */
@@ -50,45 +46,7 @@ internal data class RecipeSectionUi(
     val variants: List<List<String>>,
     val selectedVariant: Int,
     val layout: RecipeLayoutUi,
-)
-
-/**
- * How one recipe is drawn, chosen per recipe: [Captured] when it has a stored `Recipe layout`
- * (ADR 0015), [Generic] otherwise.
- */
-internal sealed interface RecipeLayoutUi {
-    /** The input slots in a wrapped row, an arrow, then the results. A `null` input is an empty slot. */
-    data class Generic(
-        val inputs: List<StackUi?>,
-        val results: List<StackUi>,
-    ) : RecipeLayoutUi
-
-    /**
-     * The layout's image, loaded by [key], [width] by [height] GUI px, with the recipe's stacks
-     * in its [slots].
-     */
-    data class Captured(
-        val key: String,
-        val width: Int,
-        val height: Int,
-        val slots: List<LayoutSlotUi>,
-    ) : RecipeLayoutUi
-}
-
-/** A `Recipe slot`'s rectangle in GUI px, with the stack it shows now; `null` when it's empty. */
-internal data class LayoutSlotUi(
-    val x: Int,
-    val y: Int,
-    val width: Int,
-    val height: Int,
-    val stack: StackUi?,
-)
-
-/** An ItemStack as shown: [item] is `null` when it doesn't resolve, so its id shows instead. */
-internal data class StackUi(
-    val itemId: String,
-    val count: Int,
-    val item: CatalogItem?,
+    val bookmarked: Boolean = false,
 )
 
 /** An Item's screen: its recipes and uses. */
@@ -97,6 +55,8 @@ internal class ItemViewModel(
     itemId: String,
     itemRecipes: (String, RecipeDirection) -> Flow<List<RecipeGroup>>,
     private val resolveStacks: (List<String>) -> Flow<Map<String, StackResolution>>,
+    bookmarkedIds: Flow<Set<String>>,
+    private val toggleRecipeBookmark: suspend (String) -> Unit,
 ) : ViewModel() {
     private val tab = MutableStateFlow(ItemTab.Recipes)
 
@@ -128,21 +88,13 @@ internal class ItemViewModel(
      */
     private val resolved: Flow<Resolved> =
         placed.flatMapLatest { (tab, sections) ->
-            resolve(sections.flatMap { it.variant.display.itemIds }.distinct()).map { Resolved(tab, sections, it) }
-        }
-
-    /**
-     * The screen's one clock: every Slot with alternatives shows alternative `tick % count`, so
-     * they all turn together. It runs only while the screen collects [state].
-     */
-    private val ticks: Flow<Int> =
-        flow {
-            var tick = 0
-            while (true) {
-                emit(tick++)
-                delay(ALTERNATIVE_SHOW_TIME)
+            resolveItems(sections.flatMap { it.variant.display.itemIds }.distinct(), resolveStacks).map {
+                Resolved(tab, sections, it)
             }
         }
+
+    /** The screen's one clock; it runs only while the screen collects [state]. */
+    private val ticks: Flow<Int> = alternativeTicks()
 
     private val header: Flow<StackUi> =
         resolveStacks(listOf(itemId)).map {
@@ -150,8 +102,12 @@ internal class ItemViewModel(
         }
 
     val state: StateFlow<ItemUiState> =
-        combine(header, resolved, ticks) { header, resolved, tick ->
-            ItemUiState(header, resolved.tab, resolved.sections.map { sectionOf(it, resolved.items, tick) })
+        combine(header, resolved, bookmarkedIds, ticks) { header, resolved, bookmarked, tick ->
+            ItemUiState(
+                header,
+                resolved.tab,
+                resolved.sections.map { sectionOf(it, resolved.items, tick, it.recipe.recipeId in bookmarked) },
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ItemUiState(null))
 
     fun selectTab(tab: ItemTab) {
@@ -173,6 +129,12 @@ internal class ItemViewModel(
         positions.update { it + (key to (it[key] ?: Position()).copy(variant = index)) }
     }
 
+    /** Bookmarks the recipe [typeId]'s section shows, or removes its bookmark if it has one. */
+    fun toggleBookmark(typeId: String) {
+        val section = state.value.sections.firstOrNull { it.typeId == typeId } ?: return
+        viewModelScope.launch { toggleRecipeBookmark(section.recipeId) }
+    }
+
     private fun page(
         typeId: String,
         by: Int,
@@ -181,14 +143,6 @@ internal class ItemViewModel(
         val key = SectionKey(tab.value, typeId)
         positions.update { it + (key to Position(page = (section.index + by).coerceIn(0, section.count - 1))) }
     }
-
-    /** Each of [ids] with its Item, or `null` when it doesn't resolve. */
-    private fun resolve(ids: List<String>): Flow<Map<String, CatalogItem?>> =
-        if (ids.isEmpty()) {
-            flowOf(emptyMap())
-        } else {
-            resolveStacks(ids).map { resolutions -> ids.associateWith { id -> resolutions[id]?.let(::itemOf) } }
-        }
 }
 
 /** A section of one tab. */
@@ -233,65 +187,15 @@ private fun sectionOf(
     placed: PlacedSection,
     items: Map<String, CatalogItem?>,
     tick: Int,
+    bookmarked: Boolean,
 ) = RecipeSectionUi(
     typeId = placed.group.typeId,
     title = placed.group.name ?: placed.group.typeId,
     index = placed.index,
     count = placed.group.recipes.size,
     recipeId = placed.recipe.recipeId,
-    variants =
-        placed.recipe.variants
-            .takeIf { it.size > 1 }
-            ?.map { it.instanceNames } ?: emptyList(),
+    variants = variantChoicesOf(placed.recipe.variants),
     selectedVariant = placed.variantIndex,
     layout = layoutOf(placed.variant.display, items, tick),
+    bookmarked = bookmarked,
 )
-
-/** [display] at [tick]: each slot shows its alternative `tick % count`. */
-private fun layoutOf(
-    display: RecipeDisplay,
-    items: Map<String, CatalogItem?>,
-    tick: Int,
-): RecipeLayoutUi =
-    when (display) {
-        is RecipeDisplay.Generic -> {
-            RecipeLayoutUi.Generic(
-                inputs = display.inputs.map { stacks -> stacks.alternativeAt(tick)?.let { stackOf(it, items) } },
-                results = display.results.map { stackOf(it, items) },
-            )
-        }
-
-        is RecipeDisplay.Captured -> {
-            RecipeLayoutUi.Captured(
-                key = display.key,
-                width = display.width,
-                height = display.height,
-                slots =
-                    display.slots.map { slot ->
-                        LayoutSlotUi(
-                            slot.x,
-                            slot.y,
-                            slot.width,
-                            slot.height,
-                            slot.stacks.alternativeAt(tick)?.let { stackOf(it, items) },
-                        )
-                    },
-            )
-        }
-    }
-
-private fun stackOf(
-    stack: DisplayStack,
-    items: Map<String, CatalogItem?>,
-) = StackUi(stack.itemId, count = stack.count, item = items[stack.itemId])
-
-/** The alternative shown at [tick], or `null` for an empty slot. */
-private fun List<DisplayStack>.alternativeAt(tick: Int): DisplayStack? = if (isEmpty()) null else this[tick % size]
-
-private fun itemOf(resolution: StackResolution): CatalogItem? = (resolution as? StackResolution.Resolved)?.item
-
-/** How long each alternative of a Slot shows. */
-private val ALTERNATIVE_SHOW_TIME = 1_000.milliseconds
-
-/** Keeps the state shared across a configuration change, which briefly stops the collection. */
-private const val STOP_TIMEOUT_MILLIS = 5_000L

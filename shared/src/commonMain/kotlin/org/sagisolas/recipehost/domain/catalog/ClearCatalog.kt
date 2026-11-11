@@ -17,6 +17,8 @@ internal class ClearCatalog(
     suspend operator fun invoke() =
         withContext(context) {
             catalog.transaction {
+                // Bookmarks are short-lived: they go with the recipes they point at.
+                catalog.bookmarkQueries.clear()
                 catalog.recipeQueries.clearOutputs()
                 catalog.recipeQueries.clearInputs()
                 catalog.recipeQueries.clear()

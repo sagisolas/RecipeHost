@@ -20,9 +20,11 @@ import org.sagisolas.recipehost.domain.catalog.IconAtlases
 import org.sagisolas.recipehost.domain.catalog.ItemSearch
 import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.domain.catalog.ResolveStacks
+import org.sagisolas.recipehost.domain.recipes.Bookmarks
 import org.sagisolas.recipehost.domain.recipes.ItemRecipes
 import org.sagisolas.recipehost.domain.recipes.LayoutImages
 import org.sagisolas.recipehost.platform.QrScanner
+import org.sagisolas.recipehost.presentation.BookmarksViewModel
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
 import org.sagisolas.recipehost.presentation.ItemViewModel
 import org.sagisolas.recipehost.presentation.ModFilterRequests
@@ -34,6 +36,7 @@ import org.sagisolas.recipehost.presentation.SettingsViewModel
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
+import org.sagisolas.recipehost.ui.navigation.BookmarksEmptiness
 import org.sagisolas.recipehost.ui.navigation.CatalogEmptiness
 import kotlin.time.Clock
 
@@ -66,10 +69,14 @@ class AppGraph(
     internal val modList = ModList(catalog, Dispatchers.IO)
     internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
     internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
+    private val bookmarks = Bookmarks(catalog, Dispatchers.IO, Clock.System)
     private val catalogStats = CatalogStats(catalog, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
     internal val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }
+
+    /** Read on the main thread, only on a fresh start: a count over the bookmarks that resolve. */
+    internal val bookmarksEmptiness = BookmarksEmptiness(bookmarks::isEmpty)
 
     /** Where the wrapper sends `recipehost://pair` deep links. */
     val pairing = PairingEntry(scans, qrScanner)
@@ -108,7 +115,10 @@ class AppGraph(
 
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
 
-    internal fun itemViewModel(itemId: String) = ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke)
+    internal fun itemViewModel(itemId: String) =
+        ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke, bookmarks.ids, bookmarks::toggle)
+
+    internal fun bookmarksViewModel() = BookmarksViewModel(bookmarks.recipes, resolveStacks::invoke, bookmarks::remove)
 
     internal fun settingsViewModel() = SettingsViewModel(scans::clearCatalog, scans.progress, catalogStats.counts)
 }

@@ -20,6 +20,7 @@ import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.Tab
 import org.sagisolas.recipehost.ui.navigation.noTransition
 import org.sagisolas.recipehost.ui.navigation.rememberNavigator
+import org.sagisolas.recipehost.ui.screens.BookmarksScreen
 import org.sagisolas.recipehost.ui.screens.ItemGridScreen
 import org.sagisolas.recipehost.ui.screens.ItemScreen
 import org.sagisolas.recipehost.ui.screens.ModListScreen
@@ -32,9 +33,10 @@ import org.sagisolas.recipehost.ui.screens.WelcomeScreen
 fun App(graph: AppGraph) {
     AppTheme {
         val navigator =
-            rememberNavigator {
-                if (graph.catalogEmptiness.isEmpty()) Route.Welcome else Route.Root
-            }
+            rememberNavigator(
+                startRoute = { if (graph.catalogEmptiness.isEmpty()) Route.Welcome else Route.Root },
+                startTab = { if (graph.bookmarksEmptiness.isEmpty()) Tab.Items else Tab.Bookmarks },
+            )
         LaunchedEffect(navigator) {
             graph.pairing.progressRequests.collect { navigator.showScanProgress() }
         }
@@ -98,6 +100,15 @@ private fun TabScreen(
         is Screen.Item -> {
             ItemScreen(
                 viewModel { graph.itemViewModel(screen.itemId) },
+                navigator,
+                graph.iconAtlases,
+                graph.layoutImages,
+            )
+        }
+
+        Screen.Bookmarks -> {
+            BookmarksScreen(
+                viewModel { graph.bookmarksViewModel() },
                 navigator,
                 graph.iconAtlases,
                 graph.layoutImages,
