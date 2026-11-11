@@ -1,13 +1,13 @@
 # RecipeHost
 
-An offline mobile viewer for Minecraft recipes. A Fabric & Forge **companion mod** extracts recipes and icons from the player's running Minecraft client and ships them to the mobile app over the LAN. 
+An offline mobile viewer for Minecraft recipes. A Fabric & NeoForge **companion mod** extracts recipes and icons from the player's running Minecraft client and ships them to the mobile app over the LAN. 
 
 ## Language
 
 ### Roles
 
 **Companion mod**:
-The Fabric mod running inside the player's Minecraft client. Produces recipe and icon data; hosts the TCP listener.
+The Fabric or NeoForge mod running inside the player's Minecraft client. Produces recipe and icon data; hosts the TCP listener.
 _Avoid_: Server, plugin, sidecar
 
 **Mobile app**:
@@ -107,7 +107,7 @@ _Avoid_: Favorite, star
 ### Mod internals
 
 **Platform (class)**:
-The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` (later `:mod:neoforge`). Exposes only the operations the companion mod uses and can't do portably against Mojmap-named Minecraft APIs: mod list, Minecraft version, screen-init and world-leave events. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
+The thin Java class in `:mod:common` whose static methods are annotated `@ExpectPlatform` and resolved at compile time to per-loader implementations in `:mod:fabric` and `:mod:neoforge`. Exposes only the operations the companion mod uses and can't do portably against Mojmap-named Minecraft APIs: mod list, Minecraft version, screen-init and world-leave events. Everything else — registry walk, recipe assembly, icon rendering, TCP listener, QR screen — lives in `:mod:common` calling Minecraft directly.
 _Avoid_: PlatformHooks, PlatformBridge
 
 **Recipe candidate**:

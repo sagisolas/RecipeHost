@@ -10,7 +10,7 @@ import net.minecraft.client.gui.screens.Screen;
 /**
  * Loader-agnostic access to the handful of operations the companion mod can't do
  * portably against Mojmap-named Minecraft APIs. Each static here is wired at
- * compile time to a per-loader implementation (see :mod:fabric).
+ * compile time to a per-loader implementation (see :mod:fabric and :mod:neoforge).
  *
  * See docs/adr/0005-architectury-loom-for-loader-abstraction.md.
  */
