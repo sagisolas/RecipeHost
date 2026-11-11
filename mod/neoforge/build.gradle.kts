@@ -52,7 +52,7 @@ dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
     mappings(loom.officialMojangMappings())
 
-    "neoForge"("net.neoforged:neoforge:${providers.gradleProperty("neoforge_version").get()}")
+    neoForge("net.neoforged:neoforge:${providers.gradleProperty("neoforge_version").get()}")
 
     common(project(path = ":mod:common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionNeoForge"))
@@ -60,19 +60,19 @@ dependencies {
     implementation(project(":protocol"))
     include(project(":protocol"))
     // :protocol's runtime: pure Java, so the mod needs no Kotlin stdlib (ADR 0006, ADR 0007).
-    "include"(libs.protobuf.javalite)
+    include(libs.protobuf.javalite)
     implementation(libs.qrcodegen)
-    "include"(libs.qrcodegen)
+    include(libs.qrcodegen)
     // Dev runs only: the game layer doesn't see plain classpath jars; the shipped jar carries
     // them jar-in-jar (include) instead.
     forgeRuntimeLibrary(project(":protocol"))
-    "forgeRuntimeLibrary"(libs.protobuf.javalite)
-    "forgeRuntimeLibrary"(libs.qrcodegen)
+    forgeRuntimeLibrary(libs.protobuf.javalite)
+    forgeRuntimeLibrary(libs.qrcodegen)
 
     // Dev client only, never shipped: `-Pmod_dev_emi=true` runs it with EMI, so both
     // recipe sources (ADR 0008) can be tried.
     if (providers.gradleProperty("mod_dev_emi").orNull.toBoolean()) {
-        "modLocalRuntime"("dev.emi:emi-neoforge:${providers.gradleProperty("mod_emi_version").get()}")
+        modLocalRuntime("dev.emi:emi-neoforge:${providers.gradleProperty("mod_emi_version").get()}")
     }
 }
 

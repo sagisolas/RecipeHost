@@ -47,11 +47,11 @@ dependencies {
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionFabric"))
 
     implementation(project(":protocol"))
-    "include"(project(":protocol"))
+    include(project(":protocol"))
     // :protocol's runtime: pure Java, so the mod needs no Kotlin stdlib (ADR 0006, ADR 0007).
-    "include"(libs.protobuf.javalite)
+    include(libs.protobuf.javalite)
     implementation(libs.qrcodegen)
-    "include"(libs.qrcodegen)
+    include(libs.qrcodegen)
 }
 
 java {
