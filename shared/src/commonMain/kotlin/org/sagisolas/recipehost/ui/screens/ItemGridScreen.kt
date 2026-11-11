@@ -23,13 +23,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.grid_mods
 import org.sagisolas.recipehost.shared.generated.resources.grid_scan
+import org.sagisolas.recipehost.shared.generated.resources.grid_search_clear
 import org.sagisolas.recipehost.shared.generated.resources.grid_search_hint
+import org.sagisolas.recipehost.shared.generated.resources.ic_backspace
 import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McPanel
@@ -37,6 +40,7 @@ import org.sagisolas.recipehost.ui.designsystem.McProgressBar
 import org.sagisolas.recipehost.ui.designsystem.McSlotGrid
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTextField
+import org.sagisolas.recipehost.ui.designsystem.McTextFieldIconButton
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcTiledBackground
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
@@ -73,6 +77,18 @@ internal fun ItemGridScreen(
                 viewModel::onSearchTextChange,
                 Modifier.weight(1f),
                 hint = stringResource(Res.string.grid_search_hint),
+                trailing =
+                    if (state.searchText.isEmpty()) {
+                        null
+                    } else {
+                        {
+                            McTextFieldIconButton(
+                                painterResource(Res.drawable.ic_backspace),
+                                stringResource(Res.string.grid_search_clear),
+                                onClick = { viewModel.onSearchTextChange("") },
+                            )
+                        }
+                    },
             )
             McButton(stringResource(Res.string.grid_scan), onClick = viewModel::scan)
         }

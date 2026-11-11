@@ -1,9 +1,13 @@
 package org.sagisolas.recipehost.ui.designsystem
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,11 +17,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 
 /**
  * A single-line text field [McDimens.WidgetHeight] tall, showing [value] and reporting edits
- * through [onValueChange]. Give it a width.
+ * through [onValueChange]. Give it a width. [trailing], usually an [McTextFieldIconButton], sits
+ * at its right end.
  */
 @Composable
 internal fun McTextField(
@@ -26,6 +35,7 @@ internal fun McTextField(
     modifier: Modifier = Modifier,
     hint: String = "",
     enabled: Boolean = true,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val colors = McTheme.colors
@@ -42,7 +52,7 @@ internal fun McTextField(
         singleLine = true,
         cursorBrush = SolidColor(colors.textOnDark),
         decorationBox = { innerTextField ->
-            Box(
+            Row(
                 modifier =
                     Modifier
                         .fillMaxSize()
@@ -52,14 +62,51 @@ internal fun McTextField(
                                 focused -> skin.textFieldFocused
                                 else -> skin.textField
                             },
-                        ).padding(horizontal = McDimens.WidgetPadding),
-                contentAlignment = Alignment.CenterStart,
+                        ).padding(
+                            start = McDimens.WidgetPadding,
+                            end =
+                                if (trailing ==
+                                    null
+                                ) {
+                                    McDimens.WidgetPadding
+                                } else {
+                                    0.dp
+                                },
+                        ),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (value.isEmpty() && hint.isNotEmpty()) {
-                    McText(hint, color = colors.textHint, maxLines = 1)
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty() && hint.isNotEmpty()) {
+                        McText(hint, color = colors.textHint, maxLines = 1)
+                    }
+                    innerTextField()
                 }
-                innerTextField()
+                trailing?.invoke()
             }
         },
     )
+}
+
+/**
+ * A borderless square [icon] as tall as an [McTextField], for its `trailing` end (clearing it,
+ * say); [contentDescription] names what it does.
+ */
+@Composable
+internal fun McTextFieldIconButton(
+    icon: Painter,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier.size(McDimens.WidgetHeight).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(McDimens.ButtonIconSize),
+            colorFilter = ColorFilter.tint(McTheme.colors.textOnDark),
+        )
+    }
 }

@@ -62,6 +62,16 @@ internal fun McGallery(modifier: Modifier = Modifier) {
             Section("McTextField") {
                 var text by remember { mutableStateOf("") }
                 McTextField(text, { text = it }, Modifier.width(240.dp), hint = "Search items")
+                var clearable by remember { mutableStateOf("Clear me") }
+                val missingTexture = McTheme.skin.missingTexture
+                val icon =
+                    remember(missingTexture) { BitmapPainter(missingTexture, filterQuality = FilterQuality.None) }
+                McTextField(
+                    clearable,
+                    { clearable = it },
+                    Modifier.width(240.dp),
+                    trailing = { McTextFieldIconButton(icon, "Clear", onClick = { clearable = "" }) },
+                )
                 McTextField("Disabled", {}, Modifier.width(240.dp), enabled = false)
             }
 
