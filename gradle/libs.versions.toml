@@ -22,6 +22,7 @@ wire = "7.1.2"
 protobuf = "4.29.3"
 protobufPlugin = "0.9.5"
 qrcodegen = "1.8.0"
+proguard = "7.10.0"
 sqldelight = "2.4.1"
 playServices-codeScanner = "16.1.0"
 spotless = "8.11.0"
@@ -60,6 +61,7 @@ sqldelight-androidDriver = { module = "app.cash.sqldelight:android-driver", vers
 sqldelight-nativeDriver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-sqliteDriver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 qrcodegen = { module = "io.nayuki:qrcodegen", version.ref = "qrcodegen" }
+proguard-gradle = { module = "com.guardsquare:proguard-gradle", version.ref = "proguard" }
 playServices-codeScanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "playServices-codeScanner" }
 
 [plugins]
@@ -69,9 +71,12 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-architecturyLoom = { id = "dev.architectury.loom", version.ref = "architecturyLoom" }
+# No version: buildSrc loads Loom (versions.architecturyLoom) for the whole build.
+architecturyLoom = { id = "dev.architectury.loom" }
 architecturyPlugin = { id = "architectury-plugin", version.ref = "architecturyPlugin" }
 wire = { id = "com.squareup.wire", version.ref = "wire" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+# Convention plugin in buildSrc: how a loader module builds its shipped jar.
+recipehostLoaderJar = { id = "recipehost.loader-jar" }

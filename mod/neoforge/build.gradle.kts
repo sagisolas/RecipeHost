@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.architecturyLoom)
     alias(libs.plugins.architecturyPlugin)
+    alias(libs.plugins.recipehostLoaderJar)
 }
 
 architectury {
@@ -31,22 +32,12 @@ loom {
     silentMojangMappingsLicense()
 }
 
-val common =
-    configurations.create("common") {
-        isCanBeConsumed = false
-        isCanBeResolved = true
-    }
-val shadowBundle =
-    configurations.create("shadowBundle") {
-        isCanBeConsumed = false
-        isCanBeResolved = true
-    }
-
-configurations.named("compileClasspath").configure { extendsFrom(common) }
-configurations.named("runtimeClasspath").configure { extendsFrom(common) }
 configurations.matching { it.name == "developmentNeoForge" }.configureEach {
-    extendsFrom(common)
+    extendsFrom(configurations["common"])
 }
+// Dev runs only: the game layer doesn't see plain classpath jars; the shipped jar carries the
+// libraries inside it instead.
+configurations.named("forgeRuntimeLibrary") { extendsFrom(configurations["bundled"]) }
 
 dependencies {
     minecraft("com.mojang:minecraft:${providers.gradleProperty("mod_minecraft_version").get()}")
@@ -57,17 +48,10 @@ dependencies {
     common(project(path = ":mod:common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionNeoForge"))
 
-    implementation(project(":protocol"))
-    include(project(":protocol"))
-    // :protocol's runtime: pure Java, so the mod needs no Kotlin stdlib (ADR 0006, ADR 0007).
-    include(libs.protobuf.javalite)
-    implementation(libs.qrcodegen)
-    include(libs.qrcodegen)
-    // Dev runs only: the game layer doesn't see plain classpath jars; the shipped jar carries
-    // them jar-in-jar (include) instead.
-    forgeRuntimeLibrary(project(":protocol"))
-    forgeRuntimeLibrary(libs.protobuf.javalite)
-    forgeRuntimeLibrary(libs.qrcodegen)
+    // Packed into the shipped jar, stripped and relocated (recipehost.loader-jar).
+    // :protocol brings its runtime, pure Java, so the mod needs no Kotlin stdlib (ADR 0006, ADR 0007).
+    bundled(project(":protocol"))
+    bundled(libs.qrcodegen)
 
     // Dev client only, never shipped: `-Pmod_dev_emi=true` runs it with EMI, so both
     // recipe sources (ADR 0008) can be tried.
@@ -84,21 +68,6 @@ java {
 
 tasks.withType<JavaCompile>().configureEach {
     options.release = 21
-}
-
-// The shipped jar must hold :mod:common's classes too. Architectury's template packs them with
-// the Shadow plugin; a plain Jar does the same: this module's classes plus common's production
-// output (shadowBundle), which remapJar then remaps into the shipped jar.
-val bundledJar =
-    tasks.register<Jar>("bundledJar") {
-        archiveClassifier = "dev-bundled"
-        from(zipTree(tasks.jar.flatMap { it.archiveFile }))
-        from(shadowBundle.elements.map { files -> files.map { zipTree(it) } })
-        exclude("architectury.common.json", "META-INF/MANIFEST.MF")
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    }
-tasks.remapJar {
-    inputFile = bundledJar.flatMap { it.archiveFile }
 }
 
 tasks.processResources {
