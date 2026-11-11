@@ -12,6 +12,8 @@ internal data class McColors(
     val text: Color = Color(0xFF404040),
     /** Text on a dark background, such as the screen background every screen sits on. */
     val textOnDark: Color = Color(0xFFFFFFFF),
+    /** Secondary text on a dark background, less prominent than [textOnDark]: footers, fine print. */
+    val textOnDarkMuted: Color = Color(0xFF9A9A9A),
     val textDisabled: Color = Color(0xFFA0A0A0),
     val textHint: Color = Color(0xFF707070),
 ) {

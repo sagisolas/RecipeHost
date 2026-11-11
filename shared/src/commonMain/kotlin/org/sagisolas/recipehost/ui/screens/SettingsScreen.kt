@@ -1,9 +1,11 @@
 package org.sagisolas.recipehost.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,12 +14,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.sagisolas.recipehost.AppInfo
 import org.sagisolas.recipehost.domain.catalog.CatalogCounts
 import org.sagisolas.recipehost.presentation.ByteSize
 import org.sagisolas.recipehost.presentation.ByteUnit
@@ -25,6 +30,7 @@ import org.sagisolas.recipehost.presentation.SettingsViewModel
 import org.sagisolas.recipehost.presentation.byteSizeOf
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.cancel
+import org.sagisolas.recipehost.shared.generated.resources.settings_author
 import org.sagisolas.recipehost.shared.generated.resources.settings_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_catalog
@@ -35,7 +41,9 @@ import org.sagisolas.recipehost.shared.generated.resources.settings_mods
 import org.sagisolas.recipehost.shared.generated.resources.settings_mods_section
 import org.sagisolas.recipehost.shared.generated.resources.settings_open
 import org.sagisolas.recipehost.shared.generated.resources.settings_recipes
+import org.sagisolas.recipehost.shared.generated.resources.settings_source_code
 import org.sagisolas.recipehost.shared.generated.resources.settings_storage_used
+import org.sagisolas.recipehost.shared.generated.resources.settings_version
 import org.sagisolas.recipehost.shared.generated.resources.size_bytes
 import org.sagisolas.recipehost.shared.generated.resources.size_gigabytes
 import org.sagisolas.recipehost.shared.generated.resources.size_kilobytes
@@ -49,7 +57,8 @@ import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
  * The Settings tab's root: the "Mods" section, whose Open calls [onOpenModVersions], and the
- * "Catalog" section with its counts and "Clear Catalog", which asks for confirmation first.
+ * "Catalog" section with its counts and "Clear Catalog", which asks for confirmation first, and the
+ * app's info at the bottom.
  * Calls [onCleared] once the `Catalog` is empty.
  */
 @Composable
@@ -73,6 +82,8 @@ internal fun SettingsScreen(
     ) {
         ModsSection(onOpenModVersions)
         CatalogSection(state.counts, state.clearEnabled, onClear = viewModel::requestClear)
+        Spacer(Modifier.weight(1f))
+        AppInfoFooter()
     }
     if (state.confirming) {
         ClearCatalogDialog(onConfirm = viewModel::confirmClear, onCancel = viewModel::cancelClear)
@@ -118,6 +129,40 @@ private fun CatalogSection(
             enabled = clearEnabled,
         )
     }
+}
+
+/**
+ * The app's author with a mailto: link to their email, its version and a link to its source code,
+ * in muted text.
+ */
+@Composable
+private fun AppInfoFooter() {
+    val style = McTheme.typography.small
+    val color = McTheme.colors.textOnDarkMuted
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row {
+            McText(stringResource(Res.string.settings_author, AppInfo.AUTHOR) + " (", color = color, style = style)
+            FooterLink(AppInfo.AUTHOR_EMAIL, "mailto:${AppInfo.AUTHOR_EMAIL}")
+            McText(")", color = color, style = style)
+        }
+        McText(stringResource(Res.string.settings_version, AppInfo.VERSION), color = color, style = style)
+        FooterLink(stringResource(Res.string.settings_source_code), AppInfo.SOURCE_URL)
+    }
+}
+
+/** Underlined muted [text] that opens [uri]. */
+@Composable
+private fun FooterLink(
+    text: String,
+    uri: String,
+) {
+    val uriHandler = LocalUriHandler.current
+    McText(
+        text,
+        modifier = Modifier.clickable { uriHandler.openUri(uri) },
+        color = McTheme.colors.textOnDarkMuted,
+        style = McTheme.typography.small.copy(textDecoration = TextDecoration.Underline),
+    )
 }
 
 /** [label] on the left, [count] on the right; a dash until it's counted. */

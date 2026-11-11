@@ -40,7 +40,7 @@ android {
                 .get()
                 .toInt()
         versionCode = 1
-        versionName = "1.0"
+        versionName = providers.gradleProperty("app_version").get()
     }
     androidResources {
         // The app's strings are English only; drop the translations libraries bring in.

@@ -11,13 +11,21 @@ plugins {
     alias(libs.plugins.buildconfig)
 }
 
-// Mod download pages from gradle.properties, linked from the Welcome screen.
+// Mod download pages from gradle.properties, linked from the Welcome screen, and the app's info.
 buildConfig {
     packageName("org.sagisolas.recipehost")
     className("ModLinks")
     useKotlinOutput { internalVisibility = true }
     buildConfigField("MODRINTH_URL", providers.gradleProperty("mod_modrinth_url"))
     buildConfigField("CURSEFORGE_URL", providers.gradleProperty("mod_curseforge_url"))
+
+    // App info from gradle.properties, shown in the Settings screen's footer.
+    forClass("AppInfo") {
+        buildConfigField("VERSION", providers.gradleProperty("app_version"))
+        buildConfigField("AUTHOR", providers.gradleProperty("app_author"))
+        buildConfigField("AUTHOR_EMAIL", providers.gradleProperty("app_author_email"))
+        buildConfigField("SOURCE_URL", providers.gradleProperty("app_source_url"))
+    }
 }
 
 wire {

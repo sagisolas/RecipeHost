@@ -59,6 +59,9 @@
     <string name="settings_clear_catalog">Clear Catalog</string>
     <string name="settings_clear_confirm">Delete every scanned item and recipe, and every bookmark, from this device? Scan again to get the items and recipes back.</string>
     <string name="settings_clear">Clear</string>
+    <string name="settings_author">Author: %1$s</string>
+    <string name="settings_version">Version: %1$s</string>
+    <string name="settings_source_code">Source code</string>
 
     <string name="recipe_inputs_unknown">Inputs are unknown</string>
 
