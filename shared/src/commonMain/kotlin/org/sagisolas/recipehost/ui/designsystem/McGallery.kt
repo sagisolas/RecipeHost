@@ -90,7 +90,7 @@ internal fun McGallery(modifier: Modifier = Modifier) {
             }
 
             Section("McDropdown") {
-                val releases = listOf("6.0.1 · MC 1.21.1", "5.4.0 · MC 1.20.1", "4.9.2 · MC 1.19.2")
+                val releases = listOf("6.0.1 · 1.21.1", "5.4.0 · 1.20.1", "4.9.2 · 1.19.2")
                 var selected by remember { mutableStateOf(releases.first()) }
                 McDropdown(releases, selected, { selected = it }, { it }, Modifier.width(240.dp))
             }

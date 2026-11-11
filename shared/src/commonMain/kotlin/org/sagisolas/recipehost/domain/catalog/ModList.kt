@@ -21,7 +21,8 @@ internal class ModList(
 ) {
     /**
      * Every mod that adds Items in at least one of its releases, with all its releases: minecraft
-     * first, then by name. The list filters the item grid, so a mod with no Items has no place in it.
+     * first, then by name. The mod list filters the item grid and the Mod versions screen picks
+     * which release it shows, so a mod with no Items has no place in either.
      */
     val mods: Flow<List<CatalogMod>> =
         catalog.modReleaseQueries.withSelection().asFlow().mapToList(context).map { rows ->
@@ -49,7 +50,7 @@ private fun List<WithSelection>.toMod(modId: String) =
         modId = modId,
         // The rows come newest first, so a renamed mod shows its newest name.
         name = first().name,
-        releases = map { ModRelease(it.id, it.version, it.mc_version) },
+        releases = map { ModRelease(it.id, it.version, it.mc_version, hasItems = it.has_items) },
         selectedReleaseId = first().selected_release_id,
     )
 
@@ -59,11 +60,18 @@ internal data class CatalogMod(
     val name: String,
     val releases: List<ModRelease>,
     val selectedReleaseId: Long?,
-)
+) {
+    /** The release browsed: the saved one, or the newest while none is saved. */
+    val selectedRelease: ModRelease get() = releases.firstOrNull { it.id == selectedReleaseId } ?: releases.first()
 
-/** One `Mod release`: [version] of the mod for Minecraft [mcVersion]. */
+    /** [release]'s Minecraft version, or null for minecraft itself, whose version already is one. */
+    fun mcVersionOf(release: ModRelease): String? = release.mcVersion.takeUnless { modId == MINECRAFT }
+}
+
+/** One `Mod release`: [version] of the mod for Minecraft [mcVersion]; [hasItems] if it adds any `Item`. */
 internal data class ModRelease(
     val id: Long,
     val version: String,
     val mcVersion: String,
+    val hasItems: Boolean,
 )

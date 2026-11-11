@@ -4,13 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.sagisolas.recipehost.data.scan.ScanProgress
-import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
 import org.sagisolas.recipehost.domain.CatalogFixture
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create5
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.create6
@@ -71,62 +69,51 @@ class ModListViewModelTest {
     }
 
     @Test
-    fun listsTheModsWithTheirReleasesNewestFirst() =
+    fun eachModShowsOnlyItsSelectedRelease() =
         runTest {
             scanTwoCreateVersions()
             val viewModel = modList()
             runCurrent()
 
-            val create =
+            assertEquals(
+                listOf(
+                    ModListEntry("minecraft", "Minecraft", version = "1.21.1", mcVersion = null),
+                    ModListEntry("create", "Create", version = "6.0.1", mcVersion = "1.21.1"),
+                ),
+                viewModel.state.value.mods,
+            )
+        }
+
+    @Test
+    fun followsTheVersionSelection() =
+        runTest {
+            scanTwoCreateVersions()
+            val viewModel = modList()
+            runCurrent()
+
+            ModList(catalog.database, EmptyCoroutineContext).select("create", catalog.releaseId(create5))
+            runCurrent()
+
+            assertEquals(
+                ModListEntry("create", "Create", version = "5.1.0", mcVersion = "1.21.1"),
                 viewModel.state.value.mods
-                    .single { it.modId == "create" }
-            assertEquals("Create", create.name)
-            assertEquals(listOf("6.0.1", "5.1.0"), create.releases.map { it.version })
-            assertEquals(catalog.releaseId(create6), create.selectedReleaseId)
+                    .single { it.modId == "create" },
+            )
         }
 
     @Test
-    fun minecraftItselfShowsNoSeparateMinecraftVersion() =
+    fun aModWhoseSelectedReleaseHasNoItemsIsHidden() =
         runTest {
-            scanTwoCreateVersions()
+            catalog.scan("Old", minecraft, create5, items = listOf("create:cogwheel" to "Cogwheel"))
+            // Create 6 is now selected, and this Scan brings none of its Items.
+            catalog.scan("New", minecraft, create6, items = listOf("minecraft:stone" to "Stone"))
             val viewModel = modList()
             runCurrent()
 
-            val mods = viewModel.state.value.mods
-            assertEquals(listOf<String?>(null), mods.single { it.modId == "minecraft" }.releases.map { it.mcVersion })
-            assertEquals(listOf("1.21.1", "1.21.1"), mods.single { it.modId == "create" }.releases.map { it.mcVersion })
-        }
-
-    @Test
-    fun aDropdownChangeUpdatesTheGrid() =
-        runTest {
-            scanTwoCreateVersions()
-            val grid = grid()
-            val modList = modList()
-            runCurrent()
             assertEquals(
-                "Cogwheel",
-                grid.state.value.items
-                    .single { it.itemId == "create:cogwheel" }
-                    .displayName,
-            )
-
-            modList.select("create", catalog.releaseId(create5))
-            // The grid's query re-runs at most once per refresh period.
-            advanceTimeBy(CATALOG_REFRESH_PERIOD)
-            runCurrent()
-
-            assertEquals(
-                catalog.releaseId(create5),
-                modList.state.value.mods
-                    .single { it.modId == "create" }
-                    .selectedReleaseId,
-            )
-            assertEquals(
-                "Old Cogwheel",
-                grid.state.value.items
-                    .single { it.itemId == "create:cogwheel" }
-                    .displayName,
+                listOf("minecraft"),
+                viewModel.state.value.mods
+                    .map { it.modId },
             )
         }
 

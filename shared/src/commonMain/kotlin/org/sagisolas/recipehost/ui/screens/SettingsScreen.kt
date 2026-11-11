@@ -29,10 +29,13 @@ import org.sagisolas.recipehost.shared.generated.resources.settings_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_confirm
-import org.sagisolas.recipehost.shared.generated.resources.settings_database_size
 import org.sagisolas.recipehost.shared.generated.resources.settings_items
+import org.sagisolas.recipehost.shared.generated.resources.settings_mod_versions
 import org.sagisolas.recipehost.shared.generated.resources.settings_mods
+import org.sagisolas.recipehost.shared.generated.resources.settings_mods_section
+import org.sagisolas.recipehost.shared.generated.resources.settings_open
 import org.sagisolas.recipehost.shared.generated.resources.settings_recipes
+import org.sagisolas.recipehost.shared.generated.resources.settings_storage_used
 import org.sagisolas.recipehost.shared.generated.resources.size_bytes
 import org.sagisolas.recipehost.shared.generated.resources.size_gigabytes
 import org.sagisolas.recipehost.shared.generated.resources.size_kilobytes
@@ -44,13 +47,15 @@ import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
- * The Settings tab's root: the "Catalog" section with its counts and "Clear Catalog", which asks
- * for confirmation first. Calls [onCleared] once the `Catalog` is empty.
+ * The Settings tab's root: the "Mods" section, whose Open calls [onOpenModVersions], and the
+ * "Catalog" section with its counts and "Clear Catalog", which asks for confirmation first.
+ * Calls [onCleared] once the `Catalog` is empty.
  */
 @Composable
 internal fun SettingsScreen(
     viewModel: SettingsViewModel,
     onCleared: () -> Unit,
+    onOpenModVersions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,6 +66,7 @@ internal fun SettingsScreen(
         modifier.fillMaxSize().tabScreenInsetsPadding().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        ModsSection(onOpenModVersions)
         CatalogSection(state.counts, state.clearEnabled, onClear = viewModel::requestClear)
     }
     if (state.confirming) {
@@ -68,9 +74,25 @@ internal fun SettingsScreen(
     }
 }
 
+/** The "Mods" section: "Change mod versions" with an Open button. */
+@Composable
+private fun ModsSection(onOpenModVersions: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        McText(stringResource(Res.string.settings_mods_section), style = McTheme.typography.title)
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            McText(stringResource(Res.string.settings_mod_versions))
+            McButton(stringResource(Res.string.settings_open), onClick = onOpenModVersions)
+        }
+    }
+}
+
 /**
- * The "Catalog" section: how many mod releases, Items and recipes it holds, how big its database
- * is, and "Clear Catalog".
+ * The "Catalog" section: how many mod releases, Items and recipes it holds, how much storage it
+ * uses, and "Clear Catalog".
  */
 @Composable
 private fun CatalogSection(
@@ -83,7 +105,7 @@ private fun CatalogSection(
         CountRow(stringResource(Res.string.settings_mods), counts?.mods)
         CountRow(stringResource(Res.string.settings_items), counts?.items)
         CountRow(stringResource(Res.string.settings_recipes), counts?.recipes)
-        StatRow(stringResource(Res.string.settings_database_size), counts?.bytes?.let { sizeText(byteSizeOf(it)) })
+        StatRow(stringResource(Res.string.settings_storage_used), counts?.bytes?.let { sizeText(byteSizeOf(it)) })
         McButton(
             stringResource(Res.string.settings_clear_catalog),
             onClick = onClear,

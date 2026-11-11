@@ -27,7 +27,8 @@
     <string name="grid_search_clear">Clear search</string>
 
     <string name="mod_list_title">Filter items by mod</string>
-    <string name="mod_release">%1$s · MC %2$s</string>
+    <string name="mod_versions_title">Change mod versions</string>
+    <string name="mod_release">%1$s · %2$s</string>
 
     <string name="item_tab_recipes">Recipes</string>
     <string name="item_tab_uses">Uses</string>
@@ -38,11 +39,14 @@
     <string name="bookmarks_remove">Remove bookmark</string>
     <string name="bookmarks_empty">No bookmarked recipes yet. Bookmark a recipe on an item's page to find it here.</string>
 
+    <string name="settings_mods_section">Mods</string>
+    <string name="settings_mod_versions">Change mod versions</string>
+    <string name="settings_open">Open</string>
     <string name="settings_catalog">Catalog</string>
     <string name="settings_mods">Mods</string>
     <string name="settings_items">Items</string>
     <string name="settings_recipes">Recipes</string>
-    <string name="settings_database_size">Database size</string>
+    <string name="settings_storage_used">Storage used</string>
     <string name="size_bytes">%1$s B</string>
     <string name="size_kilobytes">%1$s kB</string>
     <string name="size_megabytes">%1$s MB</string>
@@ -52,4 +56,5 @@
     <string name="settings_clear">Clear</string>
 
     <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 </resources>

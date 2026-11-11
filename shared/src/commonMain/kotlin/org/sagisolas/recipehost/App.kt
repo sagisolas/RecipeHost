@@ -24,6 +24,7 @@ import org.sagisolas.recipehost.ui.screens.BookmarksScreen
 import org.sagisolas.recipehost.ui.screens.ItemGridScreen
 import org.sagisolas.recipehost.ui.screens.ItemScreen
 import org.sagisolas.recipehost.ui.screens.ModListScreen
+import org.sagisolas.recipehost.ui.screens.ModVersionsScreen
 import org.sagisolas.recipehost.ui.screens.ScanProgressScreen
 import org.sagisolas.recipehost.ui.screens.SettingsScreen
 import org.sagisolas.recipehost.ui.screens.WelcomeScreen
@@ -116,7 +117,15 @@ private fun TabScreen(
         }
 
         Screen.Settings -> {
-            SettingsScreen(viewModel { graph.settingsViewModel() }, onCleared = navigator::showWelcome)
+            SettingsScreen(
+                viewModel { graph.settingsViewModel() },
+                onCleared = navigator::showWelcome,
+                onOpenModVersions = { navigator.push(Screen.ModVersions) },
+            )
+        }
+
+        Screen.ModVersions -> {
+            ModVersionsScreen(viewModel { graph.modVersionsViewModel() }, navigator)
         }
     }
 }

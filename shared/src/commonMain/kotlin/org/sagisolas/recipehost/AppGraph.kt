@@ -29,6 +29,7 @@ import org.sagisolas.recipehost.presentation.ItemGridViewModel
 import org.sagisolas.recipehost.presentation.ItemViewModel
 import org.sagisolas.recipehost.presentation.ModFilterRequests
 import org.sagisolas.recipehost.presentation.ModListViewModel
+import org.sagisolas.recipehost.presentation.ModVersionsViewModel
 import org.sagisolas.recipehost.presentation.PairingEntry
 import org.sagisolas.recipehost.presentation.QrPairing
 import org.sagisolas.recipehost.presentation.ScanProgressViewModel
@@ -114,6 +115,8 @@ class AppGraph(
     internal fun itemGridViewModel() = ItemGridViewModel(itemSearch, modFilters, scans.progress, qrPairing)
 
     internal fun modListViewModel() = ModListViewModel(modList, modFilters)
+
+    internal fun modVersionsViewModel() = ModVersionsViewModel(modList)
 
     internal fun itemViewModel(itemId: String) =
         ItemViewModel(itemId, itemRecipes::invoke, resolveStacks::invoke, bookmarks.ids, bookmarks::toggle)

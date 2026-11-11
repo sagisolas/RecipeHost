@@ -39,6 +39,8 @@ internal sealed interface Screen {
 
     @Serializable data object Settings : Screen
 
+    @Serializable data object ModVersions : Screen
+
     @Serializable data class Item(
         val itemId: String,
     ) : Screen

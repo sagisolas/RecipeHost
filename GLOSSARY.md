@@ -98,7 +98,11 @@ The launcher installation a `Scan` was taken from, identified and shown by its g
 _Avoid_: World, modpack, profile
 
 **Version selection**:
-The one `Mod release` currently chosen for each mod; what the item grid and recipe views show. Set to the releases of the latest `Scan`, then changed by the user picking a version in the mod list. Mods absent from a `Scan` keep their previous choice.
+The one `Mod release` currently chosen for each mod; what the item grid and recipe views show. Set to the releases of the latest `Scan`, then changed by the user picking a version on the `Mod versions` screen. Mods absent from a `Scan` keep their previous choice.
+
+**Mod versions**:
+The screen, opened from Settings ("Change mod versions"), where the user changes the `Version selection`: one dropdown of `Mod release`s per mod, each pick saved at once. The Items tab's mod list only filters the grid, and shows each mod's selected release without changing it.
+_Avoid_: Mod list (that's the filter)
 
 **Bookmark**:
 A recipe id the user saved for quick access while crafting, listed in the Bookmarks tab newest first. It shows the recipe under the current `Version selection`, and is hidden (but kept) while no selected release has that recipe. Short-lived: cleared together with the `Catalog`.
