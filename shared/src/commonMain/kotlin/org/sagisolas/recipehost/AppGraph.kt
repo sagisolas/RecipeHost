@@ -70,7 +70,7 @@ class AppGraph(
     internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
     internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
     private val bookmarks = Bookmarks(catalog, Dispatchers.IO, Clock.System)
-    private val catalogStats = CatalogStats(catalog, Dispatchers.IO)
+    private val catalogStats = CatalogStats(catalog, driver, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */
     internal val catalogEmptiness = CatalogEmptiness { catalog.itemQueries.count().executeAsOne() == 0L }

@@ -48,15 +48,19 @@ class SettingsViewModelTest {
         SettingsViewModel(
             clearCatalog = { (!refuseClear).also { if (it) clear() } },
             scanProgress = progress,
-            counts = CatalogStats(catalog.database, EmptyCoroutineContext).counts,
+            counts = CatalogStats(catalog.database, catalog.driver, EmptyCoroutineContext).counts,
         )
 
     private suspend fun scanAtm() =
         catalog.scan("ATM", minecraft, create6, items = listOf("minecraft:stone" to "Stone"))
 
-    /** What [scanAtm] leaves: minecraft and create, one Item, no recipes. */
-    private val atm = CatalogCounts(mods = 2, items = 1, recipes = 0)
-    private val empty = CatalogCounts(mods = 0, items = 0, recipes = 0)
+    /** What [scanAtm] leaves: minecraft and create, one Item, no recipes. `CatalogStatsTest` covers the size. */
+    private val atm = CatalogCounts(mods = 2, items = 1, recipes = 0, bytes = 0)
+    private val empty = CatalogCounts(mods = 0, items = 0, recipes = 0, bytes = 0)
+
+    /** [SettingsViewModel.state] without the database size, which these tests don't pin. */
+    private val SettingsViewModel.sizelessState
+        get() = state.value.let { it.copy(counts = it.counts?.copy(bytes = 0)) }
 
     private suspend fun itemNames() = search.items("").first().map { it.displayName }
 
@@ -76,7 +80,7 @@ class SettingsViewModelTest {
             assertEquals(emptyList(), itemNames())
             assertEquals(
                 SettingsUiState(counts = empty, clearEnabled = true, confirming = false, cleared = true),
-                viewModel.state.value,
+                viewModel.sizelessState,
             )
         }
 
@@ -85,11 +89,11 @@ class SettingsViewModelTest {
         runTest {
             val viewModel = viewModel()
             runCurrent()
-            assertEquals(empty, viewModel.state.value.counts)
+            assertEquals(empty, viewModel.sizelessState.counts)
 
             scanAtm()
             runCurrent()
-            assertEquals(atm, viewModel.state.value.counts)
+            assertEquals(atm, viewModel.sizelessState.counts)
         }
 
     @Test
@@ -106,7 +110,7 @@ class SettingsViewModelTest {
             assertEquals(listOf("Stone"), itemNames())
             assertEquals(
                 SettingsUiState(counts = atm, clearEnabled = true, confirming = false, cleared = false),
-                viewModel.state.value,
+                viewModel.sizelessState,
             )
         }
 
@@ -122,7 +126,7 @@ class SettingsViewModelTest {
 
             assertEquals(
                 SettingsUiState(counts = atm, clearEnabled = false, confirming = false, cleared = false),
-                viewModel.state.value,
+                viewModel.sizelessState,
             )
             viewModel.confirmClear()
             runCurrent()
@@ -133,7 +137,7 @@ class SettingsViewModelTest {
             runCurrent()
             assertEquals(
                 SettingsUiState(counts = atm, clearEnabled = true, confirming = false, cleared = false),
-                viewModel.state.value,
+                viewModel.sizelessState,
             )
         }
 }

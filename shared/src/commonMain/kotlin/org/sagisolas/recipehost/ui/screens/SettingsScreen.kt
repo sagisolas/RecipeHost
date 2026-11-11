@@ -16,18 +16,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.domain.catalog.CatalogCounts
+import org.sagisolas.recipehost.presentation.ByteSize
+import org.sagisolas.recipehost.presentation.ByteUnit
 import org.sagisolas.recipehost.presentation.SettingsViewModel
+import org.sagisolas.recipehost.presentation.byteSizeOf
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.cancel
 import org.sagisolas.recipehost.shared.generated.resources.settings_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_confirm
+import org.sagisolas.recipehost.shared.generated.resources.settings_database_size
 import org.sagisolas.recipehost.shared.generated.resources.settings_items
 import org.sagisolas.recipehost.shared.generated.resources.settings_mods
 import org.sagisolas.recipehost.shared.generated.resources.settings_recipes
+import org.sagisolas.recipehost.shared.generated.resources.size_bytes
+import org.sagisolas.recipehost.shared.generated.resources.size_gigabytes
+import org.sagisolas.recipehost.shared.generated.resources.size_kilobytes
+import org.sagisolas.recipehost.shared.generated.resources.size_megabytes
 import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McPanel
 import org.sagisolas.recipehost.ui.designsystem.McText
@@ -59,7 +68,10 @@ internal fun SettingsScreen(
     }
 }
 
-/** The "Catalog" section: how many mod releases, Items and recipes it holds, and "Clear Catalog". */
+/**
+ * The "Catalog" section: how many mod releases, Items and recipes it holds, how big its database
+ * is, and "Clear Catalog".
+ */
 @Composable
 private fun CatalogSection(
     counts: CatalogCounts?,
@@ -71,6 +83,7 @@ private fun CatalogSection(
         CountRow(stringResource(Res.string.settings_mods), counts?.mods)
         CountRow(stringResource(Res.string.settings_items), counts?.items)
         CountRow(stringResource(Res.string.settings_recipes), counts?.recipes)
+        StatRow(stringResource(Res.string.settings_database_size), counts?.bytes?.let { sizeText(byteSizeOf(it)) })
         McButton(
             stringResource(Res.string.settings_clear_catalog),
             onClick = onClear,
@@ -85,12 +98,32 @@ private fun CatalogSection(
 private fun CountRow(
     label: String,
     count: Long?,
+) = StatRow(label, count?.toString())
+
+/** [label] on the left, [value] on the right; a dash while it's null. */
+@Composable
+private fun StatRow(
+    label: String,
+    value: String?,
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         McText(label)
-        McText(count?.toString() ?: "–")
+        McText(value ?: "–")
     }
 }
+
+/** [size] with its unit as the current locale writes it. */
+@Composable
+private fun sizeText(size: ByteSize) = stringResource(size.unit.format, size.amount)
+
+private val ByteUnit.format: StringResource
+    get() =
+        when (this) {
+            ByteUnit.Bytes -> Res.string.size_bytes
+            ByteUnit.Kilobytes -> Res.string.size_kilobytes
+            ByteUnit.Megabytes -> Res.string.size_megabytes
+            ByteUnit.Gigabytes -> Res.string.size_gigabytes
+        }
 
 /** Asks before the `Catalog` goes; back and a tap outside cancel. */
 @Composable
