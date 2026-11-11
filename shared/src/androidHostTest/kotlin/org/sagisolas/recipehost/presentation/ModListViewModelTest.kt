@@ -69,7 +69,7 @@ class ModListViewModelTest {
     }
 
     @Test
-    fun eachModShowsOnlyItsSelectedRelease() =
+    fun listsTheModsMinecraftFirst() =
         runTest {
             scanTwoCreateVersions()
             val viewModel = modList()
@@ -77,17 +77,48 @@ class ModListViewModelTest {
 
             assertEquals(
                 listOf(
-                    ModListEntry("minecraft", "Minecraft", version = "1.21.1", mcVersion = null),
-                    ModListEntry("create", "Create", version = "6.0.1", mcVersion = "1.21.1"),
+                    ModListEntry("minecraft", "Minecraft", itemCount = 1),
+                    ModListEntry("create", "Create", itemCount = 1),
                 ),
                 viewModel.state.value.mods,
             )
         }
 
     @Test
-    fun followsTheVersionSelection() =
+    fun eachModCountsOnlyItsSelectedReleasesItems() =
         runTest {
-            scanTwoCreateVersions()
+            catalog.scan("Old", minecraft, create5, items = listOf("create:cogwheel" to "Cogwheel"))
+            catalog.scan(
+                "New",
+                minecraft,
+                create6,
+                items =
+                    listOf(
+                        "minecraft:stone" to "Stone",
+                        "minecraft:granite" to "Granite",
+                        "create:cogwheel" to "Cogwheel",
+                        "create:shaft" to "Shaft",
+                        "create:belt" to "Belt",
+                    ),
+            )
+            val viewModel = modList()
+            runCurrent()
+
+            // Create 6 is selected: its three Items, not the four across both Create releases.
+            assertEquals(
+                listOf(
+                    ModListEntry("minecraft", "Minecraft", itemCount = 2),
+                    ModListEntry("create", "Create", itemCount = 3),
+                ),
+                viewModel.state.value.mods,
+            )
+        }
+
+    @Test
+    fun aHiddenModReturnsOnceItsSelectedReleaseHasItems() =
+        runTest {
+            catalog.scan("Old", minecraft, create5, items = listOf("create:cogwheel" to "Cogwheel"))
+            catalog.scan("New", minecraft, create6, items = listOf("minecraft:stone" to "Stone"))
             val viewModel = modList()
             runCurrent()
 
@@ -95,9 +126,9 @@ class ModListViewModelTest {
             runCurrent()
 
             assertEquals(
-                ModListEntry("create", "Create", version = "5.1.0", mcVersion = "1.21.1"),
+                listOf("minecraft", "create"),
                 viewModel.state.value.mods
-                    .single { it.modId == "create" },
+                    .map { it.modId },
             )
         }
 

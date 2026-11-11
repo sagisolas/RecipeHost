@@ -17,13 +17,11 @@ internal data class ModListUiState(
     val mods: List<ModListEntry> = emptyList(),
 )
 
-/** One mod's row: its name and the `Mod release` in the `Version selection`, [version] for Minecraft [mcVersion]. */
+/** One mod's row: its name, and how many Items its selected `Mod release` adds. */
 internal data class ModListEntry(
     val modId: String,
     val name: String,
-    val version: String,
-    /** `null` for Minecraft itself, whose version already is the Minecraft version. */
-    val mcVersion: String?,
+    val itemCount: Long,
 )
 
 /**
@@ -43,12 +41,4 @@ internal class ModListViewModel(
     fun chooseMod(modId: String) = modFilters.request(modId)
 }
 
-private fun entryOf(mod: CatalogMod) =
-    mod.selectedRelease.let { release ->
-        ModListEntry(
-            modId = mod.modId,
-            name = mod.name,
-            version = release.version,
-            mcVersion = mod.mcVersionOf(release),
-        )
-    }
+private fun entryOf(mod: CatalogMod) = ModListEntry(mod.modId, mod.name, itemCount = mod.selectedRelease.itemCount)

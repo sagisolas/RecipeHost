@@ -30,12 +30,12 @@ modOf:
 SELECT mod_id FROM mod_release WHERE id = :releaseId;
 
 -- Every release of the mods that add Items in any of their releases, with its mod's selected
--- release and whether it adds Items itself; a mod's releases come newest first. A mod that only
+-- release and how many Items it adds itself; a mod's releases come newest first. A mod that only
 -- owns recipes (a datapack) has nothing to filter the item grid by, so it is left out.
 withSelection:
 SELECT mod_release.id, mod_release.mod_id, mod_release.version, mod_release.mc_version, mod_release.name,
        version_selection.release_id AS selected_release_id,
-       EXISTS (SELECT 1 FROM item WHERE item.release_id = mod_release.id) AS has_items
+       (SELECT COUNT(*) FROM item WHERE item.release_id = mod_release.id) AS item_count
 FROM mod_release
 LEFT JOIN version_selection ON version_selection.mod_id = mod_release.mod_id
 WHERE mod_release.mod_id IN (

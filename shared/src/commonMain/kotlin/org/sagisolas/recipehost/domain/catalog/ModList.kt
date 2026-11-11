@@ -50,7 +50,7 @@ private fun List<WithSelection>.toMod(modId: String) =
         modId = modId,
         // The rows come newest first, so a renamed mod shows its newest name.
         name = first().name,
-        releases = map { ModRelease(it.id, it.version, it.mc_version, hasItems = it.has_items) },
+        releases = map { ModRelease(it.id, it.version, it.mc_version, itemCount = it.item_count) },
         selectedReleaseId = first().selected_release_id,
     )
 
@@ -68,10 +68,12 @@ internal data class CatalogMod(
     fun mcVersionOf(release: ModRelease): String? = release.mcVersion.takeUnless { modId == MINECRAFT }
 }
 
-/** One `Mod release`: [version] of the mod for Minecraft [mcVersion]; [hasItems] if it adds any `Item`. */
+/** One `Mod release`: [version] of the mod for Minecraft [mcVersion], adding [itemCount] `Item`s. */
 internal data class ModRelease(
     val id: Long,
     val version: String,
     val mcVersion: String,
-    val hasItems: Boolean,
-)
+    val itemCount: Long,
+) {
+    val hasItems: Boolean get() = itemCount > 0
+}

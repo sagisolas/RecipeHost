@@ -101,7 +101,7 @@ _Avoid_: World, modpack, profile
 The one `Mod release` currently chosen for each mod; what the item grid and recipe views show. Set to the releases of the latest `Scan`, then changed by the user picking a version on the `Mod versions` screen. Mods absent from a `Scan` keep their previous choice.
 
 **Mod versions**:
-The screen, opened from Settings ("Change mod versions"), where the user changes the `Version selection`: one dropdown of `Mod release`s per mod, each pick saved at once. The Items tab's mod list only filters the grid, and shows each mod's selected release without changing it.
+The screen, opened from Settings ("Change mod versions"), where the user changes the `Version selection`: one dropdown of `Mod release`s per mod, each pick saved at once. The Items tab's mod list only filters the grid, and shows no versions.
 _Avoid_: Mod list (that's the filter)
 
 **Bookmark**:
