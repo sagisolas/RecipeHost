@@ -3,6 +3,7 @@ package org.sagisolas.recipehost.mod.ui;
 import com.mojang.logging.LogUtils;
 import io.nayuki.qrcodegen.QrCode;
 import java.io.IOException;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -24,10 +25,17 @@ public final class PairingButtonInstaller {
 
     private final PairingController pairing;
     private final RecipeViewer viewer;
+    private final BooleanSupplier customRecipesUnsupported;
 
-    public PairingButtonInstaller(PairingController pairing, RecipeViewer viewer) {
+    /**
+     * @param customRecipesUnsupported asked each time the QR screen opens: whether to warn that
+     *     custom recipe types will ship without inputs
+     */
+    public PairingButtonInstaller(
+            PairingController pairing, RecipeViewer viewer, BooleanSupplier customRecipesUnsupported) {
         this.pairing = pairing;
         this.viewer = viewer;
+        this.customRecipesUnsupported = customRecipesUnsupported;
     }
 
     public void install(Screen screen, Consumer<AbstractWidget> addWidget) {
@@ -48,6 +56,8 @@ public final class PairingButtonInstaller {
             pairing.screenClosed(); // releases a listener that may already be bound
             return;
         }
-        Minecraft.getInstance().setScreen(new PairingScreen(parent, qr, pairing::screenClosed));
+        Minecraft.getInstance()
+                .setScreen(
+                        new PairingScreen(parent, qr, customRecipesUnsupported.getAsBoolean(), pairing::screenClosed));
     }
 }

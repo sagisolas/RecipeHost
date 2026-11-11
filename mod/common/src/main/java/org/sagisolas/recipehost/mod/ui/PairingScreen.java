@@ -3,12 +3,14 @@ package org.sagisolas.recipehost.mod.ui;
 import io.nayuki.qrcodegen.QrCode;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.MultiLineLabel;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /**
- * The QR screen: shows the pairing payload as a QR code with a scan hint below it.
+ * The QR screen: shows the pairing payload as a QR code with a scan hint below it, and a red
+ * warning under the hint when custom recipe types will ship without inputs (no EMI, ADR 0008).
  * Drawn with plain {@link GuiGraphics#fill} calls, so it needs no texture.
  * Leaving the screen, by any path, runs {@code onRemoved} (which starts the grace timer).
  */
@@ -16,10 +18,13 @@ public final class PairingScreen extends Screen {
 
     private static final Component TITLE = Component.literal("RecipeHost pairing");
     private static final Component SCAN_HINT = Component.literal("Scan this code with \"Recipehost\" app");
+    private static final Component CUSTOM_RECIPES_WARNING =
+            Component.literal("Custom recipe types are not supported without EMI installed");
     private static final int QUIET_ZONE = 4;
     private static final int DARK = 0xFF000000;
     private static final int LIGHT = 0xFFFFFFFF;
     private static final int TEXT = 0xFFFFFF;
+    private static final int WARNING = 0xFF5555;
     private static final int GAP = 8;
     private static final int BUTTON_WIDTH = 150;
     private static final int BUTTON_HEIGHT = 20;
@@ -27,16 +32,19 @@ public final class PairingScreen extends Screen {
     private final Screen parent;
     private final QrCode qr;
     private final Runnable onRemoved;
+    private final boolean warnCustomRecipes;
 
     private int modulePx;
     private int qrLeft;
     private int qrTop;
     private int qrSide;
+    private MultiLineLabel warning = MultiLineLabel.EMPTY;
 
-    public PairingScreen(Screen parent, QrCode qr, Runnable onRemoved) {
+    public PairingScreen(Screen parent, QrCode qr, boolean warnCustomRecipes, Runnable onRemoved) {
         super(TITLE);
         this.parent = parent;
         this.qr = qr;
+        this.warnCustomRecipes = warnCustomRecipes;
         this.onRemoved = onRemoved;
     }
 
@@ -47,7 +55,10 @@ public final class PairingScreen extends Screen {
         modulePx = Math.max(1, target / modules);
         qrSide = modules * modulePx;
 
-        int contentHeight = qrSide + GAP + font.lineHeight + GAP + BUTTON_HEIGHT;
+        warning = warnCustomRecipes
+                ? MultiLineLabel.create(font, CUSTOM_RECIPES_WARNING, width - 2 * GAP)
+                : MultiLineLabel.EMPTY;
+        int contentHeight = qrSide + GAP + font.lineHeight + GAP + warningHeight() + BUTTON_HEIGHT;
         qrLeft = (width - qrSide) / 2;
         qrTop = Math.max(GAP, (height - contentHeight) / 2);
 
@@ -60,8 +71,18 @@ public final class PairingScreen extends Screen {
         return qrTop + qrSide + GAP;
     }
 
-    private int buttonTop() {
+    private int warningTop() {
         return captionTop() + font.lineHeight + GAP;
+    }
+
+    /** The warning's lines plus the gap below them, or nothing without a warning. */
+    private int warningHeight() {
+        int lines = warning.getLineCount();
+        return lines == 0 ? 0 : lines * font.lineHeight + GAP;
+    }
+
+    private int buttonTop() {
+        return warningTop() + warningHeight();
     }
 
     @Override
@@ -81,6 +102,7 @@ public final class PairingScreen extends Screen {
         }
 
         graphics.drawCenteredString(font, SCAN_HINT, width / 2, captionTop(), TEXT);
+        warning.renderCentered(graphics, width / 2, warningTop(), font.lineHeight, WARNING);
     }
 
     @Override
