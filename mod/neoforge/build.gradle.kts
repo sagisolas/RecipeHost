@@ -20,6 +20,11 @@ repositories {
         name = "NeoForged"
         url = uri("https://maven.neoforged.net/releases/")
     }
+    maven {
+        name = "Sleeping Town (EMI)"
+        url = uri("https://repo.sleeping.town/")
+        content { includeGroup("dev.emi") }
+    }
 }
 
 loom {
@@ -53,11 +58,22 @@ dependencies {
     shadowBundle(project(path = ":mod:common", configuration = "transformProductionNeoForge"))
 
     implementation(project(":protocol"))
-    "include"(project(":protocol"))
+    include(project(":protocol"))
     // :protocol's runtime: pure Java, so the mod needs no Kotlin stdlib (ADR 0006, ADR 0007).
     "include"(libs.protobuf.javalite)
     implementation(libs.qrcodegen)
     "include"(libs.qrcodegen)
+    // Dev runs only: the game layer doesn't see plain classpath jars; the shipped jar carries
+    // them jar-in-jar (include) instead.
+    forgeRuntimeLibrary(project(":protocol"))
+    "forgeRuntimeLibrary"(libs.protobuf.javalite)
+    "forgeRuntimeLibrary"(libs.qrcodegen)
+
+    // Dev client only, never shipped: `-Pmod_dev_emi=true` runs it with EMI, so both
+    // recipe sources (ADR 0008) can be tried.
+    if (providers.gradleProperty("mod_dev_emi").orNull.toBoolean()) {
+        "modLocalRuntime"("dev.emi:emi-neoforge:${providers.gradleProperty("mod_emi_version").get()}")
+    }
 }
 
 java {
