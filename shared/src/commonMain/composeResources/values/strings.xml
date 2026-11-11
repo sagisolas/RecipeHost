@@ -4,8 +4,13 @@
     <string name="tab_settings">Settings</string>
 
     <string name="scan_qr">Scan QR</string>
+    <string name="welcome_step_install">Install the RecipeHost mod</string>
+    <string name="welcome_modrinth">Modrinth page</string>
+    <string name="welcome_curseforge">CurseForge page</string>
+    <string name="welcome_screenshot">The pairing button at the bottom left of the inventory</string>
     <string name="welcome_hint">Open the pairing screen from your inventory in Minecraft</string>
-    <string name="welcome_no_scanner">This device has no QR scanner. Scan the code with your camera app instead.</string>
+    <string name="welcome_step_scan">Scan the QR code</string>
+    <string name="welcome_no_scanner">QR scanner is not available. Scan the code with your camera app instead.</string>
 
     <string name="scan_step_connecting">Connecting</string>
     <string name="scan_step_items">Items</string>

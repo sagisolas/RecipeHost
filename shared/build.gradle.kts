@@ -8,6 +8,16 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.wire)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.buildconfig)
+}
+
+// Mod download pages from gradle.properties, linked from the Welcome screen.
+buildConfig {
+    packageName("org.sagisolas.recipehost")
+    className("ModLinks")
+    useKotlinOutput { internalVisibility = true }
+    buildConfigField("MODRINTH_URL", providers.gradleProperty("mod_modrinth_url"))
+    buildConfigField("CURSEFORGE_URL", providers.gradleProperty("mod_curseforge_url"))
 }
 
 wire {

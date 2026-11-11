@@ -1,4 +1,5 @@
 [versions]
+buildconfig = "6.1.2"
 agp = "9.1.1"
 android-compileSdk = "37"
 android-minSdk = "24"
@@ -78,3 +79,4 @@ wire = { id = "com.squareup.wire", version.ref = "wire" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
