@@ -27,6 +27,7 @@ import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McDropdown
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
@@ -41,7 +42,7 @@ internal fun ModVersionsScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
+    Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
         Row(
             Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

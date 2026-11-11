@@ -35,6 +35,7 @@ import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McTabs
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
 import org.sagisolas.recipehost.ui.item.StackIcon
@@ -58,7 +59,7 @@ internal fun ItemScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val open = { itemId: String -> navigator.push(Screen.Item(itemId)) }
-    Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
+    Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
         // Until the first state arrives the header's Item isn't resolved yet; it would flash as unknown.
         Header(state.header, atlases)
         McTabs(

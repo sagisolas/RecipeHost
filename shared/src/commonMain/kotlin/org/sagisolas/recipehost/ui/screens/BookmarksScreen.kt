@@ -29,6 +29,7 @@ import org.sagisolas.recipehost.ui.designsystem.McIconButton
 import org.sagisolas.recipehost.ui.designsystem.McSlot
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
 import org.sagisolas.recipehost.ui.item.StackIcon
@@ -53,7 +54,7 @@ internal fun BookmarksScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val open = { itemId: String -> navigator.push(Screen.Item(itemId)) }
     val bookmarks = state.bookmarks
-    Box(modifier.fillMaxSize().tabScreenInsetsPadding()) {
+    Box(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
         when {
             // Until the first state arrives, the empty hint would flash.
             bookmarks == null -> {

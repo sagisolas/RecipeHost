@@ -44,6 +44,7 @@ import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McPanel
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
@@ -63,7 +64,11 @@ internal fun SettingsScreen(
         LaunchedEffect(Unit) { onCleared() }
     }
     Column(
-        modifier.fillMaxSize().tabScreenInsetsPadding().padding(16.dp),
+        modifier
+            .fillMaxSize()
+            .mcBackground(McTheme.skin.screen)
+            .tabScreenInsetsPadding()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ModsSection(onOpenModVersions)

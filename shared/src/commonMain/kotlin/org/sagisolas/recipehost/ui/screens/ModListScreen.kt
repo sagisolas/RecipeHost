@@ -23,6 +23,7 @@ import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.mod_list_title
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 import org.sagisolas.recipehost.ui.navigation.Navigator
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
@@ -34,7 +35,7 @@ internal fun ModListScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Column(modifier.fillMaxSize().tabScreenInsetsPadding()) {
+    Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
         McText(
             stringResource(Res.string.mod_list_title),
             Modifier.padding(8.dp),

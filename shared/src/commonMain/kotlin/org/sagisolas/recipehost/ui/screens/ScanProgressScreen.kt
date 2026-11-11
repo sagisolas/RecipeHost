@@ -36,6 +36,7 @@ import org.sagisolas.recipehost.shared.generated.resources.scan_step_recipes_cou
 import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 
 /**
  * Full screen: Connecting → Items n/N → Recipes m/M, or why the Scan failed with "Scan again".
@@ -52,7 +53,11 @@ internal fun ScanProgressScreen(
         LaunchedEffect(Unit) { onCommitted() }
     }
     Column(
-        modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
+        modifier
+            .fillMaxSize()
+            .mcBackground(McTheme.skin.screen)
+            .safeDrawingPadding()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

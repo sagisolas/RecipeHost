@@ -21,6 +21,7 @@ import org.sagisolas.recipehost.shared.generated.resources.welcome_no_scanner
 import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
+import org.sagisolas.recipehost.ui.designsystem.mcBackground
 
 /** Full screen, shown while the `Catalog` is empty: the hint centred, "Scan QR" below it. */
 @Composable
@@ -30,7 +31,11 @@ internal fun WelcomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(
-        modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
+        modifier
+            .fillMaxSize()
+            .mcBackground(McTheme.skin.screen)
+            .safeDrawingPadding()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
