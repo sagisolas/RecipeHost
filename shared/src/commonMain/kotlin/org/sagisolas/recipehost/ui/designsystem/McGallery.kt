@@ -47,6 +47,16 @@ internal fun McGallery(modifier: Modifier = Modifier) {
                 }
             }
 
+            Section("McHeader") {
+                McHeader("With back", onBack = {}, backDescription = "Back")
+                McHeader("Without back", onBack = null, backDescription = "Back")
+                McHeader(
+                    "A long title that runs past the back button's width on either side",
+                    onBack = {},
+                    backDescription = "Back",
+                )
+            }
+
             Section("McButton") {
                 var clicks by remember { mutableIntStateOf(0) }
                 McButton("Clicked $clicks times", onClick = { clicks++ }, Modifier.width(240.dp))

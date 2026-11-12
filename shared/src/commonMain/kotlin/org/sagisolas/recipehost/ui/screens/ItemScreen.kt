@@ -22,6 +22,7 @@ import org.sagisolas.recipehost.presentation.ItemViewModel
 import org.sagisolas.recipehost.presentation.RecipeSectionUi
 import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.back
 import org.sagisolas.recipehost.shared.generated.resources.ic_bookmark
 import org.sagisolas.recipehost.shared.generated.resources.ic_bookmark_filled
 import org.sagisolas.recipehost.shared.generated.resources.item_bookmark
@@ -29,6 +30,7 @@ import org.sagisolas.recipehost.shared.generated.resources.item_no_recipes
 import org.sagisolas.recipehost.shared.generated.resources.item_tab_recipes
 import org.sagisolas.recipehost.shared.generated.resources.item_tab_uses
 import org.sagisolas.recipehost.shared.generated.resources.item_unbookmark
+import org.sagisolas.recipehost.ui.designsystem.McHeader
 import org.sagisolas.recipehost.ui.designsystem.McIconButton
 import org.sagisolas.recipehost.ui.designsystem.McPager
 import org.sagisolas.recipehost.ui.designsystem.McSlot
@@ -61,7 +63,7 @@ internal fun ItemScreen(
     val open = { itemId: String -> navigator.push(Screen.Item(itemId)) }
     Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
         // Until the first state arrives the header's Item isn't resolved yet; it would flash as unknown.
-        Header(state.header, atlases)
+        Header(state.header, atlases, onBack = navigator::pop)
         McTabs(
             tabs = listOf(stringResource(Res.string.item_tab_recipes), stringResource(Res.string.item_tab_uses)),
             selectedIndex = state.tab.ordinal,
@@ -104,33 +106,39 @@ internal fun ItemScreen(
     }
 }
 
-/** The Item's Icon, then its display name over its id. An unresolved Item shows only its id. */
+/**
+ * An [McHeader] with the Item's Icon, then its display name over its id, left-aligned beside it;
+ * the Icon and text are centred as one group.
+ * An unresolved Item shows only its id.
+ */
 @Composable
 private fun Header(
     item: StackUi?,
     atlases: IconAtlasCache,
+    onBack: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (item != null) {
-            McSlot { StackIcon(item, atlases) }
-        }
-        Column {
-            McText(
-                item?.item?.displayName ?: "",
-                color = McTheme.colors.textOnDark,
-                style = McTheme.typography.title,
-                maxLines = 2,
-            )
-            McText(
-                item?.item?.itemId ?: "",
-                color = McTheme.colors.textOnDark,
-                style = McTheme.typography.small,
-                maxLines = 1,
-            )
+    McHeader(onBack, stringResource(Res.string.back)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (item != null) {
+                McSlot { StackIcon(item, atlases) }
+            }
+            Column {
+                McText(
+                    item?.item?.displayName ?: "",
+                    color = McTheme.colors.textOnDark,
+                    style = McTheme.typography.title,
+                    maxLines = 2,
+                )
+                McText(
+                    item?.item?.itemId ?: "",
+                    color = McTheme.colors.textOnDark,
+                    style = McTheme.typography.small,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

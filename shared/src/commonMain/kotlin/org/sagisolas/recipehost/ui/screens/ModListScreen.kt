@@ -20,7 +20,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.ModListEntry
 import org.sagisolas.recipehost.presentation.ModListViewModel
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.back
 import org.sagisolas.recipehost.shared.generated.resources.mod_list_title
+import org.sagisolas.recipehost.ui.designsystem.McHeader
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
@@ -36,12 +38,7 @@ internal fun ModListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
-        McText(
-            stringResource(Res.string.mod_list_title),
-            Modifier.padding(8.dp),
-            color = McTheme.colors.textOnDark,
-            style = McTheme.typography.title,
-        )
+        McHeader(stringResource(Res.string.mod_list_title), navigator::pop, stringResource(Res.string.back))
         // No side padding or gaps here: each row pads itself inside its tap area, edge to edge.
         LazyColumn(contentPadding = PaddingValues(vertical = 4.dp)) {
             items(state.mods, key = { it.modId }) { mod ->

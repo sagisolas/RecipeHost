@@ -20,11 +20,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.presentation.ModVersionsEntry
 import org.sagisolas.recipehost.presentation.ModVersionsViewModel
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.back
 import org.sagisolas.recipehost.shared.generated.resources.mod_release
 import org.sagisolas.recipehost.shared.generated.resources.mod_versions_title
-import org.sagisolas.recipehost.shared.generated.resources.ok
-import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McDropdown
+import org.sagisolas.recipehost.ui.designsystem.McHeader
 import org.sagisolas.recipehost.ui.designsystem.McText
 import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
@@ -33,7 +33,7 @@ import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
  * Pushed onto the Settings tab's stack: each mod with a dropdown of its releases, newest first.
- * A pick is saved at once; OK just goes back.
+ * A pick is saved at once; back just leaves.
  */
 @Composable
 internal fun ModVersionsScreen(
@@ -43,19 +43,7 @@ internal fun ModVersionsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(modifier.fillMaxSize().mcBackground(McTheme.skin.screen).tabScreenInsetsPadding()) {
-        Row(
-            Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            McText(
-                stringResource(Res.string.mod_versions_title),
-                Modifier.weight(1f),
-                color = McTheme.colors.textOnDark,
-                style = McTheme.typography.title,
-            )
-            McButton(stringResource(Res.string.ok), onClick = navigator::pop)
-        }
+        McHeader(stringResource(Res.string.mod_versions_title), navigator::pop, stringResource(Res.string.back))
         ModRows(viewModel::select, state.mods)
     }
 }

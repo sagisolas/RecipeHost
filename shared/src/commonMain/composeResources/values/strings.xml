@@ -66,5 +66,5 @@
     <string name="recipe_inputs_unknown">Inputs are unknown</string>
 
     <string name="cancel">Cancel</string>
-    <string name="ok">OK</string>
+    <string name="back">Back</string>
 </resources>
