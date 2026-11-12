@@ -1,10 +1,5 @@
 package org.sagisolas.recipehost.ui
 
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -36,6 +31,9 @@ import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.navigation.StackEntry
 import org.sagisolas.recipehost.ui.navigation.Tab
 import org.sagisolas.recipehost.ui.navigation.noTransition
+import org.sagisolas.recipehost.ui.navigation.popTransition
+import org.sagisolas.recipehost.ui.navigation.predictivePopTransition
+import org.sagisolas.recipehost.ui.navigation.pushTransition
 
 /**
  * The bottom-navigation root: a `NavDisplay` of the selected tab's stack above the [McBottomBar],
@@ -58,7 +56,10 @@ internal fun RootScaffold(
                         rememberViewModelStoreNavEntryDecorator(),
                     ),
                 // The default content key is the key's toString(), which includes StackEntry's unique id.
-                entryProvider = { key -> NavEntry(key) { screen((it as StackEntry).screen) } },
+                entryProvider = { key ->
+                    val entry = key as StackEntry
+                    NavEntry(key) { screen(entry.screen) }
+                },
             )
         }
     val items = Tab.entries.map { barItem(it) }
@@ -67,11 +68,19 @@ internal fun RootScaffold(
             entries = entries.getValue(navigator.selectedTab),
             onBack = navigator::pop,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            // Screens swap with no animation. During the predictive back gesture the screen being
-            // left stays alone on screen until the gesture commits.
-            transitionSpec = { noTransition() },
-            popTransitionSpec = { noTransition() },
-            predictivePopTransitionSpec = { swapAtEnd() },
+            // A push slides the new screen in from the right; a pop slides the screen being left
+            // off to the right, quickly for the back button and with the finger for the back
+            // gesture. The push checks the stack depth: NavDisplay also consults transitionSpec
+            // while it finishes a released back gesture, and must not run the push slide then.
+            transitionSpec = {
+                if (targetState.previousEntries.size > initialState.previousEntries.size) {
+                    pushTransition()
+                } else {
+                    noTransition()
+                }
+            },
+            popTransitionSpec = { popTransition() },
+            predictivePopTransitionSpec = { predictivePopTransition() },
         )
         McBottomBar(
             items = items,
@@ -89,23 +98,6 @@ internal fun RootScaffold(
 @Composable
 internal fun Modifier.tabScreenInsetsPadding(): Modifier =
     windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-
-/** Shows the new screen and hides the old one only at the very end of the (seeked) transition. */
-private fun swapAtEnd(): ContentTransform =
-    fadeIn(
-        keyframes {
-            durationMillis = SWAP_MILLIS
-            0f at SWAP_MILLIS - 1
-        },
-    ) togetherWith
-        fadeOut(
-            keyframes {
-                durationMillis = SWAP_MILLIS
-                1f at SWAP_MILLIS - 1
-            },
-        )
-
-private const val SWAP_MILLIS = 100
 
 /** A tab's entry in the bar. */
 @Composable

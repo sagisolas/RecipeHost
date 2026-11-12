@@ -1,6 +1,6 @@
 # Screen header with back button, and the iOS back gesture
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Spec: ../spec.md
 
@@ -28,7 +28,8 @@ Only the gesture step needs 01; the header work is common code and can go first.
 
 ### iOS back gesture
 
-- Turn on Compose Multiplatform's iOS edge-swipe back in `MainViewController`'s `ComposeUIViewController` configuration (check the flag in CMP 1.12.2), so it reaches `RootScaffold`'s `NavDisplay` `onBack = navigator::pop`.
+- Compose Multiplatform binds the iOS start-edge swipe to back by default since 1.10 (only the end edge has an option, `EndEdgePanGestureBehavior`, off by default), so it reaches `RootScaffold`'s `NavDisplay` `onBack = navigator::pop` with no configuration. `MainViewController`'s KDoc notes it.
+- Navigation animates on both platforms (`ui/navigation/SlideTransition.kt`): a push slides the new screen in from the right (`pushTransition()`); the back gesture slides the screen being left off to the right with the finger, the full width (`predictivePopTransition()`, linear, driven by the gesture's progress), over the one below, coming in from a third to the left; the back button does the same slide, quick (`popTransition()`, 200 ms). `RootScaffold`'s push spec checks that the stack got deeper, because `NavDisplay` also consults `transitionSpec` while it finishes a released back gesture.
 - The outer `NavDisplay` keeps `onBack = {}`: full-screen routes have no back, as on Android, where back there exits.
 - Check that the edge swipe doesn't fight horizontal gestures that start near the edge (`McPager` on the Item screen).
 
@@ -45,3 +46,6 @@ Only the gesture step needs 01; the header work is common code and can go first.
 ## Comments
 
 - 2026-11-12: `McHeader` done (`ui/designsystem/McHeader.kt`, `mc_back_arrow.xml`, `back` string replacing `ok`). ModList, ModVersions and Item use it, and `McGallery` shows it. The iOS gesture step is left, waiting on 01.
+- 2026-11-12: iOS gesture: no flag exists in CMP 1.12.2; the start-edge swipe is back by default (CMP 1.10 release notes). Only a KDoc note in `MainViewController`. Device check left.
+- 2026-11-12: added the back gesture animation through `predictivePopTransition()`: the same full-width slide with the finger on both platforms, and a quick `popTransition()` slide for the back button. Tried and dropped: an Android-style shrink; capping the Android drag at 20% and finishing it with `popTransition()` (`NavDisplay` finishes a released gesture by playing the rest of the gesture transition, which ended at 20%, so the screen vanished from there).
+- 2026-11-13: pushes slide in. A push spec in Item metadata broke Item → Item back gestures (it replaced the gesture slide while `NavDisplay` finished the release), so the push slide is the `NavDisplay` `transitionSpec`, gated on a deeper stack. Done after the user's device check.
