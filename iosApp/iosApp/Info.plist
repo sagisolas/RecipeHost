@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>RecipeHost uses the camera to scan the pairing code shown in Minecraft.</string>
 	<key>NSLocalNetworkUsageDescription</key>

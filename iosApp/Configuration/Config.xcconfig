@@ -4,6 +4,7 @@ PRODUCT_NAME=Recipehost
 PRODUCT_BUNDLE_IDENTIFIER=org.sagisolas.recipehost.Recipehost$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=1.0
+// MARKETING_VERSION, generated from app_version in gradle.properties by :shared:generateVersionXcconfig.
+#include? "Version.xcconfig"
 // The static Shared framework uses SQLDelight's native driver, which needs the system SQLite.
 OTHER_LDFLAGS = $(inherited) -lsqlite3
