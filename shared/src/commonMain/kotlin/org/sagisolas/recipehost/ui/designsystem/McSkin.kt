@@ -14,10 +14,10 @@ import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar
 import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar_item_pressed
 import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar_item_selected
 import org.sagisolas.recipehost.shared.generated.resources.mc_container_slot
+import org.sagisolas.recipehost.shared.generated.resources.mc_dirt_background
 import org.sagisolas.recipehost.shared.generated.resources.mc_dropdown_option_pressed
 import org.sagisolas.recipehost.shared.generated.resources.mc_menu_background
 import org.sagisolas.recipehost.shared.generated.resources.mc_missing_texture
-import org.sagisolas.recipehost.shared.generated.resources.mc_dirt_background
 import org.sagisolas.recipehost.shared.generated.resources.mc_popup_background
 import org.sagisolas.recipehost.shared.generated.resources.mc_scroller
 import org.sagisolas.recipehost.shared.generated.resources.mc_scroller_background
