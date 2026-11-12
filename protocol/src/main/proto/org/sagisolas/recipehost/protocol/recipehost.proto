@@ -73,7 +73,8 @@ message Recipe {
   string type_id = 1;              // e.g. "minecraft:crafting_shaped"
   repeated Slot inputs = 2;
   repeated ItemStack results = 3;
-  map<string, string> extras = 4;  // type-specific metadata, see ADR 0002
+  reserved 4;                      // was: map<string, string> extras (ADR 0002 amendment)
+  reserved "extras";
   string id = 5;                   // recipe id, e.g. "minecraft:oak_planks"; its namespace owns the recipe (ADR 0011)
   // One entry per RecipeSlot of the recipe's layout, in slot order; empty when the
   // recipe has no layout. Display only: `inputs` and `results` stay the semantic truth.

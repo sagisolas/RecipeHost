@@ -50,7 +50,7 @@ One entry in the companion mod's enumeration of `BuiltInRegistries.ITEM`. Carrie
 Metadata about a namespace that owns at least one `Item` or `Recipe`. Listed in the `Handshake`. Mods that own neither (performance mods, API shims) are omitted. A namespace with no loaded mod behind it (a datapack) is listed under its namespace with version `datapack`.
 
 **Recipe**:
-The generic wire representation of any crafting operation — vanilla, modded, or datapack. Carries its recipe `id` (e.g. `minecraft:oak_planks`) and its `type_id`; type-specific metadata lives in a free-form `extras` map rather than per-type schemas. In the `Catalog` a recipe belongs to the `Mod release` of its id's namespace, and is kept per `Instance` it was seen in.
+The generic wire representation of any crafting operation — vanilla, modded, or datapack. Carries its recipe `id` (e.g. `minecraft:oak_planks`) and its `type_id`; there are no per-type schemas: what is specific to a type (grid shape, cook time) is drawn into its `Recipe layout`. In the `Catalog` a recipe belongs to the `Mod release` of its id's namespace, and is kept per `Instance` it was seen in.
 
 **Slot**:
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.

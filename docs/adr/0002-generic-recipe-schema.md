@@ -15,6 +15,10 @@ The vanilla-dispatch mapper emits exactly these keys; additions require an ADR a
 - All other baseline types (shapeless, smithing, stonecutter) → no `extras`.
 - Shell entries for unknown types → no `extras`; `type_id` and `results` only.
 
+## Amendment: `extras` removed
+
+`extras` is gone from `Recipe` (field 4 and its name are reserved). Nothing read it: the app draws every recipe from its `Recipe layout` (ADR 0015), which bakes the grid shape and type-specific text (cook time, XP, heat) into the image, and the EMI layer never filled it. Type-specific metadata the app needs later goes into the layout or a typed field. Nothing is published, so the protocol version stays.
+
 ## Amendment: recipe id
 
 `Recipe` also carries `id`, the namespaced id of the recipe (`RecipeHolder.id()` for vanilla dispatch). The mobile app uses it to attribute each recipe to a `Mod release` (ADR 0011).

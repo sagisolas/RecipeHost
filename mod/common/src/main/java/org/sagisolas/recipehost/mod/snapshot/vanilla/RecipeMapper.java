@@ -1,9 +1,7 @@
 package org.sagisolas.recipehost.mod.snapshot.vanilla;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,8 +23,7 @@ import org.sagisolas.recipehost.protocol.Slot;
 /**
  * Flat {@code instanceof} cascade mapping vanilla recipe types to the wire
  * {@link org.sagisolas.recipehost.protocol.Recipe}. Anything unrecognized becomes
- * a shell carrying only {@code type_id} and the result (ADR 0008). Pinned
- * {@code extras} keys are documented in ADR 0002.
+ * a shell carrying only {@code type_id} and the result (ADR 0008).
  */
 public final class RecipeMapper {
 
@@ -50,9 +47,6 @@ public final class RecipeMapper {
 
         switch (recipe) {
             case ShapedRecipe shaped -> {
-                Map<String, String> extras = new LinkedHashMap<>();
-                extras.put("width", String.valueOf(shaped.getWidth()));
-                extras.put("height", String.valueOf(shaped.getHeight()));
                 List<Slot> inputs = slotsOf(shaped.getIngredients());
                 // A modded subclass may be larger than the crafting table's grid; it gets no layout.
                 boolean fits = shaped.getWidth() <= GRID_SIDE && shaped.getHeight() <= GRID_SIDE;
@@ -61,7 +55,6 @@ public final class RecipeMapper {
                         typeId,
                         inputs,
                         shaped.getResultItem(registryAccess),
-                        extras,
                         fits ? layouts.crafting() : null,
                         fits ? craftingGrid(inputs, shaped.getWidth(), shaped.getHeight()) : List.of());
             }
@@ -73,22 +66,17 @@ public final class RecipeMapper {
                         typeId,
                         inputs,
                         shapeless.getResultItem(registryAccess),
-                        Map.of(),
                         fits ? layouts.crafting() : null,
                         inputs);
             }
             case AbstractCookingRecipe cooking -> {
                 // 1.21.1 doesn't expose a public input() accessor; getIngredients() returns a size-1 list.
-                Map<String, String> extras = new LinkedHashMap<>();
-                extras.put("cook_time", String.valueOf(cooking.getCookingTime()));
-                extras.put("xp", String.valueOf(cooking.getExperience()));
                 List<Slot> inputs = slotsOf(cooking.getIngredients());
                 return mapped(
                         id,
                         typeId,
                         inputs,
                         cooking.getResultItem(registryAccess),
-                        extras,
                         layouts.cooking(typeId, cooking.getCookingTime(), cooking.getExperience()),
                         inputs);
             }
@@ -96,32 +84,19 @@ public final class RecipeMapper {
                 // template/base/addition fields are package-private in 1.21.1; getIngredients()
                 // is the override that returns them in that documented order.
                 List<Slot> inputs = slotsOf(smithing.getIngredients());
-                return mapped(
-                        id,
-                        typeId,
-                        inputs,
-                        smithing.getResultItem(registryAccess),
-                        Map.of(),
-                        layouts.smithing(),
-                        inputs);
+                return mapped(id, typeId, inputs, smithing.getResultItem(registryAccess), layouts.smithing(), inputs);
             }
             case StonecutterRecipe stonecutter -> {
                 // Same accessor-visibility caveat as AbstractCookingRecipe.
                 List<Slot> inputs = slotsOf(stonecutter.getIngredients());
                 return mapped(
-                        id,
-                        typeId,
-                        inputs,
-                        stonecutter.getResultItem(registryAccess),
-                        Map.of(),
-                        layouts.stonecutter(),
-                        inputs);
+                        id, typeId, inputs, stonecutter.getResultItem(registryAccess), layouts.stonecutter(), inputs);
             }
             default -> {}
         }
 
         // Shell for unknown types: no inputs, so no layout.
-        return mapped(id, typeId, List.of(), recipe.getResultItem(registryAccess), Map.of(), null, List.of());
+        return mapped(id, typeId, List.of(), recipe.getResultItem(registryAccess), null, List.of());
     }
 
     /**
@@ -191,7 +166,6 @@ public final class RecipeMapper {
             String typeId,
             List<Slot> inputs,
             net.minecraft.world.item.ItemStack result,
-            Map<String, String> extras,
             VanillaLayout layout,
             List<Slot> layoutInputs) {
         ItemStack resultStack = ItemStack.newBuilder()
@@ -203,7 +177,6 @@ public final class RecipeMapper {
                 .setTypeId(typeId)
                 .addAllInputs(inputs)
                 .addResults(resultStack)
-                .putAllExtras(extras)
                 .build();
         return new Mapped(
                 wire,
