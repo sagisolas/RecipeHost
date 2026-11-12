@@ -8,28 +8,28 @@ import androidx.compose.ui.graphics.ImageBitmap
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.imageResource
 import org.sagisolas.recipehost.shared.generated.resources.Res
-import org.sagisolas.recipehost.shared.generated.resources.boss_bar_green_background
-import org.sagisolas.recipehost.shared.generated.resources.boss_bar_green_progress
-import org.sagisolas.recipehost.shared.generated.resources.container_slot
-import org.sagisolas.recipehost.shared.generated.resources.menu_background
-import org.sagisolas.recipehost.shared.generated.resources.missing_texture
-import org.sagisolas.recipehost.shared.generated.resources.options_background
-import org.sagisolas.recipehost.shared.generated.resources.popup_background
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_pressed
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_bottom_bar_item_selected
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_dropdown_option_pressed
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_scroller
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_scroller_background
-import org.sagisolas.recipehost.shared.generated.resources.recipehost_text_field_disabled
-import org.sagisolas.recipehost.shared.generated.resources.widget_button
-import org.sagisolas.recipehost.shared.generated.resources.widget_button_disabled
-import org.sagisolas.recipehost.shared.generated.resources.widget_button_highlighted
-import org.sagisolas.recipehost.shared.generated.resources.widget_tab
-import org.sagisolas.recipehost.shared.generated.resources.widget_tab_highlighted
-import org.sagisolas.recipehost.shared.generated.resources.widget_tab_selected
-import org.sagisolas.recipehost.shared.generated.resources.widget_text_field
-import org.sagisolas.recipehost.shared.generated.resources.widget_text_field_highlighted
+import org.sagisolas.recipehost.shared.generated.resources.mc_boss_bar_green_background
+import org.sagisolas.recipehost.shared.generated.resources.mc_boss_bar_green_progress
+import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar
+import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar_item_pressed
+import org.sagisolas.recipehost.shared.generated.resources.mc_bottom_bar_item_selected
+import org.sagisolas.recipehost.shared.generated.resources.mc_container_slot
+import org.sagisolas.recipehost.shared.generated.resources.mc_dropdown_option_pressed
+import org.sagisolas.recipehost.shared.generated.resources.mc_menu_background
+import org.sagisolas.recipehost.shared.generated.resources.mc_missing_texture
+import org.sagisolas.recipehost.shared.generated.resources.mc_dirt_background
+import org.sagisolas.recipehost.shared.generated.resources.mc_popup_background
+import org.sagisolas.recipehost.shared.generated.resources.mc_scroller
+import org.sagisolas.recipehost.shared.generated.resources.mc_scroller_background
+import org.sagisolas.recipehost.shared.generated.resources.mc_text_field_disabled
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_button
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_button_disabled
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_button_highlighted
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_tab
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_tab_highlighted
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_tab_selected
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_text_field
+import org.sagisolas.recipehost.shared.generated.resources.mc_widget_text_field_highlighted
 
 /** Every component's texture; [McTheme] provides the one from [rememberMcSkin]. */
 @Immutable
@@ -64,53 +64,54 @@ internal val LocalMcSkin =
     }
 
 /**
- * The design system's skin, from its textures in `composeResources/drawable` (named after
- * Minecraft's sprite paths with `/` replaced by `_`). Borders are in texture pixels.
+ * The design system's skin, from its textures in `composeResources/drawable`: each is prefixed
+ * `mc_`, and those taken from Minecraft keep its sprite path with `/` replaced by `_`
+ * (`mc_widget_button`). Borders are in texture pixels.
  */
 @Composable
 internal fun rememberMcSkin(): McSkin {
-    val button = texture(Res.drawable.widget_button, border = 2)
-    val tab = texture(Res.drawable.widget_tab, border = 2)
+    val button = texture(Res.drawable.mc_widget_button, border = 2)
+    val tab = texture(Res.drawable.mc_widget_tab, border = 2)
     return McSkin(
-        screen = texture(Res.drawable.menu_background, border = 0),
-        panel = texture(Res.drawable.popup_background, border = 2),
+        screen = texture(Res.drawable.mc_menu_background, border = 0),
+        panel = texture(Res.drawable.mc_popup_background, border = 2),
         button =
             McStateTextures(
                 normal = button,
-                pressed = texture(Res.drawable.widget_button_highlighted, border = 2),
-                disabled = texture(Res.drawable.widget_button_disabled, border = 1),
+                pressed = texture(Res.drawable.mc_widget_button_highlighted, border = 2),
+                disabled = texture(Res.drawable.mc_widget_button_disabled, border = 1),
             ),
-        textField = texture(Res.drawable.widget_text_field, border = 1),
-        textFieldFocused = texture(Res.drawable.widget_text_field_highlighted, border = 1),
-        textFieldDisabled = texture(Res.drawable.recipehost_text_field_disabled, border = 1),
+        textField = texture(Res.drawable.mc_widget_text_field, border = 1),
+        textFieldFocused = texture(Res.drawable.mc_widget_text_field_highlighted, border = 1),
+        textFieldDisabled = texture(Res.drawable.mc_text_field_disabled, border = 1),
         dropdownOption =
             McStateTextures(
                 normal = null,
-                pressed = texture(Res.drawable.recipehost_dropdown_option_pressed, border = 1),
+                pressed = texture(Res.drawable.mc_dropdown_option_pressed, border = 1),
                 disabled = null,
             ),
-        slot = texture(Res.drawable.container_slot, border = 1),
-        tabSelected = texture(Res.drawable.widget_tab_selected, border = 2),
+        slot = texture(Res.drawable.mc_container_slot, border = 1),
+        tabSelected = texture(Res.drawable.mc_widget_tab_selected, border = 2),
         tab =
             McStateTextures(
                 normal = tab,
-                pressed = texture(Res.drawable.widget_tab_highlighted, border = 2),
+                pressed = texture(Res.drawable.mc_widget_tab_highlighted, border = 2),
                 disabled = tab,
             ),
-        progressTrack = texture(Res.drawable.boss_bar_green_background, border = 1),
-        progressFill = texture(Res.drawable.boss_bar_green_progress, border = 1),
-        scrollerTrack = texture(Res.drawable.recipehost_scroller_background, border = 0),
-        scrollerThumb = texture(Res.drawable.recipehost_scroller, border = 1),
-        bottomBar = texture(Res.drawable.recipehost_bottom_bar, border = 1),
-        bottomBarItemSelected = texture(Res.drawable.recipehost_bottom_bar_item_selected, border = 1),
+        progressTrack = texture(Res.drawable.mc_boss_bar_green_background, border = 1),
+        progressFill = texture(Res.drawable.mc_boss_bar_green_progress, border = 1),
+        scrollerTrack = texture(Res.drawable.mc_scroller_background, border = 0),
+        scrollerThumb = texture(Res.drawable.mc_scroller, border = 1),
+        bottomBar = texture(Res.drawable.mc_bottom_bar, border = 1),
+        bottomBarItemSelected = texture(Res.drawable.mc_bottom_bar_item_selected, border = 1),
         bottomBarItem =
             McStateTextures(
                 normal = null,
-                pressed = texture(Res.drawable.recipehost_bottom_bar_item_pressed, border = 0),
+                pressed = texture(Res.drawable.mc_bottom_bar_item_pressed, border = 0),
                 disabled = null,
             ),
-        listBackground = imageResource(Res.drawable.options_background),
-        missingTexture = imageResource(Res.drawable.missing_texture),
+        listBackground = imageResource(Res.drawable.mc_dirt_background),
+        missingTexture = imageResource(Res.drawable.mc_missing_texture),
     )
 }
 
