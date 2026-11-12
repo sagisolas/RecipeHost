@@ -102,7 +102,7 @@ private fun stateOf(
             )
         }
 
-        ScanProgress.Committed, is ScanProgress.Icons, ScanProgress.Done -> {
+        ScanProgress.Committed, is ScanProgress.Icons, is ScanProgress.Layouts, ScanProgress.Done -> {
             ScanProgressUiState.Committed
         }
 

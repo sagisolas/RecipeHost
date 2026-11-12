@@ -104,21 +104,28 @@ class ItemGridViewModelTest {
         }
 
     @Test
-    fun aThinBarFollowsArrivingIcons() =
+    fun aThinBarFillsHalfForIconsAndHalfForLayouts() =
         runTest {
             val viewModel = viewModel()
 
             progress.value = ScanProgress.Icons(received = 250, total = 1000)
             runCurrent()
-            assertEquals(0.25f, viewModel.state.value.iconProgress)
+            assertEquals(0.125f, viewModel.state.value.loadingProgress, "Icons fill the first half")
+
+            progress.value = ScanProgress.Layouts(received = 500, total = 1000)
+            runCurrent()
+            assertEquals(0.75f, viewModel.state.value.loadingProgress, "layouts fill the second half")
 
             progress.value = ScanProgress.Done
             runCurrent()
-            assertNull(viewModel.state.value.iconProgress)
+            assertNull(viewModel.state.value.loadingProgress)
 
             progress.value = ScanProgress.Failed(RuntimeException("Wi-Fi off"))
             runCurrent()
-            assertNull(viewModel.state.value.iconProgress, "a Scan that stopped during Icons leaves the grid as it is")
+            assertNull(
+                viewModel.state.value.loadingProgress,
+                "a Scan that stopped during Icons leaves the grid as it is",
+            )
         }
 
     @Test

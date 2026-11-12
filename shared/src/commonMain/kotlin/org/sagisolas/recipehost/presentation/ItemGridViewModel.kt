@@ -20,8 +20,11 @@ import org.sagisolas.recipehost.domain.catalog.ItemSearch
 internal data class ItemGridUiState(
     val searchText: String = "",
     val items: List<CatalogItem> = emptyList(),
-    /** How far the running Scan's Icons are, 0..1; `null` when none are arriving. */
-    val iconProgress: Float? = null,
+    /**
+     * How far the running Scan's Icons and layouts are, 0..1: Icons fill the first half, layouts the
+     * second. `null` when neither is arriving.
+     */
+    val loadingProgress: Float? = null,
 )
 
 /**
@@ -41,8 +44,8 @@ internal class ItemGridViewModel(
         combine(
             searchText,
             searchText.flatMapLatest { itemSearch.items(it) },
-            scanProgress.map(::iconProgressOf),
-        ) { text, items, iconProgress -> ItemGridUiState(text, items, iconProgress) }
+            scanProgress.map(::loadingProgressOf),
+        ) { text, items, loadingProgress -> ItemGridUiState(text, items, loadingProgress) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ItemGridUiState())
 
     init {
@@ -60,8 +63,20 @@ internal class ItemGridViewModel(
     }
 }
 
-private fun iconProgressOf(progress: ScanProgress?): Float? =
-    (progress as? ScanProgress.Icons)?.takeIf { it.total > 0 }?.let { it.received.toFloat() / it.total }
+private fun loadingProgressOf(progress: ScanProgress?): Float? =
+    when (progress) {
+        is ScanProgress.Icons -> HALF * fractionOf(progress.received, progress.total)
+        is ScanProgress.Layouts -> HALF + HALF * fractionOf(progress.received, progress.total)
+        else -> null
+    }
+
+private const val HALF = 0.5f
+
+/** [received] of [total], 0..1; an empty phase counts as done. */
+private fun fractionOf(
+    received: Int,
+    total: Int,
+): Float = if (total > 0) (received.toFloat() / total).coerceAtMost(1f) else 1f
 
 /** [text] with its `@` tokens replaced by `@[modId]` in front; the name words stay. */
 private fun withModFilter(

@@ -338,6 +338,33 @@ class ScanIngestTest {
         }
 
     @Test
+    fun layoutProgressCountsTheRecipesLinkedSoFar() =
+        runTest {
+            val progress =
+                ingest
+                    .ingest(
+                        flowOf(
+                            handshake("ATM9", minecraft, items = 0, recipes = 2),
+                            recipes(stickRecipe, torchRecipe),
+                            layouts(craftingLayout(recipeIds = listOf("minecraft:stick"))),
+                            layouts(recipesOnly("minecraft:crafting", "minecraft:torch")),
+                        ),
+                    ).toList()
+
+            assertEquals(
+                listOf(
+                    ScanProgress.Connecting,
+                    ScanProgress.Recipes(received = 2, total = 2),
+                    ScanProgress.Committed,
+                    ScanProgress.Layouts(received = 1, total = 2),
+                    ScanProgress.Layouts(received = 2, total = 2),
+                    ScanProgress.Done,
+                ),
+                progress,
+            )
+        }
+
+    @Test
     fun aLayoutArrivingAfterTheCommitIsStoredAndLinkedToItsRecipes() =
         runTest {
             val progress =

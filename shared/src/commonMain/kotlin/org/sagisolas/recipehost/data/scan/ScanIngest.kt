@@ -83,7 +83,8 @@ internal class ScanIngest(
                 }
                 envelope.layout_batch?.let { batch ->
                     val staged = scan ?: error("LayoutBatch before Handshake")
-                    storeLayouts(commitOnce(staged), batch)
+                    staged.layoutRecipesReceived += storeLayouts(commitOnce(staged), batch)
+                    emit(ScanProgress.Layouts(staged.layoutRecipesReceived, staged.handshake.total_recipes))
                 }
             }
             val staged = scan ?: error("stream ended before Handshake")
@@ -160,12 +161,12 @@ internal class ScanIngest(
     /**
      * Stores each layout of the batch that carries an image (replacing what an earlier Scan stored
      * under its key) and points the listed recipes of this Scan's Instance at it, each under its
-     * id's release. One transaction per batch, like Icons.
+     * id's release. One transaction per batch, like Icons. Returns how many recipes it linked.
      */
     private fun storeLayouts(
         committed: Committed,
         batch: LayoutBatch,
-    ) {
+    ): Int {
         // Checked before the transaction opens, so a broken batch writes nothing.
         val links =
             batch.layouts.flatMap { layout ->
@@ -185,6 +186,7 @@ internal class ScanIngest(
                 catalog.recipeQueries.linkLayout(link.layoutKey, committed.instanceId, link.releaseId, link.recipeId)
             }
         }
+        return links.size
     }
 
     private fun upsertRelease(
@@ -273,6 +275,7 @@ internal class ScanIngest(
         /** Set by the commit: where Icons and layouts are filed. */
         var committed: Committed? = null
         var iconsReceived = 0
+        var layoutRecipesReceived = 0
     }
 
     private fun StagedScan?.stillStaging(what: String): StagedScan {

@@ -50,7 +50,7 @@ import org.sagisolas.recipehost.ui.navigation.Screen
 import org.sagisolas.recipehost.ui.tabScreenInsetsPadding
 
 /**
- * The Items tab's first screen: Mods, search and Scan on top, a thin bar while Icons arrive, and
+ * The Items tab's first screen: Mods, search and Scan on top, a thin bar while Icons, then layouts, arrive, and
  * the Items as bare Icons, as many slot-sized cells per row as fit beside a scrollbar. All of it
  * sits on the tiled dirt list background.
  */
@@ -92,7 +92,7 @@ internal fun ItemGridScreen(
             )
             McButton(stringResource(Res.string.grid_scan), onClick = viewModel::scan)
         }
-        state.iconProgress?.let { McProgressBar(it, Modifier.padding(horizontal = 8.dp)) }
+        state.loadingProgress?.let { McProgressBar(it, Modifier.padding(horizontal = 8.dp)) }
         McSlotGrid(Modifier.weight(1f).fillMaxWidth()) {
             items(state.items, key = { it.key }) { item ->
                 ItemCell(item, atlases, onClick = { navigator.push(Screen.Item(item.itemId)) })

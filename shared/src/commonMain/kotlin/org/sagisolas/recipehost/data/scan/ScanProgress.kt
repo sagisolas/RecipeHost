@@ -23,6 +23,15 @@ internal sealed interface ScanProgress {
         val total: Int,
     ) : ScanProgress
 
+    /**
+     * `Recipe layout`s arriving after the commit: [received] counts the recipes linked to a layout
+     * so far, of the Handshake's [total] recipes. Recipes without a layout leave it short of [total].
+     */
+    data class Layouts(
+        val received: Int,
+        val total: Int,
+    ) : ScanProgress
+
     data object Done : ScanProgress
 
     /** The `Scan` stopped. Nothing is written unless [Committed] came first, and then that stays. */
