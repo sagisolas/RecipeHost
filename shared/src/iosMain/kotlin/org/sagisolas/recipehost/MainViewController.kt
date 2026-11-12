@@ -6,14 +6,17 @@ import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.platform.QrScanner
 import platform.UIKit.UIViewController
 
-/** The iOS wrapper's entry point. iOS is not in v1: it only has to keep compiling. */
+/**
+ * The iOS half of the composition root: builds the [AppGraph] with the iOS platform collaborators.
+ * The Swift `iOSApp` calls it once per process and keeps the graph.
+ */
+fun createAppGraph(): AppGraph =
+    AppGraph(
+        driver = NativeSqliteDriver(CatalogDatabase.Schema, "catalog.db"),
+        // No in-app scanner yet (issue 02): pairing goes through the system Camera and the deep link.
+        qrScanner = QrScanner { null },
+    )
+
+/** The iOS wrapper's root view controller, showing [App] for the process's [graph]. */
 @Suppress("ktlint:standard:function-naming") // Swift calls it by this name.
-fun MainViewController(): UIViewController {
-    val graph =
-        AppGraph(
-            driver = NativeSqliteDriver(CatalogDatabase.Schema, "catalog.db"),
-            // TODO(iOS): an AVFoundation scanner, and routing the recipehost:// URL scheme to graph.pairing.
-            qrScanner = QrScanner { null },
-        )
-    return ComposeUIViewController { App(graph) }
-}
+fun MainViewController(graph: AppGraph): UIViewController = ComposeUIViewController { App(graph) }

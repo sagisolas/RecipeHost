@@ -1,6 +1,6 @@
 # Composition root and `recipehost://pair` deep link
 
-Status: ready-for-agent
+Status: done
 Blocked by: —
 Spec: ../spec.md
 
