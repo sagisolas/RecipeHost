@@ -5,11 +5,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import org.sagisolas.recipehost.platform.CameraAccessDenied
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WelcomeViewModelTest {
@@ -22,11 +23,20 @@ class WelcomeViewModelTest {
     @Test
     fun aDeviceWithoutAScannerPointsToTheCameraApp() {
         val viewModel = WelcomeViewModel(QrPairing { error("no Google Play services") })
-        assertFalse(viewModel.state.value.scannerUnavailable)
+        assertNull(viewModel.state.value.lastScan)
 
         viewModel.scanQr()
 
-        assertTrue(viewModel.state.value.scannerUnavailable)
+        assertEquals(QrScanResult.NoScanner, viewModel.state.value.lastScan)
+    }
+
+    @Test
+    fun aDeniedCameraPointsToSettings() {
+        val viewModel = WelcomeViewModel(QrPairing { throw CameraAccessDenied() })
+
+        viewModel.scanQr()
+
+        assertEquals(QrScanResult.CameraDenied, viewModel.state.value.lastScan)
     }
 
     @Test
@@ -35,6 +45,6 @@ class WelcomeViewModelTest {
 
         viewModel.scanQr()
 
-        assertFalse(viewModel.state.value.scannerUnavailable)
+        assertEquals(QrScanResult.Scanned, viewModel.state.value.lastScan)
     }
 }

@@ -11,6 +11,7 @@
     <string name="welcome_hint">Open the pairing screen from your inventory in Minecraft</string>
     <string name="welcome_step_scan">Scan the QR code</string>
     <string name="welcome_no_scanner">QR scanner is not available. Scan the code with your camera app instead.</string>
+    <string name="welcome_camera_denied">Allow camera access for RecipeHost in Settings, or scan the code with your Camera app.</string>
 
     <string name="scan_step_connecting">Connecting</string>
     <string name="scan_step_items">Items</string>

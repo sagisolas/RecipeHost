@@ -8,3 +8,6 @@ fun interface QrScanner {
      */
     suspend fun scan(): String?
 }
+
+/** Thrown by [QrScanner.scan] when the user has denied (or a policy restricts) camera access. */
+internal class CameraAccessDenied : Exception("Camera access denied")

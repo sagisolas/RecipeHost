@@ -3,7 +3,7 @@ package org.sagisolas.recipehost
 import androidx.compose.ui.window.ComposeUIViewController
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
-import org.sagisolas.recipehost.platform.QrScanner
+import org.sagisolas.recipehost.platform.AvFoundationQrScanner
 import platform.UIKit.UIViewController
 
 /**
@@ -13,8 +13,7 @@ import platform.UIKit.UIViewController
 fun createAppGraph(): AppGraph =
     AppGraph(
         driver = NativeSqliteDriver(CatalogDatabase.Schema, "catalog.db"),
-        // No in-app scanner yet (issue 02): pairing goes through the system Camera and the deep link.
-        qrScanner = QrScanner { null },
+        qrScanner = AvFoundationQrScanner(),
     )
 
 /** The iOS wrapper's root view controller, showing [App] for the process's [graph]. */

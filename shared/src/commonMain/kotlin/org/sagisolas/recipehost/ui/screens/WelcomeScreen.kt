@@ -25,12 +25,15 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.sagisolas.recipehost.ModLinks
+import org.sagisolas.recipehost.presentation.QrScanResult
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.scan_qr
+import org.sagisolas.recipehost.shared.generated.resources.welcome_camera_denied
 import org.sagisolas.recipehost.shared.generated.resources.welcome_curseforge
 import org.sagisolas.recipehost.shared.generated.resources.welcome_hint
 import org.sagisolas.recipehost.shared.generated.resources.welcome_modrinth
@@ -88,9 +91,7 @@ internal fun WelcomeScreen(
                 }
                 WelcomeStep(3, stringResource(Res.string.welcome_step_scan)) {
                     McButton(stringResource(Res.string.scan_qr), onClick = viewModel::scanQr)
-                    if (state.scannerUnavailable) {
-                        McText(stringResource(Res.string.welcome_no_scanner), color = McTheme.colors.textHint)
-                    }
+                    scanNoticeOf(state.lastScan)?.let { McText(stringResource(it), color = McTheme.colors.textHint) }
                 }
             }
         }
@@ -134,3 +135,11 @@ private fun WelcomeLink(
         style = McTheme.typography.body.copy(textDecoration = TextDecoration.Underline),
     )
 }
+
+/** The notice under "Scan QR" for how the last scan went, or `null` for none. */
+private fun scanNoticeOf(lastScan: QrScanResult?): StringResource? =
+    when (lastScan) {
+        QrScanResult.NoScanner -> Res.string.welcome_no_scanner
+        QrScanResult.CameraDenied -> Res.string.welcome_camera_denied
+        QrScanResult.Scanned, null -> null
+    }

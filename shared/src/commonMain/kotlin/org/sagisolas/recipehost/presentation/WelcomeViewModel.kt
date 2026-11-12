@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 internal data class WelcomeUiState(
-    /** The last "Scan QR" found no scanner on this device: point to the system camera instead. */
-    val scannerUnavailable: Boolean = false,
+    /** How the last "Scan QR" went, or `null` before the first; a failure shows a notice. */
+    val lastScan: QrScanResult? = null,
 )
 
 /** The Welcome screen, shown while the `Catalog` is empty. */
@@ -21,7 +21,7 @@ internal class WelcomeViewModel(
 
     fun scanQr() {
         viewModelScope.launch {
-            _state.value = WelcomeUiState(scannerUnavailable = !qr.tryScanQr())
+            _state.value = WelcomeUiState(lastScan = qr.tryScanQr())
         }
     }
 }

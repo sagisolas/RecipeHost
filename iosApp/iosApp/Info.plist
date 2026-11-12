@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>RecipeHost uses the camera to scan the pairing code shown in Minecraft.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
