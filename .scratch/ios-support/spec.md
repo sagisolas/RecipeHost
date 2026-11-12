@@ -16,7 +16,7 @@ The iOS wrapper only has to keep compiling (`shared/src/iosMain/.../MainViewCont
 - The Swift `iOSApp` owns one `AppGraph` per process (like `MainActivity`), built by a Kotlin factory in `iosMain`, and hands it to `MainViewController(graph)`.
 - `recipehost://pair` is a registered URL scheme; SwiftUI `.onOpenURL` routes it to `graph.pairing.start`. The iOS system Camera recognises the in-game QR and offers to open the app, so pairing works even without the in-app scanner.
 - An in-app scanner on AVFoundation, written in Kotlin in `iosMain`.
-- A Local Network hint on the Scan progress network failure, shown on iOS only.
+- A Local Network failure of its own on iOS, told apart from a real connection problem, with a message pointing to Settings.
 - An edge-swipe back gesture plus a visible back button on pushed screens, on both platforms. The button lives in a shared `McHeader` (centred title, icon back button on the left) that every screen header uses.
 - A UIKit background task held while a Scan runs, so a short app switch doesn't kill it. A longer one still drops the socket; the mod keeps the listener up after a mid-stream drop (ADR 0001), so Scan again with the same QR works.
 - Platform polish: portrait only, light status bar, catalog excluded from backup, `MARKETING_VERSION` from `app_version`, template leftovers removed.
@@ -40,8 +40,10 @@ The iOS wrapper only has to keep compiling (`shared/src/iosMain/.../MainViewCont
 ### Local Network permission
 
 - `Info.plist` gets `NSLocalNetworkUsageDescription`. No `NSBonjourServices`: the app doesn't browse Bonjour.
-- There's no API to ask for the permission up front or read its state. The first `connect` while the prompt is up fails, and the Scan ends as `ScanFailure.Network.Unreachable` → `FailureReason.Network`.
-- `AppGraph` takes a `localNetworkHint: Boolean` (false on Android, true on iOS) and passes it to `ScanProgressViewModel`; `ScanProgressUiState.Failed` carries it for `FailureReason.Network`, and the screen adds "Allow Local Network for RecipeHost in Settings, then scan again." Compose resources have no platform qualifiers, so the flag comes from the composition root, not from the resource system.
+- There's no API to ask for the permission up front or read its state, and a BSD socket (Ktor's) fails the same way for a denied permission as for a host that's down. The Network framework does tell them apart: a blocked path reports `nw_path_unsatisfied_reason_local_network_denied` (iOS 14+).
+- `LocalNetworkAccess` (`platform`, public, `suspend fun isDenied(host): Boolean`) is a platform hook that `AppGraph` takes and passes to `SessionClient`. Android passes `LocalNetworkAccess { false }`. iOS passes `NetworkFrameworkLocalNetworkAccess`, which probes with a UDP `nw_connection` to an unused port: nothing is sent and the mod's TCP listener (which takes the one `Session` on accept) is never touched. An answer that doesn't come within a second counts as not denied.
+- When no host accepts a connection, `SessionClient` asks the hook about the first host and fails with `ScanFailure.Network.LocalNetworkDenied` instead of `Unreachable` if it's denied. It's still a `Network` failure, so the one retry applies (and may succeed if the user allowed meanwhile).
+- `FailureReason.LocalNetworkDenied` shows "Allow Local Network for RecipeHost in Settings, then scan again." in place of the Wi-Fi message, which other network failures keep. An error type rather than a platform flag, so a real connection problem on iOS still gets the Wi-Fi message.
 
 ### Back
 
@@ -78,13 +80,14 @@ The iOS wrapper only has to keep compiling (`shared/src/iosMain/.../MainViewCont
 
 - TDD at pure seams, in `commonTest` so the iOS test target runs them too:
   - `ScanActivity`: begins on the first non-idle progress, ends once on `Done`/`Failed`, holds at most one task, begins again for the next Scan.
-  - `ScanProgressViewModelTest`: the Local Network hint is set for `Network` failures only, and only when `localNetworkHint` is true.
+  - `SessionClientTest`: no host reachable while `LocalNetworkAccess` denies → `LocalNetworkDenied`; otherwise `Unreachable`.
+  - `ScanProgressViewModelTest`: `LocalNetworkDenied` → `FailureReason.LocalNetworkDenied`; other network failures stay `Network`.
   - The camera-denied message in `WelcomeViewModelTest` (and wherever else `tryScanQr` is used).
   - URL routing is already covered by `PairingEntryTest`.
 - No simulator runs by the agent. The user runs `./gradlew :shared:iosSimulatorArm64Test` and the device checks:
   - the system Camera opens the app and starts a Scan, both warm and cold;
   - the in-app scanner reads the in-game QR; Cancel and a denied permission behave;
-  - the Local Network prompt appears on first pairing, the hint shows, and Scan again works after allowing;
+  - the Local Network prompt appears on first pairing, a denied permission shows the Local Network message (a real connection problem the Wi-Fi one), and Scan again works after allowing;
   - an app switch of a few seconds mid-Scan doesn't fail the Scan;
   - edge swipe and the back button pop pushed screens;
   - portrait lock, the status bar, the keyboard and the home indicator.
@@ -93,7 +96,7 @@ The iOS wrapper only has to keep compiling (`shared/src/iosMain/.../MainViewCont
 
 1. Composition root and `recipehost://pair` deep link.
 2. `AvFoundationQrScanner`.
-3. Local Network permission and hint.
+3. Local Network permission and error.
 4. Back gesture and back button.
 5. Keep a Scan alive in the background.
 6. Platform polish.

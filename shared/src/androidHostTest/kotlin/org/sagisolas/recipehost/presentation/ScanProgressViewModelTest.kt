@@ -73,6 +73,15 @@ class ScanProgressViewModelTest {
     }
 
     @Test
+    fun aDeniedLocalNetworkPointsToItsSetting() {
+        val viewModel = viewModel()
+
+        progress.value = ScanProgress.Failed(ScanFailure.Network.LocalNetworkDenied(listOf("192.168.1.5")))
+
+        assertEquals(Failed(FailureReason.LocalNetworkDenied), viewModel.state.value)
+    }
+
+    @Test
     fun aNetworkFailureThatOutlastedTheRetryAsksAboutWifi() {
         val viewModel = viewModel()
 

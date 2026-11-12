@@ -17,6 +17,11 @@ internal sealed class ScanFailure(
             val hosts: List<String>,
         ) : Network("no host reachable: ${hosts.joinToString()}")
 
+        /** No host accepted a connection, and the OS denies this app the local network (iOS). */
+        class LocalNetworkDenied(
+            val hosts: List<String>,
+        ) : Network("local network access denied: ${hosts.joinToString()}")
+
         /** The connection broke, or ended before `Done`. */
         class Dropped(
             cause: Throwable? = null,

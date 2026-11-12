@@ -25,6 +25,7 @@ import org.sagisolas.recipehost.shared.generated.resources.scan_error_busy
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_game
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_interrupted
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_invalid_code
+import org.sagisolas.recipehost.shared.generated.resources.scan_error_local_network
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_network
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_unauthorized
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_version_mismatch
@@ -128,5 +129,6 @@ private fun messageOf(reason: FailureReason): StringResource =
         FailureReason.VersionMismatch -> Res.string.scan_error_version_mismatch
         FailureReason.InvalidCode -> Res.string.scan_error_invalid_code
         FailureReason.Network -> Res.string.scan_error_network
+        FailureReason.LocalNetworkDenied -> Res.string.scan_error_local_network
         FailureReason.Interrupted -> Res.string.scan_error_interrupted
     }

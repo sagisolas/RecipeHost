@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withTimeoutOrNull
 import okio.IOException
 import org.sagisolas.recipehost.data.pairing.PairingPayload
+import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.protocol.Auth
 import org.sagisolas.recipehost.protocol.Envelope
 import kotlin.time.Duration
@@ -20,9 +21,13 @@ internal fun interface SessionSource {
     fun open(payload: PairingPayload): Flow<Envelope>
 }
 
-/** Opens one `Session` over a [SocketConnector], with no retry (see [RetryingSessionClient]). */
+/**
+ * Opens one `Session` over a [SocketConnector], with no retry (see [RetryingSessionClient]).
+ * [localNetwork] tells a host that's down from one the OS won't let the app reach.
+ */
 internal class SessionClient(
     private val connector: SocketConnector,
+    private val localNetwork: LocalNetworkAccess,
     private val connectTimeout: Duration = 1_500.milliseconds,
     /** How long the connection may stay silent before it counts as dropped (a half-open socket). */
     private val idleTimeout: Duration = 15.seconds,
@@ -66,6 +71,10 @@ internal class SessionClient(
                 // Refused or unreachable: try the next host.
             }
             connection?.let { return it }
+        }
+        // The permission is per app, not per host: asking about one is enough.
+        if (payload.hosts.firstOrNull()?.let { localNetwork.isDenied(it) } == true) {
+            throw ScanFailure.Network.LocalNetworkDenied(payload.hosts)
         }
         throw ScanFailure.Network.Unreachable(payload.hosts)
     }

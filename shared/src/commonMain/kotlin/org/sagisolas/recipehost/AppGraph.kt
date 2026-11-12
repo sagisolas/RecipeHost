@@ -23,6 +23,7 @@ import org.sagisolas.recipehost.domain.catalog.ResolveStacks
 import org.sagisolas.recipehost.domain.recipes.Bookmarks
 import org.sagisolas.recipehost.domain.recipes.ItemRecipes
 import org.sagisolas.recipehost.domain.recipes.LayoutImages
+import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.platform.QrScanner
 import org.sagisolas.recipehost.presentation.BookmarksViewModel
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
@@ -44,11 +45,12 @@ import kotlin.time.Clock
 /**
  * The composition root: builds every app-scoped instance and wires them together. The Android
  * or iOS wrapper builds one per app process, with its platform's [driver] (whose schema is
- * [CatalogDatabase.Schema]) and [qrScanner], and passes it to [App].
+ * [CatalogDatabase.Schema]), [qrScanner] and [localNetwork], and passes it to [App].
  */
 class AppGraph(
     driver: SqlDriver,
     qrScanner: QrScanner,
+    localNetwork: LocalNetworkAccess,
 ) {
     private val catalog = CatalogDatabase(driver)
 
@@ -61,7 +63,7 @@ class AppGraph(
     internal val scans =
         ScanController(
             scope = appScope,
-            sessions = RetryingSessionClient(SessionClient(KtorSocketConnector())),
+            sessions = RetryingSessionClient(SessionClient(KtorSocketConnector(), localNetwork)),
             ingest = ScanIngest(catalog, Clock.System),
             clear = ClearCatalog(catalog, Dispatchers.IO)::invoke,
         )

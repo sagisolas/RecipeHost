@@ -10,6 +10,7 @@ import org.sagisolas.recipehost.data.transport.FakeSocketConnector.Attempt.Accep
 import org.sagisolas.recipehost.data.transport.FakeSocketConnector.Attempt.Hang
 import org.sagisolas.recipehost.data.transport.FakeSocketConnector.Attempt.Refuse
 import org.sagisolas.recipehost.data.transport.FakeSocketConnector.ConnectCall
+import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.protocol.Auth
 import org.sagisolas.recipehost.protocol.Done
 import org.sagisolas.recipehost.protocol.Envelope
@@ -32,7 +33,10 @@ class SessionClientTest {
 
     private fun payload(vararg hosts: String) = PairingPayload(hosts.toList(), port = 25599, token = token)
 
-    private fun client(connector: FakeSocketConnector) = RetryingSessionClient(SessionClient(connector))
+    private fun client(
+        connector: FakeSocketConnector,
+        localNetwork: LocalNetworkAccess = LocalNetworkAccess { false },
+    ) = RetryingSessionClient(SessionClient(connector, localNetwork))
 
     @Test
     fun sendsAuthFirstAndPassesEnvelopesThroughUntilDone() =
@@ -116,6 +120,19 @@ class SessionClientTest {
 
             assertIs<ScanFailure.Network.Unreachable>(failure)
             assertEquals(4, connector.connects.size)
+        }
+
+    @Test
+    fun noHostReachableWhileTheOsDeniesLocalNetworkAccessSaysSo() =
+        runTest {
+            val connector = FakeSocketConnector(this, Refuse, Refuse)
+
+            val failure =
+                runCatching {
+                    client(connector, localNetwork = LocalNetworkAccess { true }).open(payload("192.168.1.10")).toList()
+                }.exceptionOrNull()
+
+            assertIs<ScanFailure.Network.LocalNetworkDenied>(failure)
         }
 
     @Test

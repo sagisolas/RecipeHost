@@ -50,6 +50,9 @@ internal sealed interface ScanProgressUiState {
         /** The connection failed, and failed again on the retry. */
         Network,
 
+        /** No host was reachable because the OS denies the app the local network (iOS). */
+        LocalNetworkDenied,
+
         /** No Scan has run since the app started, e.g. after the OS killed it mid-Scan. */
         Interrupted,
     }
@@ -122,6 +125,10 @@ private fun reasonOf(failure: PairingPayloadException) =
 
 private fun reasonOf(cause: Throwable) =
     when (cause) {
+        is ScanFailure.Network.LocalNetworkDenied -> {
+            ScanProgressUiState.FailureReason.LocalNetworkDenied
+        }
+
         is ScanFailure.Network -> {
             ScanProgressUiState.FailureReason.Network
         }

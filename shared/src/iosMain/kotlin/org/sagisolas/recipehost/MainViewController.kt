@@ -4,6 +4,7 @@ import androidx.compose.ui.window.ComposeUIViewController
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.platform.AvFoundationQrScanner
+import org.sagisolas.recipehost.platform.NetworkFrameworkLocalNetworkAccess
 import platform.UIKit.UIViewController
 
 /**
@@ -14,6 +15,7 @@ fun createAppGraph(): AppGraph =
     AppGraph(
         driver = NativeSqliteDriver(CatalogDatabase.Schema, "catalog.db"),
         qrScanner = AvFoundationQrScanner(),
+        localNetwork = NetworkFrameworkLocalNetworkAccess(),
     )
 
 /** The iOS wrapper's root view controller, showing [App] for the process's [graph]. */

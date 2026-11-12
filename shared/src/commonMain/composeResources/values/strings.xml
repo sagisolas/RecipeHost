@@ -25,6 +25,7 @@
     <string name="scan_error_version_mismatch">This app and the companion mod are on different versions. Update both.</string>
     <string name="scan_error_invalid_code">That isn\'t a RecipeHost pairing code.</string>
     <string name="scan_error_network">Couldn\'t reach the game. Same Wi-Fi? Is the pairing screen open?</string>
+    <string name="scan_error_local_network">Allow Local Network for RecipeHost in Settings, then scan again.</string>
     <string name="scan_error_interrupted">The scan stopped before it finished.</string>
 
     <string name="grid_mods">Mods</string>

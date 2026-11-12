@@ -6,6 +6,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>RecipeHost uses the camera to scan the pairing code shown in Minecraft.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>RecipeHost connects to Minecraft on your local network to load your recipes.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
