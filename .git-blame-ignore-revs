@@ -3,3 +3,6 @@
 
 # style: reformat the codebase with ktlint and palantir-java-format
 598aca439744848ecf0714e13550ee22e9549093
+
+# chore: license under MPL-2.0 (adds the MPL header to every source file)
+d73c68d70c0eb5f964b7f6f99f4a4f251826915a
