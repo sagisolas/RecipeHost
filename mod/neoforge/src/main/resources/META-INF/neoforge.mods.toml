@@ -8,7 +8,6 @@ version = "${version}"
 displayName = "RecipeHost"
 description = "Companion mod that streams recipes and icons to the RecipeHost mobile app."
 logoFile = "assets/recipehost/icon.png"
-logoBlur = false
 
 [[dependencies.recipehost]]
 modId = "neoforge"
