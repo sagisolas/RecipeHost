@@ -4,17 +4,20 @@ Mobile app + companion Minecraft mod for offline recipe browsing. Download recip
 
 ## Features
 
-### Search items from offline catalog
-![Item grid](docs/images/item_grid.png)
+### Search items from offline catalog    
+ <img src="docs/images/item_grid.png" alt="Item grid" width="250"> 
 
 ### Browse item's recipes and uses (including modded recipe types)
-![Recipes](docs/images/recipes.jpg)
+
+<img src="docs/images/recipes.jpg" alt="Recipes" width="250">
 
 ### Save chosen recipes for fast access
-![Bookmarks](docs/images/bookmarks.jpg)
+
+<img src="docs/images/bookmarks.jpg" alt="Bookmarks" width="250">
 
 ### Select from multiple mod versions saved in catalog
-![Multiple mod versions](docs/images/multiple_mod_versions.jpg)
+
+<img src="docs/images/multiple_mod_versions.jpg" alt="Multiple mod versions" width="250">
 
 ## Requirements
 
