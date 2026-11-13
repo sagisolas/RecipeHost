@@ -51,8 +51,16 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.processResources {
-    inputs.property("version", project.version)
+    val properties =
+        mapOf(
+            "version" to project.version,
+            "author" to providers.gradleProperty("author").get(),
+            "authorEmail" to providers.gradleProperty("author_email").get(),
+            "homepage" to providers.gradleProperty("source_url").get(),
+            "issues" to providers.gradleProperty("issues_url").get(),
+        )
+    inputs.properties(properties)
     filesMatching("fabric.mod.json") {
-        expand("version" to project.version)
+        expand(properties)
     }
 }

@@ -23,9 +23,9 @@ buildConfig {
     // App info from gradle.properties, shown in the Settings screen's footer.
     forClass("AppInfo") {
         buildConfigField("VERSION", providers.gradleProperty("app_version"))
-        buildConfigField("AUTHOR", providers.gradleProperty("app_author"))
-        buildConfigField("AUTHOR_EMAIL", providers.gradleProperty("app_author_email"))
-        buildConfigField("SOURCE_URL", providers.gradleProperty("app_source_url"))
+        buildConfigField("AUTHOR", providers.gradleProperty("author"))
+        buildConfigField("AUTHOR_EMAIL", providers.gradleProperty("author_email"))
+        buildConfigField("SOURCE_URL", providers.gradleProperty("source_url"))
     }
 }
 

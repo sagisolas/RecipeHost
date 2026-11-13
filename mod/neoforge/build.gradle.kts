@@ -71,8 +71,14 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.processResources {
-    inputs.property("version", project.version)
+    val properties =
+        mapOf(
+            "version" to project.version,
+            "author" to providers.gradleProperty("author").get(),
+            "authorEmail" to providers.gradleProperty("author_email").get(),
+        )
+    inputs.properties(properties)
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand("version" to project.version)
+        expand(properties)
     }
 }

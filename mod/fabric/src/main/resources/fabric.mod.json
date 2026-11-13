@@ -4,6 +4,18 @@
   "version": "${version}",
   "name": "RecipeHost",
   "description": "Companion mod that streams recipes and icons to the RecipeHost mobile app.",
+  "authors": [
+    {
+      "name": "${author}",
+      "contact": {
+        "email": "${authorEmail}"
+      }
+    }
+  ],
+  "contact": {
+    "homepage": "${homepage}",
+    "issues": "${issues}"
+  },
   "license": "MPL-2.0",
   "icon": "assets/recipehost/icon.png",
   "environment": "client",
