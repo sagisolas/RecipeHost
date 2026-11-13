@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3x3 inventory slots with a signal symbol: a dot above the grid and two arcs centred on the grid that wrap
+     around it. Everything stays inside the 66dp safe circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Slots: 10x10 rounded squares, 2 apart, outline only. -->
+    <path
+        android:pathData="M39,44.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M51,44.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M63,44.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z
+            M39,56.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M51,56.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M63,56.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z
+            M39,68.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M51,68.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z M63,68.5h6a2,2 0,0 1,2,2v6a2,2 0,0 1,-2,2h-6a2,2 0,0 1,-2,-2v-6a2,2 0,0 1,2,-2z"
+        android:strokeWidth="1.5"
+        android:strokeColor="#C6C6C6" />
+    <!-- Signal dot, between the grid and the inner arc. -->
+    <path
+        android:fillColor="#C6C6C6"
+        android:pathData="M54,40m-2.25,0a2.25,2.25 0,1 1,4.5 0a2.25,2.25 0,1 1,-4.5 0" />
+    <!-- Signal arcs, centred on the grid: the inner one 100 degrees wide, the outer one 120. -->
+    <path
+        android:pathData="M33.700,44.466A26.5,26.5 0,0 1,74.300,44.466
+            M26.720,45.750A31.5,31.5 0,0 1,81.280,45.750"
+        android:strokeWidth="2.5"
+        android:strokeColor="#C6C6C6"
+        android:strokeLineCap="round" />
+</vector>
