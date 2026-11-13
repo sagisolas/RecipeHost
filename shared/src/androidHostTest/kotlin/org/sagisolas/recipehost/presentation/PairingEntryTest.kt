@@ -18,6 +18,7 @@ import org.sagisolas.recipehost.data.pairing.PairingPayload
 import org.sagisolas.recipehost.data.pairing.PairingPayloadException
 import org.sagisolas.recipehost.data.scan.ScanController
 import org.sagisolas.recipehost.data.scan.ScanIngest
+import org.sagisolas.recipehost.data.scan.tempRecipeSpool
 import org.sagisolas.recipehost.data.transport.SessionSource
 import org.sagisolas.recipehost.platform.QrScanner
 import kotlin.test.AfterTest
@@ -51,7 +52,11 @@ class PairingEntryTest {
 
     private fun TestScope.entry() =
         PairingEntry(
-            ScanController(backgroundScope, source, ScanIngest(CatalogDatabase(driver), Clock.System)) {},
+            ScanController(
+                backgroundScope,
+                source,
+                ScanIngest(CatalogDatabase(driver), Clock.System, tempRecipeSpool()),
+            ) {},
             QrScanner { scanned },
         )
 

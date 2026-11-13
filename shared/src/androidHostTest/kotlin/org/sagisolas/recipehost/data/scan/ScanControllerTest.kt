@@ -30,7 +30,7 @@ import kotlin.time.Clock
 
 class ScanControllerTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CatalogDatabase.Schema.create(it) }
-    private val ingest = ScanIngest(CatalogDatabase(driver), Clock.System)
+    private val ingest = ScanIngest(CatalogDatabase(driver), Clock.System, tempRecipeSpool())
     private val payload = PairingPayload(listOf("192.168.1.10"), port = 25599, token = ByteArray(32).toByteString())
 
     @AfterTest

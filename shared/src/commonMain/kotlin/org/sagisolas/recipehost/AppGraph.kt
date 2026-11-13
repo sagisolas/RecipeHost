@@ -12,7 +12,9 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import okio.FileSystem
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.scan.RecipeSpool
 import org.sagisolas.recipehost.data.scan.ScanController
 import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.scan.ScanProgress
@@ -69,7 +71,15 @@ class AppGraph(
         ScanController(
             scope = appScope,
             sessions = RetryingSessionClient(SessionClient(KtorSocketConnector(), localNetwork)),
-            ingest = ScanIngest(catalog, Clock.System),
+            ingest =
+                ScanIngest(
+                    catalog,
+                    Clock.System,
+                    RecipeSpool(
+                        FileSystem.SYSTEM,
+                        FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "recipehost-recipes.spool",
+                    ),
+                ),
             clear = ClearCatalog(catalog, Dispatchers.IO)::invoke,
         )
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.protocol.Envelope
@@ -28,16 +29,17 @@ import kotlin.time.Clock
 /**
  * Writes one `Scan`'s `Snapshot` into the `Catalog` (ADR 0010, 0011).
  *
- * Items and Recipes are staged in memory and committed in one transaction after the last
- * RecipeBatch, so a stream that fails before then writes nothing. Icons are upserted batch by
- * batch after that commit, one `Icon atlas` per IconBatch, so a drop during Icons keeps what
- * was committed. `Recipe layout`s follow the same pattern: each LayoutBatch is stored and linked
- * to its recipes in its own transaction after the commit, and once the Scan ends, normally or by a
- * drop, layouts no recipe points at are deleted.
+ * Items are staged in memory and Recipes in a [RecipeSpool] file (ADR 0017), and both are
+ * committed in one transaction after the last RecipeBatch, so a stream that fails before then
+ * writes nothing. Icons are upserted batch by batch after that commit, one `Icon atlas` per
+ * IconBatch, so a drop during Icons keeps what was committed. `Recipe layout`s follow the same
+ * pattern: each LayoutBatch is stored and linked to its recipes in its own transaction after the
+ * commit, and once the Scan ends, normally or by a drop, layouts no recipe points at are deleted.
  */
 internal class ScanIngest(
     private val catalog: CatalogDatabase,
     private val clock: Clock,
+    private val spool: RecipeSpool,
 ) {
     /**
      * Emits [ScanProgress.Connecting] first and ends with [ScanProgress.Done] or
@@ -60,12 +62,16 @@ internal class ScanIngest(
                 staged.committed?.let { return it }
                 return commit(staged).also {
                     staged.committed = it
+                    discardSpool()
                     emit(ScanProgress.Committed)
                 }
             }
             envelopes.collect { envelope ->
                 // A retry (RetryingSessionClient) restarts with a new Handshake: drop what was staged.
-                envelope.handshake?.let { scan = StagedScan(it) }
+                envelope.handshake?.let {
+                    scan = StagedScan(it)
+                    spool.begin()
+                }
                 envelope.item_batch?.let { batch ->
                     val staged = scan.stillStaging("ItemBatch")
                     staged.items += batch.items
@@ -73,11 +79,15 @@ internal class ScanIngest(
                 }
                 envelope.recipe_batch?.let { batch ->
                     val staged = scan.stillStaging("RecipeBatch")
-                    staged.recipes += batch.expandedRecipes()
+                    // Checked on arrival: the recipes are spooled, so the commit can't check them before it opens.
+                    batch.requireValid(staged.modIds)
+                    val received = staged.recipesReceived + batch.recipes.size
                     val total = staged.handshake.total_recipes
-                    if (staged.recipes.size > total) throw RecipeCountExceededException(staged.recipes.size, total)
-                    emit(ScanProgress.Recipes(staged.recipes.size, total))
-                    if (staged.recipes.size == total) commitOnce(staged)
+                    if (received > total) throw RecipeCountExceededException(received, total)
+                    spool.append(batch)
+                    staged.recipesReceived = received
+                    emit(ScanProgress.Recipes(received, total))
+                    if (received == total) commitOnce(staged)
                 }
                 envelope.icon_batch?.let { batch ->
                     val staged = scan ?: error("IconBatch before Handshake")
@@ -96,6 +106,9 @@ internal class ScanIngest(
             commitOnce(staged)
             deleteUnreferenced()
             emit(ScanProgress.Done)
+        }.onCompletion {
+            // Normally gone after the commit; this covers a Scan that failed or was cancelled before it.
+            discardSpool()
         }.catch { cause ->
             if (cause is CancellationException) throw cause
             // The screen only shows a reason; the cause is only ever seen here (logcat / Xcode console).
@@ -104,6 +117,14 @@ internal class ScanIngest(
             runCatching { deleteUnreferenced() }
             emit(ScanProgress.Failed(cause))
         }
+
+    /**
+     * Deletes the spool file. A failure only leaves a temp file for the next Scan to overwrite, so
+     * it never fails a Scan whose recipes are already committed.
+     */
+    private fun discardSpool() {
+        runCatching { spool.delete() }.onFailure { println("[recipehost] Couldn't delete the recipe spool: $it") }
+    }
 
     /**
      * Deletes the layouts no recipe points at and the atlases no Icon points at. Run once the Scan
@@ -120,10 +141,9 @@ internal class ScanIngest(
     /** Writes the staged Items and Recipes in one transaction. */
     private fun commit(scan: StagedScan): Committed {
         val handshake = scan.handshake
-        val modIds = handshake.mods.mapTo(HashSet()) { it.id }
-        // Checked before the transaction opens, so a broken mod contract writes nothing.
-        scan.items.forEach { requireModInfo(modIds, it.id) }
-        scan.recipes.forEach { requireModInfo(modIds, it.id) }
+        // Items are checked before the transaction opens, and Recipes as they arrived, so a broken
+        // mod contract writes nothing.
+        scan.items.forEach { requireModInfo(scan.modIds, it.id) }
         val now = clock.now().toEpochMilliseconds()
         return catalog.transactionWithResult {
             val releaseIds =
@@ -134,7 +154,7 @@ internal class ScanIngest(
             scan.items.forEachIndexed { ordinal, item ->
                 upsertItem(releaseIds.releaseOf(item.id), item, ordinal.toLong())
             }
-            replaceRecipes(instanceId, releaseIds, scan.recipes)
+            spool.read { batches -> replaceRecipes(instanceId, releaseIds, batches.flatMap { it.expandedRecipes() }) }
             upsertTypeNames(releaseIds, handshake.recipe_types)
             releaseIds.forEach { (modId, releaseId) -> catalog.versionSelectionQueries.choose(modId, releaseId) }
             Committed(releaseIds, instanceId)
@@ -240,7 +260,7 @@ internal class ScanIngest(
     private fun replaceRecipes(
         instanceId: Long,
         releaseIds: Map<String, Long>,
-        recipes: List<Recipe>,
+        recipes: Sequence<Recipe>,
     ) = with(catalog.recipeQueries) {
         releaseIds.values.forEach { releaseId ->
             deleteOutputsOf(instanceId, releaseId)
@@ -273,9 +293,11 @@ internal class ScanIngest(
     private class StagedScan(
         val handshake: Handshake,
     ) {
-        // TODO: measure memory and commit time on a large modpack; move to staging tables if needed.
+        val modIds: Set<String> = handshake.mods.mapTo(HashSet()) { it.id }
         val items = ArrayList<Item>()
-        val recipes = ArrayList<Recipe>()
+
+        /** Recipes appended to the spool so far. */
+        var recipesReceived = 0
 
         /** Set by the commit: where Icons and layouts are filed. */
         var committed: Committed? = null
@@ -305,23 +327,33 @@ internal class ScanIngest(
         val releaseId: Long,
         val recipeId: String,
     )
+}
 
-    private companion object {
-        fun requireModInfo(
-            modIds: Set<String>,
-            id: String,
-        ) {
-            val namespace = namespaceOf(id)
-            if (namespace !in modIds) throw UnknownNamespaceException(namespace, id)
-        }
+private fun requireModInfo(
+    modIds: Set<String>,
+    id: String,
+) {
+    val namespace = namespaceOf(id)
+    if (namespace !in modIds) throw UnknownNamespaceException(namespace, id)
+}
 
-        /** The release that owns [id]: its namespace's (ADR 0011). */
-        fun Map<String, Long>.releaseOf(id: String): Long {
-            val namespace = namespaceOf(id)
-            return this[namespace] ?: throw UnknownNamespaceException(namespace, id)
+/** The release that owns [id]: its namespace's (ADR 0011). */
+private fun Map<String, Long>.releaseOf(id: String): Long {
+    val namespace = namespaceOf(id)
+    return this[namespace] ?: throw UnknownNamespaceException(namespace, id)
+}
+
+/**
+ * Fails the way the commit's expansion and filing would, without expanding: a recipe whose
+ * namespace has no `ModInfo`, or a Slot pointing past the batch's `shared_slots`.
+ */
+private fun RecipeBatch.requireValid(modIds: Set<String>) =
+    recipes.forEach { recipe ->
+        requireModInfo(modIds, recipe.id)
+        (recipe.inputs.asSequence() + recipe.layout_stacks).forEach { slot ->
+            if (slot.shared > shared_slots.size) throw InvalidSharedSlotException(slot.shared, shared_slots.size)
         }
     }
-}
 
 /**
  * The companion mod broke its contract (issue 01): it sent an Item, Recipe or Icon, or a layout

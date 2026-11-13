@@ -13,6 +13,7 @@ import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.scan.ScanProgress
+import org.sagisolas.recipehost.data.scan.tempRecipeSpool
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
 import org.sagisolas.recipehost.protocol.IconBatch
@@ -46,7 +47,7 @@ internal class CatalogFixture {
         object : Clock {
             override fun now() = Instant.fromEpochMilliseconds(nowMillis)
         }
-    private val ingest = ScanIngest(database, clock)
+    private val ingest = ScanIngest(database, clock, tempRecipeSpool())
 
     fun close() = driver.close()
 

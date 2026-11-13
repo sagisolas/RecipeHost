@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
+import okio.FileSystem
 import okio.IOException
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.domain.iconAtlas
@@ -50,10 +51,14 @@ class ScanIngestTest {
         object : Clock {
             override fun now() = Instant.fromEpochMilliseconds(nowMillis)
         }
-    private val ingest = ScanIngest(database, clock)
+    private val spoolPath = tempSpoolPath()
+    private val ingest = ScanIngest(database, clock, tempRecipeSpool(spoolPath))
 
     @AfterTest
-    fun closeDriver() = driver.close()
+    fun closeDriver() {
+        driver.close()
+        FileSystem.SYSTEM.delete(spoolPath)
+    }
 
     private val minecraft = ModInfo(id = "minecraft", name = "Minecraft", version = "1.21.1")
     private val create6 = ModInfo(id = "create", name = "Create", version = "6.0.1")
@@ -671,6 +676,49 @@ class ScanIngestTest {
                 ).toList()
 
             assertEquals(listOf("Stone" to 0L, "Stick" to 1L), itemsOf(minecraft))
+        }
+
+    @Test
+    fun aSpoolLeftByACrashedScanIsGoneOnceAScanEnds() =
+        runTest {
+            FileSystem.SYSTEM.write(spoolPath) { writeUtf8("left over") }
+
+            scan("ATM9", minecraft, stickRecipe)
+
+            assertFalse(FileSystem.SYSTEM.exists(spoolPath))
+        }
+
+    @Test
+    fun aRetriedSessionsNewHandshakeDiscardsTheRecipesTheFailedAttemptSpooled() =
+        runTest {
+            val progress =
+                ingest
+                    .ingest(
+                        flowOf(
+                            handshake("ATM9", minecraft, items = 0, recipes = 2),
+                            recipes(stickRecipe),
+                            handshake("ATM9", minecraft, items = 0, recipes = 2),
+                            recipes(stickRecipe),
+                            recipes(torchRecipe),
+                        ),
+                    ).toList()
+
+            assertEquals(ScanProgress.Done, progress.last())
+            assertEquals(listOf("minecraft:stick", "minecraft:torch"), recipeIdsOf("ATM9"))
+        }
+
+    @Test
+    fun aScanDroppedMidRecipesLeavesNoSpool() =
+        runTest {
+            ingest
+                .ingest(
+                    flowOf(
+                        handshake("ATM9", minecraft, items = 0, recipes = 2),
+                        recipes(stickRecipe),
+                    ).thenDrop(),
+                ).toList()
+
+            assertFalse(FileSystem.SYSTEM.exists(spoolPath))
         }
 
     // --- scripted envelopes ---
