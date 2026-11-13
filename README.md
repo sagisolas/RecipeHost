@@ -1,24 +1,85 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# Recipehost
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+Mobile app + companion Minecraft mod for offline recipe browsing. Download recipes once via QR code over LAN, then browse on mobile device. For any modpack!
 
-* [/shared](./shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./shared/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./shared/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./shared/src/jvmMain/kotlin)
-    folder is the appropriate location.
+## Features
 
-### Running the apps
+### Search items from offline catalog
+![Item grid](docs/images/item_grid.png)
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+### Browse item's recipes and uses (including modded recipe types)
+![Recipes](docs/images/recipes.jpg)
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+### Save chosen recipes for fast access
+![Bookmarks](docs/images/bookmarks.jpg)
 
----
+### Select from multiple mod versions saved in catalog
+![Multiple mod versions](docs/images/multiple_mod_versions.jpg)
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Requirements
+
+### Mod
+The mod is client only.
+- Minecraft 1.21.1
+- Fabric Loader >= 0.15 + Fabric API OR neoforge 21.1
+- Optional: EMI is required for full support of custom recipe types from mods.
+
+### Mobile app
+- Android 7.0
+- iOS 16
+
+## Development
+Project is developed using AI agents. Conventional commits format is used. Issues and PRs are welcome.
+
+### Overview
+`shared/` - Mobile app shared code in KMP and Compose Multiplatform.
+
+`androidApp/` - Android wrapper
+
+`iosApp` - iOS wrapper
+
+`protocol` - protobuf definitions of wire protocol
+
+`mod` - Minecraft mod, divided in common and loader specific code using Architectury
+
+### Building
+
+Java 21 and Xcode 26.2 are required.
+
+Android app:
+
+```bash
+./gradlew :androidApp:assembleDebug
+```
+```bash
+./gradlew :androidApp:assembleRelease
+```
+
+iOS app:
+
+```bash
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath build/ios
+```
+
+```bash
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Release -destination 'generic/platform=iOS' -derivedDataPath build/ios
+```
+
+Mod (fabric):
+```bash
+./gradlew :mod:fabric:assemble
+```
+
+Mod (neoforge):
+```bash
+./gradlew :mod:neoforge:assemble
+```
+
+### License
+[MPL 2.0](LICENSE)
+
+## Planned
+- Visualize crafting tree down to raw materials
+- Better support for modpacks without EMI
+- Newer versions of MC
+
