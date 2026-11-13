@@ -6,6 +6,7 @@
 package org.sagisolas.recipehost.mod.snapshot.emi;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.AnimatedTextureWidget;
@@ -21,6 +22,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Draws a captured EMI recipe as its `Recipe layout` (ADR 0015): on the GUI's light panel
@@ -35,6 +38,11 @@ import org.sagisolas.recipehost.protocol.RecipeSlot;
  * </ul>
  * Slots are judged by the stack captured with them, not a fresh {@code getStack()}: a generated
  * slot would pick another one.
+ *
+ * <p>The widgets aren't kept from the capture made while the recipe was read: a Snapshot holds
+ * every job until its layouts are drawn, and a widget tree per recipe ran the game out of memory
+ * on a large modpack (ADR 0015). The drawer keeps the recipe, which EMI holds anyway, and runs
+ * {@code addWidgets} again when it draws.
  */
 final class EmiLayoutDrawer implements LayoutJob.Drawer {
 
@@ -50,22 +58,20 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
     /** Panel around the recipe's own display area, in GUI px on each side. */
     private static final int PADDING = 4;
 
+    private static final Logger LOG = LoggerFactory.getLogger(EmiLayoutDrawer.class);
+
+    private final EmiRecipe recipe;
     private final int width;
     private final int height;
-    private final List<Widget> widgets;
     private final List<RecipeSlot> slots;
-    /** The stack captured with each slot widget, in the order they appear in {@code widgets}. */
-    private final List<EmiIngredient> slotStacks;
 
-    EmiLayoutDrawer(CapturingWidgetHolder.Capture capture) {
+    /** @param capture the recipe's capture when it was read: its size and slots are what the job ships */
+    EmiLayoutDrawer(EmiRecipe recipe, CapturingWidgetHolder.Capture capture) {
+        this.recipe = recipe;
         this.width = capture.width();
         this.height = capture.height();
-        this.widgets = capture.widgets();
         this.slots = capture.slots().stream()
                 .map(captured -> padded(captured.slot()))
-                .toList();
-        this.slotStacks = capture.slots().stream()
-                .map(CapturingWidgetHolder.CapturedSlot::stack)
                 .toList();
     }
 
@@ -80,15 +86,35 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
         graphics.pose().pushPose();
         graphics.pose().translate(PADDING, PADDING, 0f);
         try {
-            drawWidgets(graphics, mouseX, mouseY);
+            drawWidgets(recapture(), graphics, mouseX, mouseY);
         } finally {
             graphics.pose().popPose();
         }
     }
 
-    private void drawWidgets(GuiGraphics graphics, int mouseX, int mouseY) {
+    /** The recipe's widgets as {@code addWidgets} adds them now, on the render thread. */
+    private CapturingWidgetHolder.Capture recapture() {
+        CapturingWidgetHolder holder =
+                new CapturingWidgetHolder(recipe.getDisplayWidth(), recipe.getDisplayHeight(), recipe.getCatalysts());
+        recipe.addWidgets(holder);
+        CapturingWidgetHolder.Capture capture = holder.capture();
+        // Drawn anyway: only a recipe whose addWidgets isn't repeatable gets here, and its own
+        // slots still decide what each slot bakes in.
+        if (capture.slots().size() != slots.size()) {
+            LOG.debug(
+                    "[recipehost] EMI recipe {} drew {} slots, but was read with {}",
+                    recipe.getId(),
+                    capture.slots().size(),
+                    slots.size());
+        }
+        return capture;
+    }
+
+    private static void drawWidgets(
+            CapturingWidgetHolder.Capture capture, GuiGraphics graphics, int mouseX, int mouseY) {
+        List<CapturingWidgetHolder.CapturedSlot> slotStacks = capture.slots();
         int nextSlot = 0;
-        for (Widget widget : widgets) {
+        for (Widget widget : capture.widgets()) {
             if (widget instanceof FillingArrowWidget) {
                 Bounds bounds = widget.getBounds();
                 graphics.blit(WIDGETS, bounds.x(), bounds.y(), ARROW_U, ARROW_V, bounds.width(), bounds.height());
@@ -99,7 +125,8 @@ final class EmiLayoutDrawer implements LayoutJob.Drawer {
                 slot.drawBackground(graphics, mouseX, mouseY, NO_DELTA);
                 // Fluids and other non-item stacks are baked in: the app can only draw Items.
                 // A generated slot's drawStack would draw a newly generated stack, so it's left out.
-                boolean bake = showsNonItem(slotStacks.get(nextSlot++)) && !(slot instanceof GeneratedSlotWidget);
+                boolean bake =
+                        showsNonItem(slotStacks.get(nextSlot++).stack()) && !(slot instanceof GeneratedSlotWidget);
                 if (bake) slot.drawStack(graphics, mouseX, mouseY, NO_DELTA);
             } else {
                 // Called through Minecraft's Renderable, which Widget implements: in production

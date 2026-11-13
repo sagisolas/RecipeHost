@@ -24,3 +24,4 @@ Layouts travel after the recipes in their own `LayoutBatch`, one PNG per layout 
 - Fluids and other non-item stacks are visible only as pixels: not tappable, not searchable.
 - EMI recipes with a null id are attributed to their category id's namespace, with a fabricated id `<category ns>:<body hash>` so it is stable across Scans (ADR 0011).
 - Tooltips on widgets are not captured in the first slice.
+- An EMI recipe's widgets are captured twice: once while it is read, for its slots and `layout_stacks`, and again when its layout is drawn. Keeping the first capture's widgets until the layouts were drawn held a widget tree per recipe, and a 600k-recipe modpack ran the game out of memory. A recipe whose `addWidgets` isn't repeatable may draw slightly different widgets from the slots it shipped.

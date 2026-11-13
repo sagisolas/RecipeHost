@@ -68,7 +68,7 @@ public final class EmiRecipeSource implements RecipeSource {
             List<List<EmiRecipeMapper.Stack>> slotStacks =
                     capture.slots().stream().map(slot -> stacksOf(slot.stack())).toList();
             return Optional.of(new LaidOut(
-                    new EmiLayoutDrawer(capture).job(typeId(), read.getId()),
+                    new EmiLayoutDrawer(recipe, capture).job(typeId(), read.getId()),
                     EmiRecipeMapper.layoutStacks(slotStacks)));
         }
     }
