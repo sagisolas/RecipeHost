@@ -5,6 +5,7 @@
  */
 package org.sagisolas.recipehost.ui.item
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -30,16 +34,15 @@ import org.sagisolas.recipehost.presentation.StackUi
 import org.sagisolas.recipehost.ui.AppTheme
 import org.sagisolas.recipehost.ui.designsystem.McDimens
 import org.sagisolas.recipehost.ui.designsystem.McSlot
-import org.sagisolas.recipehost.ui.designsystem.McTheme
 import kotlin.io.encoding.Base64
 import kotlin.math.floor
 
 /**
  * An item's Icon: its [icon] region of an `Icon atlas` from [atlases], drawn with
  * nearest-neighbour filtering at [iconPixelSize] inside a [McSlot]'s content area, so every
- * texel covers the same whole number of device pixels. Shows the skin's missing texture while [icon] is
- * `null` (not arrived yet), while its atlas is loading, when the atlas is missing, or when the
- * region doesn't fit inside it (a malformed IconBatch).
+ * texel covers the same whole number of device pixels. Shows nothing while its atlas is loading,
+ * and a faint [MissingIcon] when the Catalog has no Icon for the item ([icon] is `null`), the atlas
+ * is missing, or the region doesn't fit inside it (a malformed IconBatch).
  */
 @Composable
 internal fun ItemIcon(
@@ -51,15 +54,55 @@ internal fun ItemIcon(
     val loaded by produceState<LoadedAtlas?>(null, atlasId, atlases) {
         if (atlasId != null) value = LoadedAtlas(atlasId, atlases.get(atlasId))
     }
-    val atlas = atlasId?.let { id -> loaded?.takeIf { it.id == id }?.bitmap ?: atlases.peek(id) }
+    val loadedHere = atlasId?.let { id -> loaded?.takeIf { it.id == id } }
+    val atlas = atlasId?.let { id -> loadedHere?.bitmap ?: atlases.peek(id) }
     val painter = remember(atlas, icon) { if (atlas != null && icon != null) regionPainter(atlas, icon) else null }
-    if (painter != null) {
-        val iconSize = with(LocalDensity.current) { iconPixelSize(McDimens.SlotContentSize.toPx()).toDp() }
-        Box(modifier.size(McDimens.SlotContentSize), contentAlignment = Alignment.Center) {
-            Image(painter, contentDescription = null, modifier = Modifier.size(iconSize))
+    when {
+        painter != null -> {
+            IconBox(modifier) { Image(painter, contentDescription = null, modifier = it) }
+        }
+
+        // No Icon, the atlas arrived without such a region, or it's gone: missing, not loading.
+        icon == null || atlas != null || (loadedHere != null && loadedHere.bitmap == null) -> {
+            MissingIcon(modifier)
         }
     }
 }
+
+/**
+ * A faint gray square on the Icon's texel grid, for an item whose Icon can't be shown. Translucent
+ * white, so it reads on both a slot's gray and the dark background behind a grid.
+ */
+@Composable
+private fun MissingIcon(modifier: Modifier = Modifier) {
+    IconBox(modifier) { iconModifier ->
+        Canvas(iconModifier) {
+            val inset = MISSING_ICON_INSET_TEXELS * size.width / ICON_TEXELS
+            drawRect(
+                MISSING_ICON_COLOR,
+                topLeft = Offset(inset, inset),
+                size = Size(size.width - inset * 2, size.height - inset * 2),
+            )
+        }
+    }
+}
+
+/** Centres [content], given the modifier that sizes it to [iconPixelSize], in a slot's content area. */
+@Composable
+private fun IconBox(
+    modifier: Modifier,
+    content: @Composable (iconModifier: Modifier) -> Unit,
+) {
+    val iconSize = with(LocalDensity.current) { iconPixelSize(McDimens.SlotContentSize.toPx()).toDp() }
+    Box(modifier.size(McDimens.SlotContentSize), contentAlignment = Alignment.Center) {
+        content(Modifier.size(iconSize))
+    }
+}
+
+private val MISSING_ICON_COLOR = Color(0x5BD2D2D2)
+
+/** Texels left clear on each side of the [MissingIcon] square. */
+private const val MISSING_ICON_INSET_TEXELS = 1
 
 /**
  * The largest size, in device pixels, that fits in [availablePx] and gives each of an Icon's 16
@@ -74,7 +117,7 @@ internal fun iconPixelSize(availablePx: Float): Int {
 /** Texels across an Icon: the 16 GUI units Minecraft draws an item in. */
 private const val ICON_TEXELS = 16
 
-/** The stack's Icon, or the missing texture when its id doesn't resolve to an Item. */
+/** The stack's Icon, or a [MissingIcon] when its id doesn't resolve to an Item. */
 @Composable
 internal fun StackIcon(
     stack: StackUi,
@@ -85,12 +128,7 @@ internal fun StackIcon(
     if (item != null) {
         ItemIcon(item.icon, atlases, modifier)
     } else {
-        Image(
-            McTheme.skin.missingTexture,
-            contentDescription = null,
-            modifier = modifier.size(McDimens.SlotContentSize),
-            filterQuality = FilterQuality.None,
-        )
+        MissingIcon(modifier)
     }
 }
 
@@ -129,6 +167,7 @@ private fun ItemIconPreview() {
             McSlot { ItemIcon(null, atlases) }
             McSlot { ItemIcon(IconRegion(BROKEN_ATLAS, x = 0, y = 0, size = 16), atlases) }
             McSlot { ItemIcon(IconRegion(SAMPLE_ATLAS, x = 16, y = 0, size = 16), atlases) }
+            McSlot { MissingIcon() }
         }
     }
 }
