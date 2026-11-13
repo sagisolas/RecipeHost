@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.sagisolas.recipehost.gradle.buildNumber
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -39,8 +40,8 @@ android {
             libs.versions.android.targetSdk
                 .get()
                 .toInt()
-        versionCode = 1
         versionName = providers.gradleProperty("app_version").get()
+        versionCode = buildNumber(versionName!!)
     }
     androidResources {
         // The app's strings are English only; drop the translations libraries bring in.
