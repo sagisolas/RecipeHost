@@ -17,6 +17,8 @@ Writes into androidApp/src/main/res for every density:
   mipmap-*/ic_launcher_foreground.webp   beacon, beam, items, lossless
   mipmap-*/ic_launcher_monochrome.webp   silhouette for themed icons (Android 13+)
   mipmap-*/ic_launcher.png, ic_launcher_round.png   legacy icons (API < 26)
+and the same art as the mod logo for Fabric and NeoForge:
+  mod/common/src/main/resources/assets/recipehost/icon.png   256x256
 
 Needs ImageMagick 7 (`magick`) on PATH. No Python packages beyond the standard library.
 """
@@ -48,6 +50,11 @@ BEAM_EDGE, BEAM_BODY, BEAM_CORE = "#3fb6e8", "#8fdcff", "#e6fbff"
 # Everything but the beam must fit this radius (dp) from the layer centre: the 66 dp safe zone, with a little slack.
 SAFE_RADIUS_DP = 32.5
 MIN_CROP = 204  # crop of the canvas that spans the 108 dp layer; larger crop = smaller art
+
+# Mod logo (Fabric `icon`, NeoForge `logoFile`): a 128 art px square from the centre, scaled 2x -> 256x256.
+DEFAULT_MOD_LOGO = REPO / "mod/common/src/main/resources/assets/recipehost/icon.png"
+LOGO_CROP = 128
+LOGO_SCALE = 2
 
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
 WEBP = ["-define", "webp:lossless=true", "-define", "webp:exact=true"]
@@ -182,10 +189,20 @@ def export(foreground, mono, crop, res, work):
         r = legacy // 6
         magick(flat, "(", "-size", f"{legacy}x{legacy}", "xc:none", "-fill", "white",
                "-draw", f"roundrectangle 0,0 {legacy - 1},{legacy - 1} {r},{r}", ")",
-               "-compose", "DstIn", "-composite", d / "ic_launcher.png")
+               "-compose", "DstIn", "-composite", "-strip", d / "ic_launcher.png")
         magick(flat, "(", "-size", f"{legacy}x{legacy}", "xc:none", "-fill", "white",
                "-draw", f"circle {legacy // 2},{legacy // 2} {legacy // 2},0", ")",
-               "-compose", "DstIn", "-composite", d / "ic_launcher_round.png")
+               "-compose", "DstIn", "-composite", "-strip", d / "ic_launcher_round.png")
+
+
+def export_mod_logo(foreground, out, work):
+    """Square mod logo: the centre of the art on one dirt tile, at an exact 2x scale so the pixels stay crisp."""
+    offset = (CANVAS - LOGO_CROP) // 2
+    dirt = work / "logo_dirt.png"
+    magick(DIRT, "-filter", "point", "-resize", f"{LOGO_CROP}x{LOGO_CROP}!", dirt)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    magick(dirt, "(", foreground, "-crop", f"{LOGO_CROP}x{LOGO_CROP}+{offset}+{offset}", "+repage", ")",
+           "-composite", "-filter", "point", "-resize", f"{LOGO_SCALE * 100}%", "-strip", out)
 
 
 def preview(res, out, work):
@@ -219,6 +236,8 @@ def main():
     parser.add_argument("items", nargs=4, metavar="ITEM[@PX]",
                         help="item ids: top-left top-right bottom-left bottom-right")
     parser.add_argument("--res", type=Path, default=DEFAULT_RES, help=f"Android res dir (default: {DEFAULT_RES})")
+    parser.add_argument("--mod-logo", type=Path, default=DEFAULT_MOD_LOGO,
+                        help=f"mod logo PNG for Fabric and NeoForge (default: {DEFAULT_MOD_LOGO})")
     parser.add_argument("--preview", type=Path, help="also write a preview sheet with launcher masks here")
     args = parser.parse_args()
 
@@ -243,6 +262,8 @@ def main():
             crop = CANVAS
         export(foreground, mono, crop, args.res, work)
         print(f"wrote launcher icons to {args.res} (crop {crop})")
+        export_mod_logo(foreground, args.mod_logo, work)
+        print(f"wrote mod logo to {args.mod_logo}")
         if args.preview:
             preview(args.res, args.preview, work)
             print(f"wrote preview to {args.preview}")
