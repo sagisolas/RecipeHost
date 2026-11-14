@@ -3,12 +3,13 @@
     <string name="tab_bookmarks">Bookmarks</string>
     <string name="tab_settings">Settings</string>
 
-    <string name="scan_qr">Scan QR</string>
+    <string name="scan_qr">Scan</string>
     <string name="welcome_step_install">Install the RecipeHost mod</string>
-    <string name="welcome_modrinth">Modrinth page</string>
-    <string name="welcome_curseforge">CurseForge page</string>
+    <string name="welcome_modrinth">Modrinth</string>
+    <string name="welcome_curseforge">CurseForge</string>
     <string name="welcome_screenshot">The pairing button at the bottom left of the inventory</string>
     <string name="welcome_hint">Open the pairing screen from your inventory in Minecraft</string>
+    <string name="welcome_step_number">%1$d.</string>
     <string name="welcome_step_scan">Scan the QR code</string>
     <string name="welcome_no_scanner">QR scanner is not available. Scan the code with your camera app instead.</string>
     <string name="welcome_camera_denied">Allow camera access for RecipeHost in Settings, or scan the code with your Camera app.</string>
@@ -20,17 +21,17 @@
     <string name="scan_step_recipes_count">Recipes %1$d/%2$d</string>
     <string name="scan_again">Scan again</string>
     <string name="scan_error_unauthorized">The game didn\'t accept this code. Open the pairing screen again and scan the new one.</string>
-    <string name="scan_error_busy">The game is already sending to another device. Try again in a moment.</string>
+    <string name="scan_error_busy">The game is already sending data to another device. Try again later.</string>
     <string name="scan_error_game">The game ran into an error while sending its items and recipes.</string>
     <string name="scan_error_version_mismatch">This app and the companion mod are on different versions. Update both.</string>
-    <string name="scan_error_invalid_code">That isn\'t a RecipeHost pairing code.</string>
-    <string name="scan_error_network">Couldn\'t reach the game. Same Wi-Fi? Is the pairing screen open?</string>
+    <string name="scan_error_invalid_code">That is not a RecipeHost pairing code.</string>
+    <string name="scan_error_network">Could not reach the game. Make sure that you are in same LAN.</string>
     <string name="scan_error_local_network">Allow Local Network for RecipeHost in Settings, then scan again.</string>
     <string name="scan_error_interrupted">The scan stopped before it finished.</string>
 
     <string name="grid_mods">Mods</string>
     <string name="grid_scan">Scan</string>
-    <string name="grid_search_hint">Search, @mod</string>
+    <string name="grid_search_hint">Item name, @mod to filter by mod</string>
     <string name="grid_search_clear">Clear search</string>
 
     <string name="mod_list_title">Filter items by mod</string>
@@ -54,18 +55,22 @@
     <string name="settings_items">Items</string>
     <string name="settings_recipes">Recipes</string>
     <string name="settings_storage_used">Storage used</string>
+    <string name="size_decimal">%1$d.%2$d</string>
     <string name="size_bytes">%1$s B</string>
     <string name="size_kilobytes">%1$s kB</string>
     <string name="size_megabytes">%1$s MB</string>
     <string name="size_gigabytes">%1$s GB</string>
     <string name="settings_clear_catalog">Clear Catalog</string>
-    <string name="settings_clear_confirm">Delete every scanned item and recipe, and every bookmark, from this device? Scan again to get the items and recipes back.</string>
+    <string name="settings_clear_confirm">Every scanned item and recipe, and every bookmark will be deleted. You will return to pairing screen</string>
     <string name="settings_clear">Clear</string>
     <string name="settings_author">Author: %1$s</string>
+    <string name="settings_author_email">%1$s (%2$s)</string>
     <string name="settings_version">Version: %1$s</string>
     <string name="settings_source_code">Source code</string>
 
     <string name="recipe_inputs_unknown">Inputs are unknown</string>
+
+    <string name="pager_counter">%1$d / %2$d</string>
 
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
