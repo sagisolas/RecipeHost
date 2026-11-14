@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.sagisolas.recipehost.data.pairing.PairingPayloadException
 import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.transport.ScanFailure
+import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.protocol.ErrorCode
 
 /** What the Scan progress screen shows. */
@@ -55,7 +56,7 @@ internal sealed interface ScanProgressUiState {
         /** The connection failed, and failed again on the retry. */
         Network,
 
-        /** No host was reachable because the OS denies the app the local network (iOS). */
+        /** The OS denies the app the local network (iOS, Android 17+); the screen offers Settings. */
         LocalNetworkDenied,
 
         /** No Scan has run since the app started, e.g. after the OS killed it mid-Scan. */
@@ -71,6 +72,7 @@ internal class ScanProgressViewModel(
     progress: StateFlow<ScanProgress?>,
     pairingFailure: StateFlow<PairingPayloadException?>,
     private val qr: QrPairing,
+    private val localNetwork: LocalNetworkAccess,
 ) : ViewModel() {
     val state: StateFlow<ScanProgressUiState> =
         combine(progress, pairingFailure, ::stateOf)
@@ -79,6 +81,9 @@ internal class ScanProgressViewModel(
     fun scanAgain() {
         viewModelScope.launch { qr.tryScanQr() }
     }
+
+    /** For [ScanProgressUiState.FailureReason.LocalNetworkDenied]: where the user allows it. */
+    fun openSettings() = localNetwork.openSettings()
 }
 
 private fun stateOf(

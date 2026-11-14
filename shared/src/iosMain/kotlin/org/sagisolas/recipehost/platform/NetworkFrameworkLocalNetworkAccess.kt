@@ -8,6 +8,7 @@ package org.sagisolas.recipehost.platform
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import platform.Foundation.NSURL
 import platform.Network._nw_parameters_configure_protocol_default_configuration
 import platform.Network._nw_parameters_configure_protocol_disable
 import platform.Network.nw_connection_cancel
@@ -23,6 +24,8 @@ import platform.Network.nw_endpoint_create_host
 import platform.Network.nw_parameters_create_secure_udp
 import platform.Network.nw_path_get_unsatisfied_reason
 import platform.Network.nw_path_unsatisfied_reason_local_network_denied
+import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.darwin.dispatch_queue_create
 import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
@@ -77,6 +80,11 @@ internal class NetworkFrameworkLocalNetworkAccess : LocalNetworkAccess {
                 nw_connection_start(connection)
             }
         } ?: false
+
+    override fun openSettings() {
+        val url = NSURL.URLWithString(UIApplicationOpenSettingsURLString) ?: return
+        UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any>(), completionHandler = null)
+    }
 }
 
 /** The discard port: nothing of ours listens there, and a UDP probe sends nothing anyway. */

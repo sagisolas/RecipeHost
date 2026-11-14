@@ -16,6 +16,7 @@
     <string name="scan_step_items_count">Предметы %1$d/%2$d</string>
     <string name="scan_step_recipes">Рецепты</string>
     <string name="scan_step_recipes_count">Рецепты %1$d/%2$d</string>
+    <string name="open_settings">Открыть Настройки</string>
     <string name="scan_again">Сканировать еще раз</string>
     <string name="scan_error_unauthorized">Код подключения не подходит. Откройте экран подключения снова и просканируйте код.</string>
     <string name="scan_error_busy">Передача уже в процессе для другого устройства. Попробуйте позже</string>

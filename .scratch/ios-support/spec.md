@@ -45,6 +45,12 @@ The iOS wrapper only has to keep compiling (`shared/src/iosMain/.../MainViewCont
 - When no host accepts a connection, `SessionClient` asks the hook about the first host and fails with `ScanFailure.Network.LocalNetworkDenied` instead of `Unreachable` if it's denied. It's still a `Network` failure, so the one retry applies (and may succeed if the user allowed meanwhile).
 - `FailureReason.LocalNetworkDenied` shows "Allow Local Network for RecipeHost in Settings, then scan again." in place of the Wi-Fi message, which other network failures keep. An error type rather than a platform flag, so a real connection problem on iOS still gets the Wi-Fi message.
 
+> **Update (2026-11-14): Android 17 has the same gate.** An app targeting API 37 can't connect to LAN addresses without the `ACCESS_LOCAL_NETWORK` runtime permission (ping and `adb shell` still can, which hides it). Android no longer passes `LocalNetworkAccess { false }`:
+> - `LocalNetworkAccess` gained `suspend fun request(): Boolean` (default `true`, for iOS, which asks on first connection) and `fun openSettings()`.
+> - The Android wrapper passes `RuntimeLocalNetworkAccess`, which shows the permission dialog on API 37+; `isDenied` is "permission not granted".
+> - `PermissionRequestingSessionClient` (outside `RetryingSessionClient`) requests once per Scan and fails with `LocalNetworkDenied` straight away when it's denied, without trying the hosts or retrying.
+> - The message is now "Allow local network access for RecipeHost in Settings, then scan again.", and the screen adds an "Open Settings" button for it.
+
 ### Back
 
 - Turn on Compose Multiplatform's iOS back gesture in the `ComposeUIViewController` configuration so the edge swipe reaches the inner `NavDisplay`'s `onBack = navigator::pop`. Check the exact flag in CMP 1.12.2.

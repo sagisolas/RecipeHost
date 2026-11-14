@@ -13,7 +13,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsControllerCompat
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
-import org.sagisolas.recipehost.platform.LocalNetworkAccess
 
 /**
  * Builds the [AppGraph] and routes `recipehost://pair` deep links to it. The manifest keeps this
@@ -32,8 +31,7 @@ class MainActivity : ComponentActivity() {
             AppGraph(
                 driver = AndroidSqliteDriver(CatalogDatabase.Schema, applicationContext, DATABASE_NAME),
                 qrScanner = GmsQrScanner(this),
-                // Android has no per-app gate on LAN connections.
-                localNetwork = LocalNetworkAccess { false },
+                localNetwork = RuntimeLocalNetworkAccess(this),
             )
         // A restored activity was already handed this intent before the process died.
         if (savedInstanceState == null) routePairingLink(intent)

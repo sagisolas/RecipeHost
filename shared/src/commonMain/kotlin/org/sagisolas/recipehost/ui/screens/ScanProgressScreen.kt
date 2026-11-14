@@ -25,6 +25,7 @@ import org.sagisolas.recipehost.presentation.ScanProgressUiState.FailureReason
 import org.sagisolas.recipehost.presentation.ScanProgressUiState.Step
 import org.sagisolas.recipehost.presentation.ScanProgressViewModel
 import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.open_settings
 import org.sagisolas.recipehost.shared.generated.resources.scan_again
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_busy
 import org.sagisolas.recipehost.shared.generated.resources.scan_error_game
@@ -45,7 +46,8 @@ import org.sagisolas.recipehost.ui.designsystem.McTheme
 import org.sagisolas.recipehost.ui.designsystem.mcBackground
 
 /**
- * Full screen: Connecting → Items n/N → Recipes m/M, or why the Scan failed with "Scan again".
+ * Full screen: Connecting → Items n/N → Recipes m/M, or why the Scan failed with "Scan again"
+ * (and "Open Settings" when the OS denies the local network).
  * Calls [onCommitted] as soon as Items and Recipes are in the `Catalog`.
  */
 @Composable
@@ -78,6 +80,9 @@ internal fun ScanProgressScreen(
                     color = McTheme.colors.textOnDark,
                     style = McTheme.typography.body.copy(textAlign = TextAlign.Center),
                 )
+                if (current.reason == FailureReason.LocalNetworkDenied) {
+                    McButton(stringResource(Res.string.open_settings), onClick = viewModel::openSettings)
+                }
                 McButton(stringResource(Res.string.scan_again), onClick = viewModel::scanAgain)
             }
 

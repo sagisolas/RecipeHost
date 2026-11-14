@@ -35,6 +35,12 @@ dependencies {
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+
+    constraints {
+        // Play services pull in Fragment 1.0.0, which breaks registerForActivityResult request codes
+        // (RuntimeLocalNetworkAccess). Upgrades the transitive one; adds no new library.
+        implementation(libs.androidx.fragment)
+    }
 }
 
 android {

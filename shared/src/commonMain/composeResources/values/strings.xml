@@ -19,6 +19,7 @@
     <string name="scan_step_items_count">Items %1$d/%2$d</string>
     <string name="scan_step_recipes">Recipes</string>
     <string name="scan_step_recipes_count">Recipes %1$d/%2$d</string>
+    <string name="open_settings">Open Settings</string>
     <string name="scan_again">Scan again</string>
     <string name="scan_error_unauthorized">The game didn\'t accept this code. Open the pairing screen again and scan the new one.</string>
     <string name="scan_error_busy">The game is already sending data to another device. Try again later.</string>
@@ -26,7 +27,7 @@
     <string name="scan_error_version_mismatch">This app and the companion mod are on different versions. Update both.</string>
     <string name="scan_error_invalid_code">That is not a RecipeHost pairing code.</string>
     <string name="scan_error_network">Could not reach the game. Make sure that you are in same LAN.</string>
-    <string name="scan_error_local_network">Allow Local Network for RecipeHost in Settings, then scan again.</string>
+    <string name="scan_error_local_network">Allow local network access for RecipeHost in Settings, then scan again.</string>
     <string name="scan_error_interrupted">The scan stopped before it finished.</string>
 
     <string name="grid_mods">Mods</string>

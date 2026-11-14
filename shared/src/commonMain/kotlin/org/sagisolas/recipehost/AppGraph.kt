@@ -19,6 +19,7 @@ import org.sagisolas.recipehost.data.scan.ScanController
 import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.transport.KtorSocketConnector
+import org.sagisolas.recipehost.data.transport.PermissionRequestingSessionClient
 import org.sagisolas.recipehost.data.transport.RetryingSessionClient
 import org.sagisolas.recipehost.data.transport.SessionClient
 import org.sagisolas.recipehost.domain.catalog.CatalogStats
@@ -57,7 +58,7 @@ import kotlin.time.Clock
 class AppGraph(
     driver: SqlDriver,
     qrScanner: QrScanner,
-    localNetwork: LocalNetworkAccess,
+    private val localNetwork: LocalNetworkAccess,
 ) {
     private val catalog = CatalogDatabase(driver)
 
@@ -70,7 +71,11 @@ class AppGraph(
     internal val scans =
         ScanController(
             scope = appScope,
-            sessions = RetryingSessionClient(SessionClient(KtorSocketConnector(), localNetwork)),
+            sessions =
+                PermissionRequestingSessionClient(
+                    RetryingSessionClient(SessionClient(KtorSocketConnector(), localNetwork)),
+                    localNetwork,
+                ),
             ingest =
                 ScanIngest(
                     catalog,
@@ -127,7 +132,8 @@ class AppGraph(
 
     internal fun welcomeViewModel() = WelcomeViewModel(qrPairing)
 
-    internal fun scanProgressViewModel() = ScanProgressViewModel(scans.progress, pairing.failure, qrPairing)
+    internal fun scanProgressViewModel() =
+        ScanProgressViewModel(scans.progress, pairing.failure, qrPairing, localNetwork)
 
     internal fun itemGridViewModel() = ItemGridViewModel(itemSearch, modFilters, scans.progress, qrPairing)
 

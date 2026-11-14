@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.setMain
 import org.sagisolas.recipehost.data.pairing.PairingPayloadException
 import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.transport.ScanFailure
+import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.presentation.ScanProgressUiState.Failed
 import org.sagisolas.recipehost.presentation.ScanProgressUiState.FailureReason
 import org.sagisolas.recipehost.presentation.ScanProgressUiState.Running
@@ -29,6 +30,16 @@ class ScanProgressViewModelTest {
     private val progress = MutableStateFlow<ScanProgress?>(null)
     private val pairingFailure = MutableStateFlow<PairingPayloadException?>(null)
     private var scansRequested = 0
+    private var settingsOpened = 0
+
+    private val localNetwork =
+        object : LocalNetworkAccess {
+            override suspend fun isDenied(host: String) = false
+
+            override fun openSettings() {
+                settingsOpened++
+            }
+        }
 
     @BeforeTest
     fun setMain() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -36,7 +47,8 @@ class ScanProgressViewModelTest {
     @AfterTest
     fun resetMain() = Dispatchers.resetMain()
 
-    private fun viewModel() = ScanProgressViewModel(progress, pairingFailure, QrPairing { scansRequested++ })
+    private fun viewModel() =
+        ScanProgressViewModel(progress, pairingFailure, QrPairing { scansRequested++ }, localNetwork)
 
     @Test
     fun showsTheStepsOfARunningScan() {
@@ -117,5 +129,12 @@ class ScanProgressViewModelTest {
     fun scanAgainOpensTheScanner() {
         viewModel().scanAgain()
         assertEquals(1, scansRequested)
+    }
+
+    @Test
+    fun openSettingsOpensThePlatformSettings() {
+        viewModel().openSettings()
+
+        assertEquals(1, settingsOpened)
     }
 }
