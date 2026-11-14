@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -85,14 +84,21 @@ internal fun RecipeLayout(
  * The inputs in a wrapped row, an arrow, then the results, each in an [McSlot]. A recipe with no
  * inputs shows a pixel "?" in their place.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GenericLayout(
     layout: RecipeLayoutUi.Generic,
     atlases: IconAtlasCache,
     onOpen: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier =
+            Modifier.wrapContentSize(
+                unbounded = true,
+                align = Alignment.TopStart,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (layout.inputs.isEmpty()) {
             UnknownInputs()
         } else {
