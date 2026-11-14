@@ -18,6 +18,7 @@ import okio.ByteString.Companion.toByteString
 import okio.FileSystem
 import okio.IOException
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.domain.iconAtlas
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
@@ -26,6 +27,7 @@ import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.ItemBatch
 import org.sagisolas.recipehost.protocol.ItemStack
 import org.sagisolas.recipehost.protocol.LayoutBatch
+import org.sagisolas.recipehost.protocol.LayoutPatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
@@ -46,13 +48,14 @@ import kotlin.time.Instant
 class ScanIngestTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CatalogDatabase.Schema.create(it) }
     private val database = CatalogDatabase(driver)
+    private val recipeStore = RecipeStore(database)
     private var nowMillis = 1_000L
     private val clock =
         object : Clock {
             override fun now() = Instant.fromEpochMilliseconds(nowMillis)
         }
     private val spoolPath = tempSpoolPath()
-    private val ingest = ScanIngest(database, clock, tempRecipeSpool(spoolPath))
+    private val ingest = ScanIngest(database, recipeStore, clock, tempRecipeSpool(spoolPath))
 
     @AfterTest
     fun closeDriver() {
@@ -145,22 +148,22 @@ class ScanIngestTest {
         }
 
     @Test
-    fun identicalBodiesAcrossInstancesShareABodyHashAndDifferentOnesDont() =
+    fun identicalRecipesAcrossInstancesShareABodyAndDifferentOnesDont() =
         runTest {
             val overriddenTorch =
                 shaped("minecraft:torch", result = "minecraft:torch", "minecraft:charcoal", "minecraft:stick")
             scan("ATM9", minecraft, stickRecipe, torchRecipe)
             scan("Vanilla", minecraft, stickRecipe, overriddenTorch)
 
-            val atm9 = hashesOf("ATM9")
-            val vanilla = hashesOf("Vanilla")
+            val atm9 = bodiesOf("ATM9")
+            val vanilla = bodiesOf("Vanilla")
 
             assertEquals(atm9.getValue("minecraft:stick"), vanilla.getValue("minecraft:stick"))
             assertNotEquals(atm9.getValue("minecraft:torch"), vanilla.getValue("minecraft:torch"))
             assertEquals(
                 "minecraft:charcoal",
-                Recipe.ADAPTER
-                    .decode(bodiesOf("Vanilla").getValue("minecraft:torch"))
+                recipesOf("Vanilla")
+                    .getValue("minecraft:torch")
                     .inputs
                     .first()
                     .stacks
@@ -254,7 +257,7 @@ class ScanIngestTest {
                 ).toList()
                 .also { assertEquals(ScanProgress.Done, it.last()) }
 
-            val stored = Recipe.ADAPTER.decode(bodiesOf("ATM9").getValue("minecraft:chest"))
+            val stored = recipesOf("ATM9").getValue("minecraft:chest")
             assertEquals(listOf(planks, planks), stored.inputs)
             assertEquals(listOf(planks), stored.layout_stacks)
             val pk =
@@ -466,6 +469,76 @@ class ScanIngestTest {
             )
             assertNull(database.recipeLayoutQueries.byKey(smeltingKey).executeAsOneOrNull())
             assertEquals(1L, database.recipeLayoutQueries.count().executeAsOne())
+        }
+
+    @Test
+    fun aPatchIsStoredOnceAndDeletedAfterAScanThatNoLongerUsesIt() =
+        runTest {
+            val patch = LayoutPatch(key = "patch-1", png = "patch-png".encodeUtf8(), tiles = listOf(3))
+            scanLayouts(
+                "ATM9",
+                craftingLayout(recipeIds = listOf("minecraft:stick")),
+                recipesOnly("minecraft:crafting", "minecraft:torch").copy(patch = patch),
+            )
+            assertEquals(
+                mapOf("minecraft:stick" to null, "minecraft:torch" to "patch-1"),
+                patchKeysOf("ATM9"),
+            )
+            assertEquals(1L, database.recipeLayoutQueries.patchCount().executeAsOne())
+
+            scanLayouts("ATM9", craftingLayout(recipeIds = listOf("minecraft:stick", "minecraft:torch")))
+
+            assertEquals(0L, database.recipeLayoutQueries.patchCount().executeAsOne())
+        }
+
+    @Test
+    fun aSlotRepeatedAcrossRecipesAndInstancesIsStoredOnce() =
+        runTest {
+            val torchFromCharcoal =
+                shaped(
+                    "minecraft:torch_from_charcoal",
+                    result = "minecraft:torch",
+                    "minecraft:charcoal",
+                    "minecraft:stick",
+                )
+            scan("ATM9", minecraft, stickRecipe, torchRecipe, torchFromCharcoal)
+            scan("Vanilla", minecraft, torchRecipe)
+
+            // oak_planks, coal, stick and charcoal, each a one-item Slot.
+            assertEquals(4L, database.slotQueries.count().executeAsOne())
+            // Those four plus the torch, a result only.
+            assertEquals(5L, database.slotQueries.nameCount().executeAsOne())
+        }
+
+    @Test
+    fun theSlotsItemIdsAndTypesOnlyAReplacedRecipeNamedAreDeletedAfterTheScan() =
+        runTest {
+            val pressing =
+                shaped(
+                    "minecraft:iron_sheet",
+                    result = "create:iron_sheet",
+                    "minecraft:iron_ingot",
+                    type = "create:pressing",
+                )
+            scan("ATM9", minecraft, stickRecipe, pressing)
+
+            scan("ATM9", minecraft, stickRecipe)
+
+            assertEquals(1L, database.slotQueries.count().executeAsOne())
+            assertEquals(2L, database.slotQueries.nameCount().executeAsOne())
+            assertEquals(1L, database.recipeQueries.typeKeyCount().executeAsOne())
+        }
+
+    @Test
+    fun aSlotAnotherInstanceStillNamesIsKept() =
+        runTest {
+            scan("ATM9", minecraft, stickRecipe, torchRecipe)
+            scan("Vanilla", minecraft, torchRecipe)
+
+            scan("ATM9", minecraft, stickRecipe)
+
+            assertEquals(listOf(torchRecipe.inputs), listOf(recipesOf("Vanilla").getValue("minecraft:torch").inputs))
+            assertEquals(3L, database.slotQueries.count().executeAsOne())
         }
 
     @Test
@@ -806,9 +879,10 @@ class ScanIngestTest {
         id: String,
         result: String,
         vararg inputs: String,
+        type: String = "minecraft:crafting_shaped",
     ) = Recipe(
         id = id,
-        type_id = "minecraft:crafting_shaped",
+        type_id = type,
         results = listOf(ItemStack(item_id = result, count = 1)),
         inputs = inputs.map { Slot(stacks = listOf(ItemStack(item_id = it, count = 1))) },
     )
@@ -863,23 +937,29 @@ class ScanIngestTest {
             .executeAsList()
             .associate { it.recipe_id to it.layout_key }
 
+    private fun patchKeysOf(instance: String) =
+        database.recipeQueries
+            .ofInstance(instance)
+            .executeAsList()
+            .associate { it.recipe_id to it.patch_key }
+
     private fun recipeIdsOf(instance: String) =
         database.recipeQueries
             .ofInstance(instance)
             .executeAsList()
             .map { it.recipe_id }
 
-    private fun hashesOf(instance: String) =
-        database.recipeQueries
-            .ofInstance(instance)
-            .executeAsList()
-            .associate { it.recipe_id to it.body_hash.toByteString() }
-
     private fun bodiesOf(instance: String) =
         database.recipeQueries
             .ofInstance(instance)
             .executeAsList()
-            .associate { it.recipe_id to it.body }
+            .associate { it.recipe_id to it.body.toByteString() }
+
+    /** [instance]'s recipes as read back, with only their Slots and results. */
+    private fun recipesOf(instance: String): Map<String, Recipe> {
+        val rows = database.recipeQueries.ofInstance(instance).executeAsList()
+        return rows.map { it.recipe_id }.zip(recipeStore.recipesOf(rows.map { it.body })).toMap()
+    }
 
     /** The atlas PNG and cell of [itemId]'s Icon in [mod]'s release. */
     private fun iconOf(

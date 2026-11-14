@@ -1,13 +1,15 @@
 -- A recipe id the user saved for quick access while crafting. It points at no Mod release or
 -- Instance: it shows the recipe under the Version selection, and is hidden while no selected
 -- release has that recipe.
+-- recipe_id_hash is the recipe id's hash as recipe.recipe_id_hash has it, for joining on its index.
 CREATE TABLE bookmark (
     recipe_id TEXT NOT NULL PRIMARY KEY,
+    recipe_id_hash INTEGER NOT NULL,
     added_at INTEGER NOT NULL
 );
 
 insert:
-INSERT OR IGNORE INTO bookmark(recipe_id, added_at) VALUES (:recipeId, :addedAt);
+INSERT OR IGNORE INTO bookmark(recipe_id, recipe_id_hash, added_at) VALUES (:recipeId, :recipeIdHash, :addedAt);
 
 delete:
 DELETE FROM bookmark WHERE recipe_id = :recipeId;
@@ -21,20 +23,23 @@ SELECT recipe_id FROM bookmark;
 -- The bookmarks that resolve under the Version selection.
 resolvedCount:
 SELECT count(DISTINCT bookmark.recipe_id) FROM bookmark
-JOIN recipe ON recipe.recipe_id = bookmark.recipe_id
+JOIN recipe ON recipe.recipe_id_hash = bookmark.recipe_id_hash AND recipe.recipe_id = bookmark.recipe_id
 JOIN version_selection ON version_selection.release_id = recipe.release_id;
 
 -- The bookmarked recipes of the selected releases, one row per Instance, in the shape of
 -- Recipe.selectedProducing: newest bookmark first and, within one recipe, the most recently
 -- scanned Instance first. A recipe id's namespace owns it, so one release at most is selected for it.
 selectedBookmarked:
-SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+SELECT recipe.release_id, recipe.recipe_id, recipe_type_key.type_id, recipe.body, instance.name AS instance_name,
     recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
-    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
+    recipe_layout.slots AS layout_slots, layout_patch.key AS patch_key, layout_patch.tiles AS patch_tiles,
+    recipe_type.name AS type_name
 FROM bookmark
-JOIN recipe ON recipe.recipe_id = bookmark.recipe_id
-LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
-LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+JOIN recipe ON recipe.recipe_id_hash = bookmark.recipe_id_hash AND recipe.recipe_id = bookmark.recipe_id
+JOIN recipe_type_key ON recipe_type_key.id = recipe.type_key
+LEFT JOIN recipe_layout ON recipe_layout.id = recipe.layout_id
+LEFT JOIN layout_patch ON layout_patch.id = recipe.patch_id
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe_type_key.type_id
     AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id

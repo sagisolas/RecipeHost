@@ -5,6 +5,7 @@
  */
 package org.sagisolas.recipehost.ui.recipe
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,19 +29,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.sagisolas.recipehost.domain.recipes.LayoutImageKey
 import org.sagisolas.recipehost.presentation.LayoutSlotUi
 import org.sagisolas.recipehost.presentation.RecipeLayoutUi
 import org.sagisolas.recipehost.presentation.StackUi
@@ -151,7 +159,8 @@ private fun CapturedLayout(
     layoutImages: LayoutImageCache,
     onOpen: (String) -> Unit,
 ) {
-    val image = layoutImage(layout.key, layoutImages)
+    val image = layoutImage(LayoutImageKey.Layout(layout.key), layoutImages)
+    val patch = layout.patch?.let { layoutImage(LayoutImageKey.Patch(it.key), layoutImages) }
     val screenWidth = LocalWindowInfo.current.containerSize.width
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val available = (screenWidth * LAYOUT_WIDTH_FRACTION).toInt().coerceAtMost(constraints.maxWidth)
@@ -159,12 +168,27 @@ private fun CapturedLayout(
         val density = LocalDensity.current
         val size = with(density) { Modifier.size((layout.width * scale).toDp(), (layout.height * scale).toDp()) }
         Box(size) {
-            if (image != null) {
-                Image(
-                    BitmapPainter(image, filterQuality = FilterQuality.None),
-                    contentDescription = null,
-                    Modifier.fillMaxSize(),
-                )
+            // A patched layout waits for its patch, so it never shows another recipe's text or frame.
+            if (image != null && (layout.patch == null || patch != null)) {
+                // Offscreen, so a patch tile's transparent pixels replace the layout's rather than clearing the screen.
+                Canvas(Modifier.fillMaxSize().graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)) {
+                    drawPixels(
+                        image,
+                        IntRect(0, 0, image.width, image.height),
+                        IntRect(IntOffset.Zero, this.size.toIntSize()),
+                    )
+                    if (patch != null) {
+                        patchTiles(layout.patch.tiles, layout.width, layout.height).forEach { tile ->
+                            val dst = tile.dst
+                            drawPixels(
+                                patch,
+                                tile.src,
+                                scaledRect(dst.left, dst.top, dst.width, dst.height, scale),
+                                BlendMode.Src,
+                            )
+                        }
+                    }
+                }
             }
             layout.slots.forEach { slot ->
                 val rect = slot.scaled(scale)
@@ -183,13 +207,31 @@ private fun CapturedLayout(
     }
 }
 
+/** Draws [src] of [image] into [dst], nearest-neighbour. */
+private fun DrawScope.drawPixels(
+    image: ImageBitmap,
+    src: IntRect,
+    dst: IntRect,
+    blendMode: BlendMode = BlendMode.SrcOver,
+) = drawImage(
+    image,
+    srcOffset = src.topLeft,
+    srcSize = src.size,
+    dstOffset = dst.topLeft,
+    dstSize = dst.size,
+    blendMode = blendMode,
+    filterQuality = FilterQuality.None,
+)
+
+private fun Size.toIntSize() = IntSize(width.toInt(), height.toInt())
+
 /**
- * The decoded image of layout [key], or `null` while it loads or when it's missing. Loads again
- * when [images] is cleared, since a Scan may have replaced the image under the same key.
+ * The decoded layout or patch image of [key], or `null` while it loads or when it's missing. Loads
+ * again when [images] is cleared, since a Scan may have replaced a layout's image under the same key.
  */
 @Composable
 private fun layoutImage(
-    key: String,
+    key: LayoutImageKey,
     images: LayoutImageCache,
 ): ImageBitmap? {
     val generation = images.generation
@@ -201,7 +243,7 @@ private fun layoutImage(
 
 /** An image as loaded for one [key] and cache [generation], so a stale one is never drawn. */
 private class LoadedImage(
-    val key: String,
+    val key: LayoutImageKey,
     val generation: Int,
     val bitmap: ImageBitmap?,
 )
@@ -269,6 +311,38 @@ internal fun scaledRect(
     height: Int,
     scale: Int,
 ): IntRect = IntRect(left = x * scale, top = y * scale, right = (x + width) * scale, bottom = (y + height) * scale)
+
+/** One patch tile (ADR 0019): its rectangle in the patch's strip, and where it goes in the layout, in GUI px. */
+internal data class PatchTile(
+    val src: IntRect,
+    val dst: IntRect,
+)
+
+/**
+ * Where each of a patch's [tiles] comes from and goes to. The patch's strip holds them left to
+ * right; a tile's index is row-major over the layout's columns of [PATCH_TILE] px tiles, and a tile
+ * at the right or bottom edge is cut to the layout.
+ */
+internal fun patchTiles(
+    tiles: List<Int>,
+    layoutWidth: Int,
+    layoutHeight: Int,
+): List<PatchTile> {
+    val columns = (layoutWidth + PATCH_TILE - 1) / PATCH_TILE
+    return tiles.mapIndexed { i, tile ->
+        val left = tile % columns * PATCH_TILE
+        val top = tile / columns * PATCH_TILE
+        val width = minOf(PATCH_TILE, layoutWidth - left)
+        val height = minOf(PATCH_TILE, layoutHeight - top)
+        PatchTile(
+            src = IntRect(i * PATCH_TILE, 0, i * PATCH_TILE + width, height),
+            dst = IntRect(left, top, left + width, top + height),
+        )
+    }
+}
+
+/** A patch tile's side in GUI px; the protocol fixes it. */
+private const val PATCH_TILE = 8
 
 /** How much of the screen width a captured layout may take. */
 private const val LAYOUT_WIDTH_FRACTION = 0.8f

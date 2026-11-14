@@ -25,17 +25,30 @@ internal sealed interface RecipeDisplay {
         override val itemIds get() = (inputs.flatten() + results).map { it.itemId }
     }
 
-    /** The layout's image, loaded by [key], [width] by [height] GUI px, with each `Recipe slot` filled. */
+    /**
+     * The layout's image, loaded by [key], [width] by [height] GUI px, with [patch]'s tiles drawn
+     * over it when the recipe has one, and each `Recipe slot` filled.
+     */
     data class Captured(
         val key: String,
         val width: Int,
         val height: Int,
         val slots: List<DisplaySlot>,
         override val results: List<DisplayStack>,
+        val patch: DisplayPatch? = null,
     ) : RecipeDisplay {
         override val itemIds get() = slots.flatMap { slot -> slot.stacks.map { it.itemId } }
     }
 }
+
+/**
+ * A layout patch (ADR 0019): its image, loaded by [key], holds the [tiles] left to right, each the
+ * layout's tile of that index, row-major in 8 px tiles.
+ */
+internal data class DisplayPatch(
+    val key: String,
+    val tiles: List<Int>,
+)
 
 /** A `Recipe slot`'s rectangle in GUI px, with the alternatives it shows. */
 internal data class DisplaySlot(

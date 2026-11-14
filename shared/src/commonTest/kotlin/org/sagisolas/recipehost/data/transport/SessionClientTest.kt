@@ -31,7 +31,7 @@ import kotlin.test.assertIs
 class SessionClientTest {
     private val token = ByteArray(32) { it.toByte() }.toByteString()
 
-    private val handshake = Envelope(handshake = Handshake(protocol_version = 3, instance_name = "Pack"))
+    private val handshake = Envelope(handshake = Handshake(protocol_version = 4, instance_name = "Pack"))
     private val items =
         Envelope(item_batch = ItemBatch(items = listOf(Item(id = "minecraft:stone", display_name = "Stone"))))
     private val done = Envelope(done = Done())

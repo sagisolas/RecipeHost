@@ -15,6 +15,7 @@ import org.sagisolas.recipehost.domain.CatalogFixture.Companion.minecraft
 import org.sagisolas.recipehost.domain.CatalogFixture.Companion.shaped
 import org.sagisolas.recipehost.domain.catalog.ModList
 import org.sagisolas.recipehost.protocol.ItemStack
+import org.sagisolas.recipehost.protocol.LayoutPatch
 import org.sagisolas.recipehost.protocol.RecipeLayout
 import org.sagisolas.recipehost.protocol.RecipeSlot
 import org.sagisolas.recipehost.protocol.RecipeType
@@ -26,7 +27,7 @@ import kotlin.test.assertEquals
 
 class ItemRecipesTest {
     private val catalog = CatalogFixture()
-    private val itemRecipes = ItemRecipes(catalog.database, EmptyCoroutineContext)
+    private val itemRecipes = ItemRecipes(catalog.database, catalog.recipeStore, EmptyCoroutineContext)
 
     private fun recipesFor(itemId: String) = itemRecipes(itemId, RecipeDirection.Recipes)
 
@@ -365,6 +366,46 @@ class ItemRecipesTest {
         }
 
     @Test
+    fun aRecipeLinkedWithAPatchIsDrawnAsItsLayoutWithThePatchsTiles() =
+        runTest {
+            val layout =
+                RecipeLayout(
+                    key = "test:machine",
+                    png = "machine-layout".encodeUtf8(),
+                    width = 128,
+                    height = 70,
+                    slots = craftingSlots,
+                    recipe_ids = listOf("minecraft:stick"),
+                )
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                recipes = listOf(stick, shaped("minecraft:torch", result = "minecraft:torch", "minecraft:stick")),
+                layouts =
+                    listOf(
+                        layout,
+                        RecipeLayout(
+                            key = "test:machine",
+                            recipe_ids = listOf("minecraft:torch"),
+                            patch = LayoutPatch(key = "patch-1", png = "patch-png".encodeUtf8(), tiles = listOf(5, 17)),
+                        ),
+                    ),
+            )
+
+            suspend fun displayOf(itemId: String) =
+                recipesFor(itemId)
+                    .first()
+                    .single()
+                    .recipes
+                    .single()
+                    .defaultVariant.display as RecipeDisplay.Captured
+
+            assertEquals(null, displayOf("minecraft:stick").patch)
+            assertEquals(DisplayPatch(key = "patch-1", tiles = listOf(5, 17)), displayOf("minecraft:torch").patch)
+            assertEquals("test:machine", displayOf("minecraft:torch").key)
+        }
+
+    @Test
     fun aLayoutSlotPastTheRecipesLayoutStacksStaysEmpty() =
         runTest {
             catalog.scan(
@@ -472,6 +513,70 @@ class ItemRecipesTest {
                     "create:cutting" to listOf("create:cutting/spruce_planks"),
                 ),
                 groups.map { group -> group.typeId to group.recipes.map { it.recipeId } },
+            )
+        }
+
+    @Test
+    fun aSlotRepeatedAcrossRecipesShowsEveryAlternativeInEachAndMakesEachAUse() =
+        runTest {
+            val planks =
+                Slot(
+                    stacks =
+                        listOf(
+                            ItemStack(item_id = "minecraft:oak_planks"),
+                            ItemStack(item_id = "minecraft:spruce_planks", count = 2),
+                        ),
+                )
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                recipes =
+                    listOf(
+                        shaped("minecraft:chest", result = "minecraft:chest").copy(inputs = List(2) { planks }),
+                        shaped("minecraft:stick", result = "minecraft:stick").copy(inputs = listOf(planks)),
+                    ),
+            )
+
+            val groups = usesOf("minecraft:spruce_planks").first()
+
+            val anyPlanks = listOf(DisplayStack("minecraft:oak_planks", 1), DisplayStack("minecraft:spruce_planks", 2))
+            assertEquals(
+                listOf(
+                    "minecraft:chest" to
+                        RecipeDisplay.Generic(List(2) { anyPlanks }, listOf(DisplayStack("minecraft:chest", 1))),
+                    "minecraft:stick" to
+                        RecipeDisplay.Generic(listOf(anyPlanks), listOf(DisplayStack("minecraft:stick", 1))),
+                ),
+                groups.single().recipes.map { it.recipeId to it.defaultVariant.display },
+            )
+        }
+
+    @Test
+    fun anItemOnlyInARecipesLayoutStacksIsNotAUse() =
+        runTest {
+            catalog.scan(
+                "ATM9",
+                minecraft,
+                recipes =
+                    listOf(
+                        stick.copy(
+                            layout_stacks =
+                                listOf(
+                                    Slot(stacks = listOf(ItemStack("minecraft:oak_planks", 1))),
+                                    Slot(stacks = listOf(ItemStack("minecraft:stick", 1))),
+                                ),
+                        ),
+                    ),
+            )
+
+            assertEquals(emptyList(), usesOf("minecraft:stick").first())
+            assertEquals(
+                listOf("minecraft:stick"),
+                usesOf("minecraft:oak_planks")
+                    .first()
+                    .single()
+                    .recipes
+                    .map { it.recipeId },
             )
         }
 

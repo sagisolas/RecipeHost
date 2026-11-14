@@ -20,7 +20,7 @@ import kotlin.test.assertFailsWith
 
 class PermissionRequestingSessionClientTest {
     private val payload = PairingPayload(listOf("192.168.1.10"), port = 25599, token = ByteArray(32).toByteString())
-    private val handshake = Envelope(handshake = Handshake(protocol_version = 3, instance_name = "Pack"))
+    private val handshake = Envelope(handshake = Handshake(protocol_version = 4, instance_name = "Pack"))
 
     /** Records `request`, then `open` per attempt, in call order. */
     private val calls = mutableListOf<String>()

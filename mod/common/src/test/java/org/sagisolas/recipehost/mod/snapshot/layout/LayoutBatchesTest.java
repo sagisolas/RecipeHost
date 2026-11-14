@@ -19,6 +19,7 @@ import javax.imageio.ImageIO;
 import org.junit.Test;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
+import org.sagisolas.recipehost.protocol.LayoutPatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
 import org.sagisolas.recipehost.protocol.RecipeSlot;
 
@@ -35,19 +36,29 @@ public class LayoutBatchesTest {
             .setRole(RecipeSlot.Role.INPUT)
             .build());
 
+    /** One pixel a job draws over its fill colour. */
+    private record Dot(int x, int y, int colour) {}
+
     /**
      * Stands in for the GL renderer: takes up to {@code perSheet} jobs, lays them
-     * left to right and fills each with the colour of its first recipe id. A job of
-     * {@link #BROKEN_TYPE} fails as a throwing draw would.
+     * left to right and fills each with the colour of its first recipe id, then
+     * draws that recipe id's dot if it has one. A job of {@link #BROKEN_TYPE} fails
+     * as a throwing draw would.
      */
     private static final class FakeSheets implements LayoutBatches.SheetRenderer {
         final int perSheet;
         final Map<String, Integer> colours;
+        final Map<String, Dot> dots;
         final List<LayoutJob> rendered = new ArrayList<>();
 
         FakeSheets(int perSheet, Map<String, Integer> colours) {
+            this(perSheet, colours, Map.of());
+        }
+
+        FakeSheets(int perSheet, Map<String, Integer> colours, Map<String, Dot> dots) {
             this.perSheet = perSheet;
             this.colours = colours;
+            this.dots = dots;
         }
 
         @Override
@@ -75,6 +86,8 @@ public class LayoutBatchesTest {
                 int colour = colours.get(job.recipeIds().get(0));
                 for (int row = 0; row < job.height(); row++)
                     for (int col = 0; col < job.width(); col++) argb[row * width + x + col] = colour;
+                Dot dot = dots.get(job.recipeIds().get(0));
+                if (dot != null) argb[dot.y() * width + x + dot.x()] = dot.colour();
                 placed.add(new LayoutSheet.Placed(job, x, 0));
                 x += job.width();
             }
@@ -84,6 +97,26 @@ public class LayoutBatchesTest {
 
     private static LayoutJob hashed(String recipeId) {
         return LayoutJob.hashed("test:type", 4, 3, SLOTS, List.of(recipeId), (g, mx, my) -> {});
+    }
+
+    /** A hashed job of another type than {@link #hashed}, with the same size and slots. */
+    private static LayoutJob hashedOtherType(String recipeId) {
+        return LayoutJob.hashed("test:other", 4, 3, SLOTS, List.of(recipeId), (g, mx, my) -> {});
+    }
+
+    /** A hashed job 20 x 10 px: three columns and two rows of 8 px tiles, the last ones cut. */
+    private static LayoutJob wide(String recipeId) {
+        return LayoutJob.hashed("test:type", 20, 10, SLOTS, List.of(recipeId), (g, mx, my) -> {});
+    }
+
+    private static List<RecipeLayout> layoutsOf(List<LayoutBatch> batches) {
+        return batches.stream()
+                .flatMap(batch -> batch.getLayoutsList().stream())
+                .toList();
+    }
+
+    private static BufferedImage imageOf(ByteString png) throws IOException {
+        return ImageIO.read(new ByteArrayInputStream(png.toByteArray()));
     }
 
     private static LayoutJob keyed(String key, String recipeId) {
@@ -117,8 +150,8 @@ public class LayoutBatchesTest {
     public void aRepeatedKeyIsSentOnceWithItsPngThenAsRecipeIdsOnly() throws IOException {
         FakeSheets sheets = new FakeSheets(2, Map.of("r:a", RED, "r:b", BLUE, "r:c", RED));
 
-        List<LayoutBatch> batches = drain(
-                new LayoutBatches(List.of(hashed("r:a"), hashed("r:b"), hashed("r:c")), sheets, new PngEncoder()));
+        List<LayoutBatch> batches = drain(new LayoutBatches(
+                List.of(hashed("r:a"), hashedOtherType("r:b"), hashed("r:c")), sheets, new PngEncoder()));
 
         assertEquals(2, batches.size());
         RecipeLayout a = batches.get(0).getLayoutsList().get(0);
@@ -139,6 +172,62 @@ public class LayoutBatchesTest {
                         .addAllRecipeIds(List.of("r:c"))
                         .build(),
                 c);
+    }
+
+    @Test
+    public void aJobLikeAnEarlierOneOfItsTypeIsSentAsThatLayoutWithAPatchOfTheTilesThatDiffer() throws IOException {
+        FakeSheets sheets =
+                new FakeSheets(2, Map.of("r:base", RED, "r:dot", RED), Map.of("r:dot", new Dot(17, 9, BLUE)));
+
+        List<RecipeLayout> layouts =
+                layoutsOf(drain(new LayoutBatches(List.of(wide("r:base"), wide("r:dot")), sheets, new PngEncoder())));
+
+        RecipeLayout base = layouts.get(0);
+        RecipeLayout dot = layouts.get(1);
+        assertFalse(base.hasPatch());
+        assertEquals(base.getKey(), dot.getKey());
+        assertEquals(List.of("r:dot"), dot.getRecipeIdsList());
+        assertEquals(0, dot.getPng().size());
+        // (17, 9) is in the third column and second row of tiles.
+        assertEquals(List.of(5), dot.getPatch().getTilesList());
+        BufferedImage strip = imageOf(dot.getPatch().getPng());
+        assertEquals(8, strip.getWidth());
+        assertEquals(8, strip.getHeight());
+        assertEquals(BLUE, strip.getRGB(1, 1));
+        assertEquals(RED, strip.getRGB(0, 0));
+        assertEquals("past the layout's edge", 0, strip.getRGB(4, 0) >>> 24);
+        assertEquals("past the layout's edge", 0, strip.getRGB(0, 2) >>> 24);
+    }
+
+    @Test
+    public void aJobDrawnLikeItsTypesLayoutIsSentAsThatLayoutAlone() {
+        FakeSheets sheets = new FakeSheets(2, Map.of("r:base", RED, "r:same", RED));
+
+        List<RecipeLayout> layouts =
+                layoutsOf(drain(new LayoutBatches(List.of(wide("r:base"), wide("r:same")), sheets, new PngEncoder())));
+
+        assertEquals(
+                RecipeLayout.newBuilder()
+                        .setKey(layouts.get(0).getKey())
+                        .addRecipeIds("r:same")
+                        .build(),
+                layouts.get(1));
+    }
+
+    @Test
+    public void aRepeatedPatchIsSentOnceThenByKeyOnly() {
+        Dot dot = new Dot(3, 3, BLUE);
+        FakeSheets sheets = new FakeSheets(
+                3, Map.of("r:base", RED, "r:one", RED, "r:two", RED), Map.of("r:one", dot, "r:two", dot));
+
+        List<RecipeLayout> layouts = layoutsOf(drain(
+                new LayoutBatches(List.of(wide("r:base"), wide("r:one"), wide("r:two")), sheets, new PngEncoder())));
+
+        LayoutPatch first = layouts.get(1).getPatch();
+        assertFalse(first.getPng().isEmpty());
+        assertEquals(
+                LayoutPatch.newBuilder().setKey(first.getKey()).build(),
+                layouts.get(2).getPatch());
     }
 
     @Test

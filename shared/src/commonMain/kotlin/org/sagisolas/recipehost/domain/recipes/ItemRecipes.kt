@@ -6,14 +6,17 @@
 package org.sagisolas.recipehost.domain.recipes
 
 import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import okio.ByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.catalog.MINECRAFT
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.catalog.namespaceOf
 import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
 import org.sagisolas.recipehost.domain.throttleLatest
+import org.sagisolas.recipehost.protocol.Recipe
 import kotlin.coroutines.CoroutineContext
 
 /** Which recipes of an Item: those that make it, or those that use it. */
@@ -34,6 +37,7 @@ internal enum class RecipeDirection {
  */
 internal class ItemRecipes(
     private val catalog: CatalogDatabase,
+    private val recipeStore: RecipeStore,
     private val context: CoroutineContext,
 ) {
     operator fun invoke(
@@ -48,18 +52,19 @@ internal class ItemRecipes(
         return query
             .asFlow()
             .throttleLatest(CATALOG_REFRESH_PERIOD)
-            .mapToList(context)
-            .map { it.toGroups() }
+            .map { query -> withContext(context) { query.readWithRecipes(catalog, recipeStore) } }
+            .map { it.rows.toGroups(it.recipes) }
     }
 }
 
 /**
- * Groups rows by type, then collapses each `(release, recipe id)` by body hash into variants.
+ * Groups rows by type, then collapses each `(release, recipe id)` by body into variants; [recipes]
+ * holds each body's wire Recipe.
  * `minecraft:` types come first, then the others; each part keeps the type order of the rows.
  * Expects the rows ordered by type, recipe id and release, newest Instance first within a recipe,
  * as the recipe queries return them.
  */
-private fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
+private fun List<InstanceRecipe>.toGroups(recipes: Map<ByteString, Recipe>): List<RecipeGroup> =
     groupBy { it.typeId }
         .map { (typeId, rows) ->
             RecipeGroup(
@@ -67,7 +72,11 @@ private fun List<InstanceRecipe>.toGroups(): List<RecipeGroup> =
                 name = rows.first().typeName,
                 recipes =
                     rows.groupBy { it.releaseId to it.recipeId }.map { (key, instances) ->
-                        CatalogRecipe(releaseId = key.first, recipeId = key.second, variants = instances.toVariants())
+                        CatalogRecipe(
+                            releaseId = key.first,
+                            recipeId = key.second,
+                            variants = instances.toVariants(recipes),
+                        )
                     },
             )
         }.sortedBy { namespaceOf(it.typeId) != MINECRAFT } // stable: false (the game's own) sorts first

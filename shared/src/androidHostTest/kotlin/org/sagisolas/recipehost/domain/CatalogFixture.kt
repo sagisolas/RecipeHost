@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.toList
 import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.scan.ScanIngest
 import org.sagisolas.recipehost.data.scan.ScanProgress
 import org.sagisolas.recipehost.data.scan.tempRecipeSpool
@@ -41,13 +42,14 @@ internal fun iconAtlas(
 internal class CatalogFixture {
     val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CatalogDatabase.Schema.create(it) }
     val database = CatalogDatabase(driver)
+    val recipeStore = RecipeStore(database)
 
     private var nowMillis = 1_000L
     private val clock =
         object : Clock {
             override fun now() = Instant.fromEpochMilliseconds(nowMillis)
         }
-    private val ingest = ScanIngest(database, clock, tempRecipeSpool())
+    private val ingest = ScanIngest(database, recipeStore, clock, tempRecipeSpool())
 
     fun close() = driver.close()
 

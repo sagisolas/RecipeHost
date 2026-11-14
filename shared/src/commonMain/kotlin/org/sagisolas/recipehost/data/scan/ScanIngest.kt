@@ -12,12 +12,15 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.catalog.namespaceOf
+import org.sagisolas.recipehost.data.catalog.recipeIdHash
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
 import org.sagisolas.recipehost.protocol.IconBatch
 import org.sagisolas.recipehost.protocol.Item
 import org.sagisolas.recipehost.protocol.LayoutBatch
+import org.sagisolas.recipehost.protocol.LayoutPatch
 import org.sagisolas.recipehost.protocol.ModInfo
 import org.sagisolas.recipehost.protocol.Recipe
 import org.sagisolas.recipehost.protocol.RecipeBatch
@@ -38,6 +41,7 @@ import kotlin.time.Clock
  */
 internal class ScanIngest(
     private val catalog: CatalogDatabase,
+    private val recipeStore: RecipeStore,
     private val clock: Clock,
     private val spool: RecipeSpool,
 ) {
@@ -127,16 +131,19 @@ internal class ScanIngest(
     }
 
     /**
-     * Deletes the layouts no recipe points at and the atlases no Icon points at. Run once the Scan
-     * has ended: its commit unlinked the recipes it replaced, and its IconBatches repointed Icons,
-     * so their layouts and atlases may be orphans now. A full scan of each table, so once per Scan
-     * rather than per batch.
+     * Deletes the layouts no recipe points at, the atlases no Icon points at, and the Slots and item
+     * ids no recipe names. Run once the Scan has ended: its commit replaced recipes, and its
+     * IconBatches repointed Icons, so these may be orphans now. A full scan of each table, so once
+     * per Scan rather than per batch.
      */
-    private fun deleteUnreferenced() =
+    private fun deleteUnreferenced() {
         catalog.transaction {
             catalog.recipeLayoutQueries.deleteUnreferenced()
+            catalog.recipeLayoutQueries.deleteUnreferencedPatches()
             catalog.iconQueries.deleteUnreferencedAtlases()
         }
+        recipeStore.deleteUnreferenced()
+    }
 
     /** Writes the staged Items and Recipes in one transaction. */
     private fun commit(scan: StagedScan): Committed {
@@ -185,8 +192,9 @@ internal class ScanIngest(
 
     /**
      * Stores each layout of the batch that carries an image (replacing what an earlier Scan stored
-     * under its key) and points the listed recipes of this Scan's Instance at it, each under its
-     * id's release. One transaction per batch, like Icons. Returns how many recipes it linked.
+     * under its key) and each patch that carries one, and points the listed recipes of this Scan's
+     * Instance at their layout and patch, each under its id's release. One transaction per batch,
+     * like Icons. Returns how many recipes it linked.
      */
     private fun storeLayouts(
         committed: Committed,
@@ -195,20 +203,37 @@ internal class ScanIngest(
         // Checked before the transaction opens, so a broken batch writes nothing.
         val links =
             batch.layouts.flatMap { layout ->
-                layout.recipe_ids.map { recipeId -> LayoutLink(layout.key, committed.releaseOf(recipeId), recipeId) }
+                layout.recipe_ids.map { recipeId ->
+                    LayoutLink(layout.key, layout.patch?.key, committed.releaseOf(recipeId), recipeId)
+                }
             }
         catalog.transaction {
             batch.layouts.filter { it.png.size > 0 }.forEach { layout ->
-                catalog.recipeLayoutQueries.upsert(
-                    key = layout.key,
-                    png = layout.png.toByteArray(),
-                    width = layout.width.toLong(),
-                    height = layout.height.toLong(),
-                    slots = RecipeLayout.ADAPTER.encode(RecipeLayout(slots = layout.slots)),
+                val png = layout.png.toByteArray()
+                val width = layout.width.toLong()
+                val height = layout.height.toLong()
+                val slots = RecipeLayout.ADAPTER.encode(RecipeLayout(slots = layout.slots))
+                with(catalog.recipeLayoutQueries) {
+                    update(png, width, height, slots, layout.key)
+                    insertIfAbsent(layout.key, png, width, height, slots)
+                }
+            }
+            batch.layouts.mapNotNull { it.patch }.filter { it.png.size > 0 }.forEach { patch ->
+                catalog.recipeLayoutQueries.insertPatch(
+                    key = patch.key,
+                    png = patch.png.toByteArray(),
+                    tiles = LayoutPatch.ADAPTER.encode(LayoutPatch(tiles = patch.tiles)),
                 )
             }
             links.forEach { link ->
-                catalog.recipeQueries.linkLayout(link.layoutKey, committed.instanceId, link.releaseId, link.recipeId)
+                catalog.recipeQueries.linkLayout(
+                    layoutKey = link.layoutKey,
+                    patchKey = link.patchKey,
+                    recipeIdHash = recipeIdHash(link.recipeId),
+                    recipeId = link.recipeId,
+                    instanceId = committed.instanceId,
+                    releaseId = link.releaseId,
+                )
             }
         }
         return links.size
@@ -261,33 +286,16 @@ internal class ScanIngest(
         instanceId: Long,
         releaseIds: Map<String, Long>,
         recipes: Sequence<Recipe>,
-    ) = with(catalog.recipeQueries) {
-        releaseIds.values.forEach { releaseId ->
-            deleteOutputsOf(instanceId, releaseId)
-            deleteInputsOf(instanceId, releaseId)
-            deleteOf(instanceId, releaseId)
+    ) {
+        with(catalog.recipeQueries) {
+            releaseIds.values.forEach { releaseId ->
+                deleteOutputsOf(instanceId, releaseId)
+                deleteSlotsOf(instanceId, releaseId)
+                deleteOf(instanceId, releaseId)
+            }
         }
-        var nextPk: Long? = null
-        recipes.forEach { recipe ->
-            val body = Recipe.ADAPTER.encodeByteString(recipe)
-            val releaseId = releaseIds.releaseOf(recipe.id)
-            val bodyHash = body.sha256().toByteArray()
-            val recipePk =
-                nextPk?.also { pk ->
-                    insertWithPk(pk, releaseId, recipe.id, instanceId, recipe.type_id, body.toByteArray(), bodyHash)
-                } ?: run {
-                    insert(releaseId, recipe.id, instanceId, recipe.type_id, body.toByteArray(), bodyHash)
-                    lastInsertedId().executeAsOne()
-                }
-            recipe.results.mapTo(HashSet()) { it.item_id }.forEach { insertOutput(recipePk, it) }
-            // An item in several Slots, or twice in one, is one row.
-            recipe.inputs
-                .flatMapTo(
-                    HashSet(),
-                ) { slot -> slot.stacks.map { it.item_id } }
-                .forEach { insertInput(recipePk, it) }
-            nextPk = recipePk + 1
-        }
+        val writer = recipeStore.writer()
+        recipes.forEach { recipe -> writer.insert(releaseIds.releaseOf(recipe.id), instanceId, recipe) }
     }
 
     private class StagedScan(
@@ -321,9 +329,10 @@ internal class ScanIngest(
         fun releaseOf(id: String): Long = releaseIds.releaseOf(id)
     }
 
-    /** One recipe of this Scan's Instance that a layout lists, under its id's release. */
+    /** One recipe of this Scan's Instance that a layout lists, under its id's release, with its patch if any. */
     private class LayoutLink(
         val layoutKey: String,
+        val patchKey: String?,
         val releaseId: Long,
         val recipeId: String,
     )

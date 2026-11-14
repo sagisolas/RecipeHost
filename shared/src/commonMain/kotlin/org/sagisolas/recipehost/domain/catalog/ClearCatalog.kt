@@ -25,11 +25,16 @@ internal class ClearCatalog(
                 // Bookmarks are short-lived: they go with the recipes they point at.
                 catalog.bookmarkQueries.clear()
                 catalog.recipeQueries.clearOutputs()
-                catalog.recipeQueries.clearInputs()
+                catalog.recipeQueries.clearSlots()
                 catalog.recipeQueries.clear()
+                catalog.recipeQueries.clearTypeKeys()
+                catalog.slotQueries.clearItems()
+                catalog.slotQueries.clear()
+                catalog.slotQueries.clearNames()
                 catalog.iconQueries.clear()
                 catalog.iconQueries.clearAtlases()
                 catalog.recipeLayoutQueries.clear()
+                catalog.recipeLayoutQueries.clearPatches()
                 catalog.recipeTypeQueries.clear()
                 // Deleting items fires the triggers that empty item_fts.
                 catalog.itemQueries.clear()

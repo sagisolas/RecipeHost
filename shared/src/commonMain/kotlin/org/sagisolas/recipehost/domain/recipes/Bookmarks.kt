@@ -10,9 +10,13 @@ import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import okio.ByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
+import org.sagisolas.recipehost.data.catalog.recipeIdHash
 import org.sagisolas.recipehost.domain.CATALOG_REFRESH_PERIOD
 import org.sagisolas.recipehost.domain.throttleLatest
+import org.sagisolas.recipehost.protocol.Recipe
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
@@ -37,6 +41,7 @@ internal data class BookmarkedRecipe(
  */
 internal class Bookmarks(
     private val catalog: CatalogDatabase,
+    private val recipeStore: RecipeStore,
     private val context: CoroutineContext,
     private val clock: Clock,
 ) {
@@ -54,8 +59,8 @@ internal class Bookmarks(
             .selectedBookmarked(::InstanceRecipe)
             .asFlow()
             .throttleLatest(CATALOG_REFRESH_PERIOD)
-            .mapToList(context)
-            .map { it.toBookmarked() }
+            .map { query -> withContext(context) { query.readWithRecipes(catalog, recipeStore) } }
+            .map { it.rows.toBookmarked(it.recipes) }
 
     /** Bookmarks [recipeId], or removes its bookmark if it has one. */
     suspend fun toggle(recipeId: String) =
@@ -65,7 +70,7 @@ internal class Bookmarks(
                 if (queries.isBookmarked(recipeId).executeAsOne() > 0) {
                     queries.delete(recipeId)
                 } else {
-                    queries.insert(recipeId, clock.now().toEpochMilliseconds())
+                    queries.insert(recipeId, recipeIdHash(recipeId), clock.now().toEpochMilliseconds())
                 }
             }
         }
@@ -80,12 +85,12 @@ internal class Bookmarks(
 }
 
 /** Rows ordered by bookmark, newest Instance first within a recipe; groupBy keeps first-seen order. */
-private fun List<InstanceRecipe>.toBookmarked(): List<BookmarkedRecipe> =
+private fun List<InstanceRecipe>.toBookmarked(recipes: Map<ByteString, Recipe>): List<BookmarkedRecipe> =
     groupBy { it.recipeId }.map { (recipeId, rows) ->
         BookmarkedRecipe(
             recipeId = recipeId,
             typeId = rows.first().typeId,
             typeName = rows.first().typeName,
-            variants = rows.toVariants(),
+            variants = rows.toVariants(recipes),
         )
     }

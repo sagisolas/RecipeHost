@@ -27,7 +27,7 @@ class ClearCatalogTest {
     private val modList = ModList(catalog.database, context)
     private val search = ItemSearch(catalog.database, context)
     private val resolve = ResolveStacks(catalog.database, context)
-    private val itemRecipes = ItemRecipes(catalog.database, context)
+    private val itemRecipes = ItemRecipes(catalog.database, catalog.recipeStore, context)
 
     @AfterTest
     fun close() = catalog.close()

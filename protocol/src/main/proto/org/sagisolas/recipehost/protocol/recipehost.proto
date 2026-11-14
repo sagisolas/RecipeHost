@@ -118,6 +118,18 @@ message RecipeLayout {
   uint32 height = 4;               // GUI px
   repeated RecipeSlot slots = 5;   // order is significant: Recipe.layout_stacks fills them by index
   repeated string recipe_ids = 6;  // recipes in this Snapshot that use the layout; each at most once per Snapshot
+  // When set, recipe_ids are drawn as this layout with the patch's tiles over it (ADR 0019). An
+  // entry with a patch carries the layout's png only if its key wasn't sent before, like any entry.
+  LayoutPatch patch = 7;
+}
+
+// The 8x8 px tiles where a recipe's drawn image differs from its layout's (ADR 0019). A tile at the
+// layout's right or bottom edge is cut to the layout; its pixels past the edge are transparent.
+// Each key is sent once per Snapshot with its png and tiles; a later patch with that key has only the key.
+message LayoutPatch {
+  string key = 1;                  // a hash of png and tiles
+  bytes png = 2;                   // the tiles left to right, in tiles order, one strip 8 px tall
+  repeated uint32 tiles = 3;       // each tile's index in the layout, row-major over ceil(width / 8) columns
 }
 
 // A slot rectangle inside a RecipeLayout, in GUI px from its top-left corner.

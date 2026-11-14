@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.pairing.PairingPayload
 import org.sagisolas.recipehost.data.pairing.PairingPayloadException
 import org.sagisolas.recipehost.data.scan.ScanController
@@ -55,7 +56,7 @@ class PairingEntryTest {
             ScanController(
                 backgroundScope,
                 source,
-                ScanIngest(CatalogDatabase(driver), Clock.System, tempRecipeSpool()),
+                CatalogDatabase(driver).let { ScanIngest(it, RecipeStore(it), Clock.System, tempRecipeSpool()) },
             ) {},
             QrScanner { scanned },
         )

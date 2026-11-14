@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.sagisolas.recipehost.domain.catalog.CatalogItem
 import org.sagisolas.recipehost.domain.catalog.StackResolution
+import org.sagisolas.recipehost.domain.recipes.DisplayPatch
 import org.sagisolas.recipehost.domain.recipes.DisplayStack
 import org.sagisolas.recipehost.domain.recipes.RecipeDisplay
 import org.sagisolas.recipehost.domain.recipes.RecipeVariant
@@ -29,14 +30,15 @@ internal sealed interface RecipeLayoutUi {
     ) : RecipeLayoutUi
 
     /**
-     * The layout's image, loaded by [key], [width] by [height] GUI px, with the recipe's stacks
-     * in its [slots].
+     * The layout's image, loaded by [key], [width] by [height] GUI px, with [patch]'s tiles over it
+     * when it has one, and the recipe's stacks in its [slots].
      */
     data class Captured(
         val key: String,
         val width: Int,
         val height: Int,
         val slots: List<LayoutSlotUi>,
+        val patch: DisplayPatch? = null,
     ) : RecipeLayoutUi
 }
 
@@ -88,6 +90,7 @@ internal fun layoutOf(
                 key = display.key,
                 width = display.width,
                 height = display.height,
+                patch = display.patch,
                 slots =
                     display.slots.map { slot ->
                         LayoutSlotUi(

@@ -1,30 +1,62 @@
 -- Recipe layouts as received (ADR 0015): a PNG of a recipe's GUI in GUI px, and its Recipe slots,
--- encoded as a RecipeLayout message that carries only its slots. Recipes point here by key.
--- A vanilla layout's key names its parameters, not its pixels, so a later Scan with another
--- resource pack or locale replaces the image under the same key: the latest Scan wins.
+-- encoded as a RecipeLayout message that carries only its slots. Recipes point here by id, so a
+-- replaced image keeps its row. A vanilla layout's key names its parameters, not its pixels, so a
+-- later Scan with another resource pack or locale replaces the image under the same key: the
+-- latest Scan wins.
 CREATE TABLE recipe_layout (
-    key TEXT NOT NULL PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
+    key TEXT NOT NULL UNIQUE,
     png BLOB NOT NULL,
     width INTEGER NOT NULL,
     height INTEGER NOT NULL,
     slots BLOB NOT NULL
 );
 
-upsert:
-INSERT OR REPLACE INTO recipe_layout(key, png, width, height, slots) VALUES (:key, :png, :width, :height, :slots);
+-- Upserts are UPDATE + INSERT OR IGNORE: minSdk 24 ships SQLite 3.9, which has no ON CONFLICT DO UPDATE.
+update:
+UPDATE recipe_layout SET png = :png, width = :width, height = :height, slots = :slots WHERE key = :key;
+
+insertIfAbsent:
+INSERT OR IGNORE INTO recipe_layout(key, png, width, height, slots) VALUES (:key, :png, :width, :height, :slots);
 
 byKey:
-SELECT * FROM recipe_layout WHERE key = :key;
+SELECT key, png, width, height, slots FROM recipe_layout WHERE key = :key;
 
 pngOf:
 SELECT png FROM recipe_layout WHERE key = :key;
 
 -- Layouts no recipe points at any more, once a Scan has ended.
 deleteUnreferenced:
-DELETE FROM recipe_layout WHERE key NOT IN (SELECT layout_key FROM recipe WHERE layout_key IS NOT NULL);
+DELETE FROM recipe_layout WHERE id NOT IN (SELECT layout_id FROM recipe WHERE layout_id IS NOT NULL);
 
 count:
 SELECT COUNT(*) FROM recipe_layout;
 
+-- Layout patches as received (ADR 0019): the 8 px tiles where a recipe's image differs from its
+-- layout's, as one PNG strip, and their indices, encoded as a LayoutPatch message that carries only
+-- its tiles. A patch's key hashes its pixels, so a key always names the same patch.
+CREATE TABLE layout_patch (
+    id INTEGER PRIMARY KEY,
+    key TEXT NOT NULL UNIQUE,
+    png BLOB NOT NULL,
+    tiles BLOB NOT NULL
+);
+
+insertPatch:
+INSERT OR IGNORE INTO layout_patch(key, png, tiles) VALUES (:key, :png, :tiles);
+
+patchPngOf:
+SELECT png FROM layout_patch WHERE key = :key;
+
+-- Patches no recipe points at any more, once a Scan has ended.
+deleteUnreferencedPatches:
+DELETE FROM layout_patch WHERE id NOT IN (SELECT patch_id FROM recipe WHERE patch_id IS NOT NULL);
+
+patchCount:
+SELECT COUNT(*) FROM layout_patch;
+
 clear:
 DELETE FROM recipe_layout;
+
+clearPatches:
+DELETE FROM layout_patch;

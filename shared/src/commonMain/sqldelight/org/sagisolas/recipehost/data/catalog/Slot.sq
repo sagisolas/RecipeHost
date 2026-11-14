@@ -1,0 +1,68 @@
+-- Each distinct Slot once (ADR 0018): stacks is its alternatives in order, as varint pairs of an
+-- item_name id and a wire count. Recipe bodies point here, so a tag's expansion is stored once
+-- however many recipes use it.
+CREATE TABLE slot (
+    id INTEGER PRIMARY KEY,
+    stacks BLOB NOT NULL UNIQUE
+);
+
+-- Every item among a Slot's alternatives, for finding the recipes that use an item.
+CREATE TABLE slot_item (
+    name_id INTEGER NOT NULL,
+    slot_id INTEGER NOT NULL,
+    PRIMARY KEY (name_id, slot_id)
+) WITHOUT ROWID;
+
+-- Each item id once; Slots, recipe bodies and recipe_output point here.
+CREATE TABLE item_name (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+insertIfAbsent:
+INSERT OR IGNORE INTO slot(stacks) VALUES (:stacks);
+
+idOf:
+SELECT id FROM slot WHERE stacks = :stacks;
+
+insertItem:
+INSERT OR IGNORE INTO slot_item(name_id, slot_id) VALUES (:nameId, :slotId);
+
+stacksOf:
+SELECT id, stacks FROM slot WHERE id IN :ids;
+
+insertName:
+INSERT OR IGNORE INTO item_name(name) VALUES (:name);
+
+nameIdOf:
+SELECT id FROM item_name WHERE name = :name;
+
+namesOf:
+SELECT id, name FROM item_name WHERE id IN :ids;
+
+-- Slots no recipe names any more, once a Scan has ended; then their slot_item rows.
+deleteUnreferenced:
+DELETE FROM slot WHERE id NOT IN (SELECT slot_id FROM recipe_slot);
+
+deleteUnreferencedItems:
+DELETE FROM slot_item WHERE slot_id NOT IN (SELECT id FROM slot);
+
+-- Item ids neither a Slot nor a result names any more, after the Slots are cleaned up.
+deleteUnreferencedNames:
+DELETE FROM item_name
+WHERE id NOT IN (SELECT name_id FROM slot_item) AND id NOT IN (SELECT name_id FROM recipe_output);
+
+count:
+SELECT COUNT(*) FROM slot;
+
+nameCount:
+SELECT COUNT(*) FROM item_name;
+
+clear:
+DELETE FROM slot;
+
+clearItems:
+DELETE FROM slot_item;
+
+clearNames:
+DELETE FROM item_name;

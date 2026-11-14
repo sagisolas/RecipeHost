@@ -58,8 +58,12 @@ On the wire a repeated Slot may travel once per `RecipeBatch` and be referred to
 _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 
 **Recipe layout**:
-How one `Recipe` looks: a background image drawn by the companion mod with the game's own GUI (EMI's display of the recipe when EMI is loaded, the companion mod's own vanilla layouts otherwise), with `Recipe slot`s placed on it. Everything the game draws is in the image, text and fluids included, except the `Item`s inside the `Recipe slot`s; the mobile app draws those. Optional — a `Recipe` without one is shown in a generic layout. Many `Recipe`s share one layout.
+How one `Recipe` looks: a background image drawn by the companion mod with the game's own GUI (EMI's display of the recipe when EMI is loaded, the companion mod's own vanilla layouts otherwise), with `Recipe slot`s placed on it. Everything the game draws is in the image, text and fluids included, except the `Item`s inside the `Recipe slot`s; the mobile app draws those. Optional — a `Recipe` without one is shown in a generic layout. Many `Recipe`s share one layout; a `Recipe` that draws it slightly differently (its own text, fluid or animation frame) adds a `Layout patch`.
 _Avoid_: Screenshot, recipe GUI, recipe view (the app screen)
+
+**Layout patch**:
+The 8×8 px tiles where one `Recipe`'s drawn image differs from the `Recipe layout` it shares, drawn over that layout (ADR 0019). It is keyed by a hash of its pixels, so `Recipe`s that differ in the same way share one.
+_Avoid_: Overlay, diff
 
 **Recipe type**:
 What kind of `Recipe` it is, by its `type_id`: the vanilla `RecipeType` id (shaped and shapeless crafting are both `minecraft:crafting`), or the EMI category id when EMI is loaded. It is owned by the `Mod release` of its id's namespace, and may carry a name in the game's language; the Item screen shows one section per type, headed by that name or, without one, the `type_id`.

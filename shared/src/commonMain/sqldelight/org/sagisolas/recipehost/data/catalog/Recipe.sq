@@ -1,43 +1,56 @@
 -- A Recipe belongs to the Mod release of its id's namespace and is kept per Instance (ADR 0011).
--- body is the encoded wire Recipe; body_hash (SHA-256 of body) merges identical variants across Instances.
--- layout_key names its recipe_layout once a LayoutBatch has listed it; a recipe is inserted without one.
+-- body is the recipe in its interned form (ADR 0018): its Slots and results by row id, see RecipeStore.
+-- Equal bodies are equal recipes, so identical variants across Instances merge by body.
+-- recipe_id_hash is the first 64 bits of recipe_id's SHA-256 and indexes it in an eighth of the space;
+-- every lookup by recipe id compares recipe_id too.
+-- layout_id names its recipe_layout once a LayoutBatch has listed it; a recipe is inserted without one.
+-- patch_id names the layout_patch drawn over that layout, when the recipe's image differs from it.
 CREATE TABLE recipe (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     release_id INTEGER NOT NULL,
     recipe_id TEXT NOT NULL,
+    recipe_id_hash INTEGER NOT NULL,
     instance_id INTEGER NOT NULL,
-    type_id TEXT NOT NULL,
+    type_key INTEGER NOT NULL,
     body BLOB NOT NULL,
-    body_hash BLOB NOT NULL,
-    layout_key TEXT,
-    UNIQUE (release_id, recipe_id, instance_id)
+    layout_id INTEGER,
+    patch_id INTEGER
 );
 
 CREATE INDEX recipe_by_instance_release ON recipe(instance_id, release_id);
 
--- For finding a bookmarked recipe by its id.
-CREATE INDEX recipe_by_recipe_id ON recipe(recipe_id);
+-- For finding a bookmarked recipe, or the recipe a layout lists, by its id.
+CREATE INDEX recipe_by_recipe_id ON recipe(recipe_id_hash);
 
 -- For deleting the layouts no recipe points at.
-CREATE INDEX recipe_by_layout ON recipe(layout_key);
+CREATE INDEX recipe_by_layout ON recipe(layout_id);
+
+-- Each recipe type id once; recipes point here.
+CREATE TABLE recipe_type_key (
+    id INTEGER PRIMARY KEY,
+    type_id TEXT NOT NULL UNIQUE
+);
 
 -- Every result item of a recipe.
 CREATE TABLE recipe_output (
+    name_id INTEGER NOT NULL,
     recipe_pk INTEGER NOT NULL,
-    item_id TEXT NOT NULL,
-    PRIMARY KEY (recipe_pk, item_id)
-);
+    PRIMARY KEY (name_id, recipe_pk)
+) WITHOUT ROWID;
 
-CREATE INDEX recipe_output_by_item ON recipe_output(item_id);
+CREATE INDEX recipe_output_by_recipe ON recipe_output(recipe_pk);
 
--- Every alternative in every Slot of a recipe.
-CREATE TABLE recipe_input (
+-- Every Slot a recipe's body names, once per recipe; input is 1 when it is among the recipe's inputs
+-- rather than only its layout_stacks. Through slot_item it finds the recipes that use an item, and
+-- it keeps the Slots a body names from being deleted as unreferenced.
+CREATE TABLE recipe_slot (
+    slot_id INTEGER NOT NULL,
     recipe_pk INTEGER NOT NULL,
-    item_id TEXT NOT NULL,
-    PRIMARY KEY (recipe_pk, item_id)
-);
+    input INTEGER NOT NULL,
+    PRIMARY KEY (slot_id, recipe_pk)
+) WITHOUT ROWID;
 
-CREATE INDEX recipe_input_by_item ON recipe_input(item_id);
+CREATE INDEX recipe_slot_by_recipe ON recipe_slot(recipe_pk);
 
 -- Child rows are deleted explicitly: foreign-key cascades need a per-connection pragma.
 deleteOutputsOf:
@@ -45,8 +58,8 @@ DELETE FROM recipe_output WHERE recipe_pk IN (
     SELECT id FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId
 );
 
-deleteInputsOf:
-DELETE FROM recipe_input WHERE recipe_pk IN (
+deleteSlotsOf:
+DELETE FROM recipe_slot WHERE recipe_pk IN (
     SELECT id FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId
 );
 
@@ -54,75 +67,118 @@ deleteOf:
 DELETE FROM recipe WHERE instance_id = :instanceId AND release_id = :releaseId;
 
 insert:
-INSERT INTO recipe(release_id, recipe_id, instance_id, type_id, body, body_hash)
-VALUES (:releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
+INSERT INTO recipe(release_id, recipe_id, recipe_id_hash, instance_id, type_key, body)
+VALUES (:releaseId, :recipeId, :recipeIdHash, :instanceId, :typeKey, :body);
 
 -- A recipe with its key chosen by the caller: a Scan's commit lets AUTOINCREMENT key its first
 -- recipe and numbers the rest after it, so no key is ever reused and SQLite isn't asked each time.
 insertWithPk:
-INSERT INTO recipe(id, release_id, recipe_id, instance_id, type_id, body, body_hash)
-VALUES (:pk, :releaseId, :recipeId, :instanceId, :typeId, :body, :bodyHash);
-
--- Points a recipe of one Instance and release at its layout; the layout row may not exist yet.
-linkLayout:
-UPDATE recipe SET layout_key = :layoutKey
-WHERE instance_id = :instanceId AND release_id = :releaseId AND recipe_id = :recipeId;
+INSERT INTO recipe(id, release_id, recipe_id, recipe_id_hash, instance_id, type_key, body)
+VALUES (:pk, :releaseId, :recipeId, :recipeIdHash, :instanceId, :typeKey, :body);
 
 lastInsertedId:
 SELECT last_insert_rowid();
 
-insertOutput:
-INSERT OR IGNORE INTO recipe_output(recipe_pk, item_id) VALUES (:recipePk, :itemId);
+insertTypeKey:
+INSERT OR IGNORE INTO recipe_type_key(type_id) VALUES (:typeId);
 
-insertInput:
-INSERT OR IGNORE INTO recipe_input(recipe_pk, item_id) VALUES (:recipePk, :itemId);
+typeKeyOf:
+SELECT id FROM recipe_type_key WHERE type_id = :typeId;
+
+insertOutput:
+INSERT OR IGNORE INTO recipe_output(name_id, recipe_pk) VALUES (:nameId, :recipePk);
+
+insertSlot:
+INSERT INTO recipe_slot(slot_id, recipe_pk, input) VALUES (:slotId, :recipePk, :input);
+
+-- Points a recipe of one Instance and release at its layout and patch; each null when none has that key.
+linkLayout:
+UPDATE recipe SET layout_id = (SELECT id FROM recipe_layout WHERE key = :layoutKey),
+    patch_id = (SELECT id FROM layout_patch WHERE :patchKey IS NOT NULL AND key = :patchKey)
+WHERE recipe_id_hash = :recipeIdHash AND recipe_id = :recipeId
+  AND instance_id = :instanceId AND release_id = :releaseId;
 
 ofInstance:
-SELECT recipe.* FROM recipe JOIN instance ON instance.id = recipe.instance_id
+SELECT recipe.id, recipe.recipe_id, recipe_type_key.type_id, recipe.body, recipe_layout.key AS layout_key,
+    layout_patch.key AS patch_key
+FROM recipe
+JOIN instance ON instance.id = recipe.instance_id
+JOIN recipe_type_key ON recipe_type_key.id = recipe.type_key
+LEFT JOIN recipe_layout ON recipe_layout.id = recipe.layout_id
+LEFT JOIN layout_patch ON layout_patch.id = recipe.patch_id
 WHERE instance.name = :instanceName ORDER BY recipe.recipe_id;
 
 outputsOf:
-SELECT item_id FROM recipe_output WHERE recipe_pk = :recipePk ORDER BY item_id;
+SELECT item_name.name FROM recipe_output JOIN item_name ON item_name.id = recipe_output.name_id
+WHERE recipe_pk = :recipePk ORDER BY item_name.name;
 
+-- Every alternative of every input Slot of a recipe, once.
 inputsOf:
-SELECT item_id FROM recipe_input WHERE recipe_pk = :recipePk ORDER BY item_id;
+SELECT DISTINCT item_name.name FROM recipe_slot
+JOIN slot_item ON slot_item.slot_id = recipe_slot.slot_id
+JOIN item_name ON item_name.id = slot_item.name_id
+WHERE recipe_slot.recipe_pk = :recipePk AND recipe_slot.input
+ORDER BY item_name.name;
 
 -- The recipes of the selected releases with a result of :itemId, one row per Instance, grouped
 -- by type and recipe and, within one (release, recipe id), the most recently scanned Instance first.
--- The layout columns are null when the recipe has no layout, or its layout hasn't arrived.
+-- The layout columns are null when the recipe has no layout, or its layout hasn't arrived; the patch
+-- columns are null when it has no patch.
 -- type_name is the type's name under the selected release of its namespace, null when it has none.
 selectedProducing:
-SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+SELECT recipe.release_id, recipe.recipe_id, recipe_type_key.type_id, recipe.body, instance.name AS instance_name,
     recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
-    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
+    recipe_layout.slots AS layout_slots, layout_patch.key AS patch_key, layout_patch.tiles AS patch_tiles,
+    recipe_type.name AS type_name
 FROM recipe
-LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
-LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+JOIN recipe_type_key ON recipe_type_key.id = recipe.type_key
+LEFT JOIN recipe_layout ON recipe_layout.id = recipe.layout_id
+LEFT JOIN layout_patch ON layout_patch.id = recipe.patch_id
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe_type_key.type_id
     AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
-WHERE recipe.id IN (SELECT recipe_pk FROM recipe_output WHERE item_id = :itemId)
-ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
+WHERE recipe.id IN (
+    SELECT recipe_pk FROM recipe_output WHERE name_id = (SELECT id FROM item_name WHERE name = :itemId)
+)
+ORDER BY recipe_type_key.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
 
 -- Like selectedProducing, for the recipes with :itemId among the alternatives of an input Slot.
 selectedConsuming:
-SELECT recipe.release_id, recipe.recipe_id, recipe.type_id, recipe.body, recipe.body_hash, instance.name AS instance_name,
+SELECT recipe.release_id, recipe.recipe_id, recipe_type_key.type_id, recipe.body, instance.name AS instance_name,
     recipe_layout.key AS layout_key, recipe_layout.width AS layout_width, recipe_layout.height AS layout_height,
-    recipe_layout.slots AS layout_slots, recipe_type.name AS type_name
+    recipe_layout.slots AS layout_slots, layout_patch.key AS patch_key, layout_patch.tiles AS patch_tiles,
+    recipe_type.name AS type_name
 FROM recipe
-LEFT JOIN recipe_layout ON recipe_layout.key = recipe.layout_key
-LEFT JOIN recipe_type ON recipe_type.type_id = recipe.type_id
+JOIN recipe_type_key ON recipe_type_key.id = recipe.type_key
+LEFT JOIN recipe_layout ON recipe_layout.id = recipe.layout_id
+LEFT JOIN layout_patch ON layout_patch.id = recipe.patch_id
+LEFT JOIN recipe_type ON recipe_type.type_id = recipe_type_key.type_id
     AND recipe_type.release_id IN (SELECT release_id FROM version_selection)
 JOIN version_selection ON version_selection.release_id = recipe.release_id
 JOIN instance ON instance.id = recipe.instance_id
-WHERE recipe.id IN (SELECT recipe_pk FROM recipe_input WHERE item_id = :itemId)
-ORDER BY recipe.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
+WHERE recipe.id IN (
+    SELECT recipe_pk FROM recipe_slot WHERE input AND slot_id IN (
+        SELECT slot_id FROM slot_item WHERE name_id = (SELECT id FROM item_name WHERE name = :itemId)
+    )
+)
+ORDER BY recipe_type_key.type_id, recipe.recipe_id, recipe.release_id, instance.last_scanned_at DESC, instance.name;
+
+-- Type keys no recipe points at any more, once a Scan has ended.
+deleteUnreferencedTypeKeys:
+DELETE FROM recipe_type_key WHERE id NOT IN (SELECT type_key FROM recipe);
+
+typeKeyCount:
+SELECT COUNT(*) FROM recipe_type_key;
 
 clearOutputs:
 DELETE FROM recipe_output;
 
-clearInputs:
-DELETE FROM recipe_input;
+clearSlots:
+DELETE FROM recipe_slot;
+
+clearTypeKeys:
+DELETE FROM recipe_type_key;
 
 clear:
 DELETE FROM recipe;

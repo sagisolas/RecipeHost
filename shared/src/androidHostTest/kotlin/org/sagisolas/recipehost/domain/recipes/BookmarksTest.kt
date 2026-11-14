@@ -32,7 +32,7 @@ class BookmarksTest {
         object : Clock {
             override fun now() = Instant.fromEpochMilliseconds(nowMillis++)
         }
-    private val bookmarks = Bookmarks(catalog.database, EmptyCoroutineContext, clock)
+    private val bookmarks = Bookmarks(catalog.database, catalog.recipeStore, EmptyCoroutineContext, clock)
     private val modList = ModList(catalog.database, EmptyCoroutineContext)
 
     @AfterTest

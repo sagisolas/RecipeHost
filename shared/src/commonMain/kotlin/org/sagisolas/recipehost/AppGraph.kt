@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import okio.FileSystem
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.scan.RecipeSpool
 import org.sagisolas.recipehost.data.scan.ScanController
 import org.sagisolas.recipehost.data.scan.ScanIngest
@@ -63,6 +64,7 @@ class AppGraph(
     screenWake: ScreenWake,
 ) {
     private val catalog = CatalogDatabase(driver)
+    private val recipeStore = RecipeStore(catalog)
 
     /**
      * Runs `Scan`s, so they outlive any screen. On I/O, since the `Catalog` writes block; a
@@ -81,6 +83,7 @@ class AppGraph(
             ingest =
                 ScanIngest(
                     catalog,
+                    recipeStore,
                     Clock.System,
                     RecipeSpool(
                         FileSystem.SYSTEM,
@@ -92,9 +95,9 @@ class AppGraph(
 
     internal val itemSearch = ItemSearch(catalog, Dispatchers.IO)
     internal val modList = ModList(catalog, Dispatchers.IO)
-    internal val itemRecipes = ItemRecipes(catalog, Dispatchers.IO)
+    internal val itemRecipes = ItemRecipes(catalog, recipeStore, Dispatchers.IO)
     internal val resolveStacks = ResolveStacks(catalog, Dispatchers.IO)
-    private val bookmarks = Bookmarks(catalog, Dispatchers.IO, Clock.System)
+    private val bookmarks = Bookmarks(catalog, recipeStore, Dispatchers.IO, Clock.System)
     private val catalogStats = CatalogStats(catalog, driver, Dispatchers.IO)
 
     /** Read on the main thread, only on a fresh start (not a restore): a count over one table. */

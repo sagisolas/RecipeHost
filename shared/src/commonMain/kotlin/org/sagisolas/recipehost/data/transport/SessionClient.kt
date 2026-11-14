@@ -109,6 +109,6 @@ internal class SessionClient(
         }
 
     private companion object {
-        const val PROTOCOL_VERSION = 3
+        const val PROTOCOL_VERSION = 4
     }
 }

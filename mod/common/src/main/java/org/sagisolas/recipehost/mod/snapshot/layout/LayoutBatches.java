@@ -19,7 +19,9 @@ import java.util.concurrent.CompletableFuture;
 import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.mod.snapshot.image.PngEncoder;
 import org.sagisolas.recipehost.protocol.LayoutBatch;
+import org.sagisolas.recipehost.protocol.LayoutPatch;
 import org.sagisolas.recipehost.protocol.RecipeLayout;
+import org.sagisolas.recipehost.protocol.RecipeSlot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,11 @@ import org.slf4j.LoggerFactory;
  * rendered sheet. Jobs that share a parameter key are merged up front, so that key
  * is drawn once and its entry lists all their recipes. Each key is sent once with
  * its PNG; a later hashed job that draws to an already-sent key is sent as an entry
- * carrying only its {@code recipe_ids}. A job whose draw failed or drew nothing is
+ * carrying only its {@code recipe_ids}. The first hashed job of each type, size and
+ * slots is that shape's base; a later one sends the base's key with a
+ * {@link LayoutPatch} of the tiles it draws differently, or none if it draws the
+ * same (ADR 0019). A patch, too, is sent once with its PNG and then by key only. A
+ * job whose draw failed or drew nothing is
  * dropped, so its recipes ship without a layout; the failure is logged once per
  * {@code type_id}.
  *
@@ -59,6 +65,8 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
     private final SheetRenderer renderer;
     private final PngEncoder encoder;
     private final Set<String> sentKeys = new HashSet<>();
+    private final Map<Shape, Base> bases = new HashMap<>();
+    private final Set<String> sentPatches = new HashSet<>();
     private final Set<String> loggedTypes = new HashSet<>();
     private LayoutBatch next;
     /** The sheet being drawn for the front of {@code pending}, or null when none is requested. */
@@ -105,13 +113,51 @@ public final class LayoutBatches implements Iterator<LayoutBatch> {
                 logOncePerType(job, new IllegalStateException("the layout drew nothing"));
                 continue;
             }
-            String key = job.parameterKey() != null
-                    ? job.parameterKey()
-                    : LayoutKeys.contentHash(pixels, job.width(), job.height(), job.slots());
-            layouts.add(sentKeys.add(key) ? withImage(key, job, pixels) : recipeIdsOnly(key, job));
+            layouts.add(
+                    job.parameterKey() != null
+                            ? keyedEntry(job.parameterKey(), job, pixels)
+                            : hashedEntry(job, pixels));
         }
         return layouts;
     }
+
+    private RecipeLayout keyedEntry(String key, LayoutJob job, int[] pixels) {
+        return sentKeys.add(key) ? withImage(key, job, pixels) : recipeIdsOnly(key, job);
+    }
+
+    /** The job as its shape's base layout, or as that base with a patch of where it differs. */
+    private RecipeLayout hashedEntry(LayoutJob job, int[] pixels) {
+        Shape shape = new Shape(job.typeId(), job.width(), job.height(), job.slots());
+        Base base = bases.get(shape);
+        if (base == null) {
+            String key = LayoutKeys.contentHash(pixels, job.width(), job.height(), job.slots());
+            bases.put(shape, new Base(key, pixels));
+            return keyedEntry(key, job, pixels);
+        }
+        LayoutPatches.Diff diff = LayoutPatches.diff(base.pixels(), pixels, job.width(), job.height());
+        RecipeLayout entry = recipeIdsOnly(base.key(), job);
+        return diff.isEmpty()
+                ? entry
+                : entry.toBuilder().setPatch(patchOf(diff)).build();
+    }
+
+    private LayoutPatch patchOf(LayoutPatches.Diff diff) {
+        String key = diff.key();
+        LayoutPatch.Builder patch = LayoutPatch.newBuilder().setKey(key);
+        if (!sentPatches.add(key)) return patch.build();
+        int width = diff.tiles().size() * LayoutPatches.TILE;
+        BufferedImage strip = new BufferedImage(width, LayoutPatches.TILE, BufferedImage.TYPE_INT_ARGB);
+        strip.setRGB(0, 0, width, LayoutPatches.TILE, diff.strip(), 0, width);
+        return patch.setPng(UnsafeByteOperations.unsafeWrap(encoder.encode(strip)))
+                .addAllTiles(diff.tiles())
+                .build();
+    }
+
+    /** What makes hashed layouts share a base: the same type drawn at one size with the same slots. */
+    private record Shape(String typeId, int width, int height, List<RecipeSlot> slots) {}
+
+    /** A shape's base layout: its key and the pixels later jobs of the shape are compared with. */
+    private record Base(String key, int[] pixels) {}
 
     /** Asks for the sheet of the jobs still to come, given as a copy the render thread can read. */
     private CompletableFuture<LayoutSheet> requestSheet() {

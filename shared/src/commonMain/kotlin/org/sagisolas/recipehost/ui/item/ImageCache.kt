@@ -14,16 +14,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import org.jetbrains.compose.resources.decodeToImageBitmap
+import org.sagisolas.recipehost.domain.recipes.LayoutImageKey
 
 /** Decoded `Icon atlas`es by atlas id. An atlas never changes and its id is never reused. */
 internal typealias IconAtlasCache = ImageCache<Long>
 
 /**
- * Decoded `Recipe layout` images by layout key. A vanilla key names its parameters, not its
- * pixels, so a later Scan can replace its image: `AppGraph` [clears][ImageCache.clear] it when
+ * Decoded `Recipe layout` and layout patch images by key. A vanilla key names its parameters, not
+ * its pixels, so a later Scan can replace its image: `AppGraph` [clears][ImageCache.clear] it when
  * each Scan ends.
  */
-internal typealias LayoutImageCache = ImageCache<String>
+internal typealias LayoutImageCache = ImageCache<LayoutImageKey>
 
 /**
  * Decoded images by key. Each image is loaded and decoded once, in [scope] (off the main thread),

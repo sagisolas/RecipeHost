@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.pairing.PairingPayload
 import org.sagisolas.recipehost.data.transport.ScanFailure
 import org.sagisolas.recipehost.data.transport.SessionSource
@@ -31,7 +32,10 @@ import kotlin.time.Clock
 
 class ScanControllerTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CatalogDatabase.Schema.create(it) }
-    private val ingest = ScanIngest(CatalogDatabase(driver), Clock.System, tempRecipeSpool())
+    private val ingest =
+        CatalogDatabase(
+            driver,
+        ).let { ScanIngest(it, RecipeStore(it), Clock.System, tempRecipeSpool()) }
     private val payload = PairingPayload(listOf("192.168.1.10"), port = 25599, token = ByteArray(32).toByteString())
 
     @AfterTest
