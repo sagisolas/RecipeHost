@@ -36,6 +36,7 @@ import org.sagisolas.recipehost.presentation.byteSizeOf
 import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.shared.generated.resources.cancel
 import org.sagisolas.recipehost.shared.generated.resources.settings_author
+import org.sagisolas.recipehost.shared.generated.resources.settings_author_email
 import org.sagisolas.recipehost.shared.generated.resources.settings_catalog
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear
 import org.sagisolas.recipehost.shared.generated.resources.settings_clear_catalog
@@ -50,6 +51,7 @@ import org.sagisolas.recipehost.shared.generated.resources.settings_source_code
 import org.sagisolas.recipehost.shared.generated.resources.settings_storage_used
 import org.sagisolas.recipehost.shared.generated.resources.settings_version
 import org.sagisolas.recipehost.shared.generated.resources.size_bytes
+import org.sagisolas.recipehost.shared.generated.resources.size_decimal
 import org.sagisolas.recipehost.shared.generated.resources.size_gigabytes
 import org.sagisolas.recipehost.shared.generated.resources.size_kilobytes
 import org.sagisolas.recipehost.shared.generated.resources.size_megabytes
@@ -146,9 +148,12 @@ private fun AppInfoFooter() {
     val color = McTheme.colors.textOnDarkMuted
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row {
-            McText(stringResource(Res.string.settings_author, AppInfo.AUTHOR) + " (", color = color, style = style)
+            val author = stringResource(Res.string.settings_author, AppInfo.AUTHOR)
+            val line = stringResource(Res.string.settings_author_email, author, AppInfo.AUTHOR_EMAIL)
+            val (before, after) = line.aroundFirst(AppInfo.AUTHOR_EMAIL)
+            McText(before, color = color, style = style)
             FooterLink(AppInfo.AUTHOR_EMAIL, "mailto:${AppInfo.AUTHOR_EMAIL}")
-            McText(")", color = color, style = style)
+            McText(after, color = color, style = style)
         }
         McText(stringResource(Res.string.settings_version, AppInfo.VERSION), color = color, style = style)
         FooterLink(stringResource(Res.string.settings_source_code), AppInfo.SOURCE_URL)
@@ -191,7 +196,16 @@ private fun StatRow(
 
 /** [size] with its unit as the current locale writes it. */
 @Composable
-private fun sizeText(size: ByteSize) = stringResource(size.unit.format, size.amount)
+private fun sizeText(size: ByteSize): String {
+    val amount = size.tenths?.let { stringResource(Res.string.size_decimal, size.whole, it) } ?: size.whole.toString()
+    return stringResource(size.unit.format, amount)
+}
+
+/** The text before and after the first [part], so [part] can be drawn on its own (as a link). */
+private fun String.aroundFirst(part: String): Pair<String, String> {
+    val at = indexOf(part)
+    return if (at < 0) this to "" else substring(0, at) to substring(at + part.length)
+}
 
 private val ByteUnit.format: StringResource
     get() =

@@ -1,4 +1,8 @@
 {
   "recipehost.layout.cooking_time": "%ss",
-  "recipehost.layout.experience": "%s XP"
+  "recipehost.layout.experience": "%s XP",
+  "recipehost.pairing.title": "Pair with app",
+  "recipehost.pairing.scan_hint": "Scan this code with the RecipeHost app",
+  "recipehost.pairing.custom_recipes_warning": "Custom recipe types are not supported without EMI installed",
+  "recipehost.pairing.button_tooltip": "Pair with RecipeHost app"
 }

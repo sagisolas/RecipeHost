@@ -59,7 +59,7 @@ android {
     }
     androidResources {
         // The app's strings are English only; drop the translations libraries bring in.
-        localeFilters += "en"
+        localeFilters += listOf("en", "ru")
     }
     packaging {
         resources {

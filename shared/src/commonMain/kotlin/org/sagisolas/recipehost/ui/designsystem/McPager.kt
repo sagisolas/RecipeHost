@@ -11,6 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import org.sagisolas.recipehost.shared.generated.resources.Res
+import org.sagisolas.recipehost.shared.generated.resources.pager_counter
 
 /** ◀ "n / N" ▶ for paging through [count] items; [index] is zero-based. Shows "0 / 0" when empty. */
 @Composable
@@ -27,7 +30,7 @@ internal fun McPager(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         McSquareButton("◀", onPrevious, enabled = index > 0)
-        val counter = if (count == 0) "0 / 0" else "${index + 1} / $count"
+        val counter = stringResource(Res.string.pager_counter, if (count == 0) 0 else index + 1, count)
         McText(counter, color = McTheme.colors.textOnDark, maxLines = 1)
         McSquareButton("▶", onNext, enabled = index < count - 1)
     }

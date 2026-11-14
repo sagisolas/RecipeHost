@@ -21,10 +21,10 @@ import net.minecraft.network.chat.Component;
  */
 public final class PairingScreen extends Screen {
 
-    private static final Component TITLE = Component.literal("RecipeHost pairing");
-    private static final Component SCAN_HINT = Component.literal("Scan this code with \"Recipehost\" app");
+    private static final Component TITLE = Component.translatable("recipehost.pairing.title");
+    private static final Component SCAN_HINT = Component.translatable("recipehost.pairing.scan_hint");
     private static final Component CUSTOM_RECIPES_WARNING =
-            Component.literal("Custom recipe types are not supported without EMI installed");
+            Component.translatable("recipehost.pairing.custom_recipes_warning");
     private static final int QUIET_ZONE = 4;
     private static final int DARK = 0xFF000000;
     private static final int LIGHT = 0xFFFFFFFF;

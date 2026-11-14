@@ -8,9 +8,13 @@ package org.sagisolas.recipehost.presentation
 import kotlin.math.pow
 import kotlin.math.round
 
-/** A byte count for display: [amount] in [unit], which the UI turns into a localized string. */
+/**
+ * A byte count for display: [whole] and, when it shows one decimal, [tenths], in [unit]. The UI joins
+ * them with the language's decimal separator and turns the result into a localized string.
+ */
 internal data class ByteSize(
-    val amount: String,
+    val whole: Long,
+    val tenths: Int?,
     val unit: ByteUnit,
 )
 
@@ -22,16 +26,18 @@ internal enum class ByteUnit { Bytes, Kilobytes, Megabytes, Gigabytes }
  * whole numbers above (1.5 MB, 15 MB, 150 MB). Rounding up to 1000 moves to the next unit.
  */
 internal fun byteSizeOf(bytes: Long): ByteSize {
-    if (bytes < 1000) return ByteSize(bytes.coerceAtLeast(0).toString(), ByteUnit.Bytes)
+    if (bytes < 1000) return ByteSize(bytes.coerceAtLeast(0), null, ByteUnit.Bytes)
     val units = ByteUnit.entries.drop(1)
     return units.withIndex().firstNotNullOf { (index, unit) ->
-        val amount = amountOf(bytes / 1000.0.pow(index + 1))
-        ByteSize(amount, unit).takeIf { amount.toDouble() < 1000 || unit == units.last() }
+        sizeIn(bytes / 1000.0.pow(index + 1), unit).takeIf { it.whole < 1000 || unit == units.last() }
     }
 }
 
-private fun amountOf(value: Double): String {
-    if (value >= 9.95) return round(value).toLong().toString()
+private fun sizeIn(
+    value: Double,
+    unit: ByteUnit,
+): ByteSize {
+    if (value >= 9.95) return ByteSize(round(value).toLong(), null, unit)
     val tenths = round(value * 10).toLong()
-    return "${tenths / 10}.${tenths % 10}"
+    return ByteSize(tenths / 10, (tenths % 10).toInt(), unit)
 }

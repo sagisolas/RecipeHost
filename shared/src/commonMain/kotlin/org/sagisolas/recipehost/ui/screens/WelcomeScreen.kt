@@ -46,6 +46,7 @@ import org.sagisolas.recipehost.shared.generated.resources.welcome_no_scanner
 import org.sagisolas.recipehost.shared.generated.resources.welcome_pairing_button
 import org.sagisolas.recipehost.shared.generated.resources.welcome_screenshot
 import org.sagisolas.recipehost.shared.generated.resources.welcome_step_install
+import org.sagisolas.recipehost.shared.generated.resources.welcome_step_number
 import org.sagisolas.recipehost.shared.generated.resources.welcome_step_scan
 import org.sagisolas.recipehost.ui.designsystem.McButton
 import org.sagisolas.recipehost.ui.designsystem.McText
@@ -112,7 +113,7 @@ private fun WelcomeStep(
 ) {
     Row(Modifier.fillMaxWidth()) {
         McText(
-            "$number.",
+            stringResource(Res.string.welcome_step_number, number),
             modifier = Modifier.width(32.dp),
             color = McTheme.colors.textOnDark,
             style = McTheme.typography.title,

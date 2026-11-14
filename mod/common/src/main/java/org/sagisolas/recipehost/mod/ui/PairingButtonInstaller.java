@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 public final class PairingButtonInstaller {
 
     private static final Logger LOG = LogUtils.getLogger();
-    private static final Component TOOLTIP = Component.literal("Pair with RecipeHost app");
+    private static final Component TOOLTIP = Component.translatable("recipehost.pairing.button_tooltip");
 
     private final PairingController pairing;
     private final RecipeViewer viewer;
