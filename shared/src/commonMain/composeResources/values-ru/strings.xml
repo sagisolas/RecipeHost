@@ -1,0 +1,69 @@
+<resources>
+    <string name="tab_items">Предметы</string>
+    <string name="tab_bookmarks">Закладки</string>
+    <string name="tab_settings">Настройки</string>
+
+    <string name="scan_qr">Сканировать</string>
+    <string name="welcome_step_install">Установите мод RecipeHost</string>
+    <string name="welcome_screenshot">Кнопка подключения находится в левом нижем углу инвентаря</string>
+    <string name="welcome_hint">Откройте экран подключения в Minecraft</string>
+    <string name="welcome_step_scan">Отсканируйте QR</string>
+    <string name="welcome_no_scanner">Сканер QR недоступен. Отсканируйте код с помощью приложения камеры.</string>
+    <string name="welcome_camera_denied">Разрешите доступ к камере для RecipeHost в Настройках, или просканируйте код в приложении камеры</string>
+
+    <string name="scan_step_connecting">Подключение</string>
+    <string name="scan_step_items">Предметы</string>
+    <string name="scan_step_items_count">Предметы %1$d/%2$d</string>
+    <string name="scan_step_recipes">Рецепты</string>
+    <string name="scan_step_recipes_count">Рецепты %1$d/%2$d</string>
+    <string name="scan_again">Сканировать еще раз</string>
+    <string name="scan_error_unauthorized">Код подключения не подходит. Откройте экран подключения снова и просканируйте код.</string>
+    <string name="scan_error_busy">Передача уже в процессе для другого устройства. Попробуйте позже</string>
+    <string name="scan_error_game">На стороне игры произошла ошибка во время отправки данных.</string>
+    <string name="scan_error_version_mismatch">Версия приложения и мода несовместимы. Обновите мод и приложение.</string>
+    <string name="scan_error_invalid_code">Этот код не является кодом подключения Recipehost.</string>
+    <string name="scan_error_network">Не возможно подключится к игре. Убедитесь что вы находитесь в одной локальной сети.</string>
+    <string name="scan_error_local_network">Разрешите доступ к локальной сети для RecipeHost в Настройках, затем просканируйте еще раз.</string>
+    <string name="scan_error_interrupted">Сканирование прервано до завершения загрузки.</string>
+
+    <string name="grid_mods">Моды</string>
+    <string name="grid_scan">Скан</string>
+    <string name="grid_search_hint">Поиск, @mod поиск по моду</string>
+    <string name="grid_search_clear">Очистить</string>
+
+    <string name="mod_list_title">Фильтрация по моду</string>
+    <string name="mod_versions_title">Изменение версии модов</string>
+
+    <string name="item_tab_recipes">Рецепты</string>
+    <string name="item_tab_uses">Используется в</string>
+    <string name="item_no_recipes">Рецептов нет</string>
+    <string name="item_from_instances">Из %1$s</string>
+    <string name="item_bookmark">Сохранить рецепт</string>
+    <string name="item_unbookmark">Удалить закладку</string>
+    <string name="bookmarks_remove">Удалить закладку</string>
+    <string name="bookmarks_empty">Пока сохраненных рецептов нет. Сохраните рецепт на странице предмета.</string>
+
+    <string name="settings_mods_section">Модификации</string>
+    <string name="settings_mod_versions">Изменить версии модов</string>
+    <string name="settings_open">Открыть</string>
+    <string name="settings_catalog">Каталог</string>
+    <string name="settings_mods">Моды</string>
+    <string name="settings_items">Предметы</string>
+    <string name="settings_recipes">Рецепты</string>
+    <string name="settings_storage_used">Используется места</string>
+    <string name="size_bytes">%1$s б</string>
+    <string name="size_kilobytes">%1$s кБ</string>
+    <string name="size_megabytes">%1$s МБ</string>
+    <string name="size_gigabytes">%1$s ГБ</string>
+    <string name="settings_clear_catalog">Очистить каталог</string>
+    <string name="settings_clear_confirm">Вся информация о предметах, рецептах и закладках будет удалена. Вы вернетесь на экран сканирования.</string>
+    <string name="settings_clear">Очистить</string>
+    <string name="settings_author">Автор: %1$s</string>
+    <string name="settings_version">Версия: %1$s</string>
+    <string name="settings_source_code">Исходный код</string>
+
+    <string name="recipe_inputs_unknown">Ингридиеты неизвестны</string>
+
+    <string name="cancel">Отменить</string>
+    <string name="back">Назад</string>
+</resources>

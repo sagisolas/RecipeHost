@@ -1,0 +1,8 @@
+{
+  "recipehost.layout.cooking_time": "%ss",
+  "recipehost.layout.experience": "%s XP",
+  "recipehost.pairing.title": "Подключение приложения",
+  "recipehost.pairing.scan_hint": "Просканируйте этот код в приложении RecipeHost",
+  "recipehost.pairing.custom_recipes_warning": "Кастомные типы рецептов не поддерживается без EMI",
+  "recipehost.pairing.button_tooltip": "Подключение приложения RecipeHost"
+}
