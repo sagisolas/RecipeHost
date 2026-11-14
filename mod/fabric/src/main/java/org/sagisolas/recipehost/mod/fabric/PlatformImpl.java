@@ -10,6 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
@@ -45,5 +46,9 @@ public final class PlatformImpl {
     public static void onWorldLeave(Runnable callback) {
         // Fires on every disconnect, singleplayer included. Minecraft#clearClientLevel did not.
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> callback.run());
+    }
+
+    public static void onClientTick(Runnable callback) {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> callback.run());
     }
 }

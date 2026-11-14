@@ -16,6 +16,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.sagisolas.recipehost.mod.ModDescriptor;
@@ -45,5 +46,9 @@ public final class PlatformImpl {
 
     public static void onWorldLeave(Runnable callback) {
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> callback.run());
+    }
+
+    public static void onClientTick(Runnable callback) {
+        NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post.class, event -> callback.run());
     }
 }

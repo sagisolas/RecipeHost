@@ -87,7 +87,7 @@ public final class IconRenderer implements AutoCloseable {
         target.clear(Minecraft.ON_OSX);
         target.bindWrite(true);
 
-        // We run from Minecraft#execute, outside the frame's GUI pass, so the
+        // We run at the end of a client tick, outside the frame's GUI pass, so the
         // projection/model-view left over from the last frame are the screen's
         // (ortho over the scaled window, identity view). Under those the items
         // are scaled down and depth-clipped, giving fully transparent icons.

@@ -47,4 +47,14 @@ public final class Platform {
     public static void onWorldLeave(Runnable callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
+
+    /**
+     * Fires on the render thread at the end of every client tick, including on menus and while
+     * paused. It runs outside Minecraft's task queue, so code there may wait on
+     * {@code Minecraft#submit} as it would inside a frame.
+     */
+    @ExpectPlatform
+    public static void onClientTick(Runnable callback) {
+        throw new AssertionError("@ExpectPlatform not wired");
+    }
 }
