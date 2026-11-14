@@ -54,7 +54,7 @@ The generic wire representation of any crafting operation — vanilla, modded, o
 
 **Slot**:
 A single position in a `Recipe`'s input grid, carrying the list of `ItemStack`s that satisfy it. Ingredient tags are expanded into concrete items by the companion mod — the mobile app never resolves tags.
-On the wire a repeated Slot may travel once per `RecipeBatch` and be referred to by index (ADR 0016); the app expands it on receipt.
+On the wire a repeated Slot may travel once per `RecipeBatch` and be referred to by index (ADR 0016); the app expands it on receipt. A Slot travels with at most its first 2048 alternatives (ADR 0012), so a Slot that takes any item arrives cut.
 _Avoid_: Ingredient (ambiguous with Minecraft's `Ingredient` class)
 
 **Recipe layout**:
@@ -118,4 +118,4 @@ _Avoid_: PlatformHooks, PlatformBridge
 One recipe as a recipe source (the vanilla dispatch, or EMI) finds it, before it is read. It only knows how to read its wire `Recipe` and lay out its `Recipe layout`; whether it ships is the `Recipe assembly`'s call.
 
 **Recipe assembly**:
-The module that turns `Recipe candidate`s into a `Snapshot`'s recipes and owns the rules every source shares: tag listings and fuel are skipped, a recipe that fails to read is left out, one whose layout fails ships without it, an id is sent once, and the id's namespace owns the recipe.
+The module that turns `Recipe candidate`s into a `Snapshot`'s recipes and owns the rules every source shares: tag listings and fuel are skipped, a recipe that fails to read is left out, one whose layout fails ships without it, an id is sent once, the id's namespace owns the recipe, and a Slot keeps at most its first 2048 alternatives.

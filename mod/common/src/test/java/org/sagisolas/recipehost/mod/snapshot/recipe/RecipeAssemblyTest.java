@@ -216,6 +216,34 @@ public class RecipeAssemblyTest {
         };
     }
 
+    @Test
+    public void anInputSlotKeepsOnlyItsFirstAlternativesUpToTheCap() {
+        Slot anyItem = slotOfAlternatives(RecipeAssembly.MAX_ALTERNATIVES + 5);
+        Slot atCap = slotOfAlternatives(RecipeAssembly.MAX_ALTERNATIVES);
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(candidate(
+                "ars_nouveau:apparatus_enchanting",
+                () -> recipe("ars_nouveau:reactive_1").toBuilder()
+                        .addInputs(anyItem)
+                        .addInputs(atCap)
+                        .build(),
+                noLayout())));
+
+        assertEquals(List.of(atCap, atCap), assembled.recipes().get(0).getInputsList());
+    }
+
+    @Test
+    public void aLayoutSlotKeepsOnlyItsFirstAlternativesUpToTheCap() {
+        Slot anyItem = slotOfAlternatives(RecipeAssembly.MAX_ALTERNATIVES + 5);
+        Slot atCap = slotOfAlternatives(RecipeAssembly.MAX_ALTERNATIVES);
+        RecipeAssembly.LaidOutRecipes assembled = assembled(List.of(candidate(
+                "create:automatic_shapeless",
+                () -> recipe("integrateddynamics:facade"),
+                read -> Optional.of(
+                        new LaidOut(job("create:automatic_shapeless", read.getId(), 2), List.of(anyItem, atCap))))));
+
+        assertEquals(List.of(atCap, atCap), assembled.recipes().get(0).getLayoutStacksList());
+    }
+
     private RecipeAssembly.LaidOutRecipes assembled(List<RecipeCandidate> candidates) {
         RecipeAssembly.Prepared prepared = assembly.read(candidates);
         return prepared.layOut(0, prepared.count());
@@ -270,5 +298,12 @@ public class RecipeAssemblyTest {
 
     private static Slot slotOf(String itemId) {
         return Slot.newBuilder().addStacks(stack(itemId)).build();
+    }
+
+    /** A Slot of {@code count} distinct items, {@code test:item_0} first. */
+    private static Slot slotOfAlternatives(int count) {
+        Slot.Builder slot = Slot.newBuilder();
+        for (int i = 0; i < count; i++) slot.addStacks(stack("test:item_" + i));
+        return slot.build();
     }
 }

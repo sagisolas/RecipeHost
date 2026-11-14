@@ -18,6 +18,7 @@ import org.sagisolas.recipehost.mod.snapshot.RenderThread;
 import org.sagisolas.recipehost.mod.snapshot.layout.LayoutJob;
 import org.sagisolas.recipehost.protocol.Recipe;
 import org.sagisolas.recipehost.protocol.RecipeType;
+import org.sagisolas.recipehost.protocol.Slot;
 import org.slf4j.Logger;
 
 /**
@@ -29,7 +30,9 @@ import org.slf4j.Logger;
  *   <li>a Snapshot names each recipe once: of recipes sharing an id, the first is kept;</li>
  *   <li>the namespace of a recipe's id owns it;</li>
  *   <li>a type is named by the first of its recipes that ships and gives a name;</li>
- *   <li>each layout lists the recipe it was laid out for.</li>
+ *   <li>each layout lists the recipe it was laid out for;</li>
+ *   <li>a Slot, in {@code inputs} or {@code layout_stacks}, keeps at most its first
+ *       {@link #MAX_ALTERNATIVES} alternatives.</li>
  * </ul>
  * Each kind of failure is logged once per type. Recipes are read first ({@link #read}); layouts are
  * laid out later, a chunk at a time, on the {@link RenderThread} in budgeted slices.
@@ -44,6 +47,13 @@ public final class RecipeAssembly {
     private static final Set<String> SKIPPED_TYPES = Set.of("emi:tag", "emi:fuel");
     /** JEI's tag listings, one type per registry ({@code minecraft:tag_recipes/item}, ...). */
     private static final String JEI_TAG_TYPE_PREFIX = "minecraft:tag_recipes/";
+    /**
+     * The most alternatives a Slot ships with; past it, only the first are kept. A Slot that takes
+     * any item expands to tens of thousands of stacks, which slows the transfer and makes a recipe
+     * row too big for Android's 2 MB CursorWindow (ADR 0012). Most tag Slots stay below it;
+     * the widest ones (thousands of decorative blocks) are cut too.
+     */
+    static final int MAX_ALTERNATIVES = 2048;
 
     /** Recipes in order with their {@code layout_stacks}, and the jobs of those with a layout. */
     public record LaidOutRecipes(List<Recipe> recipes, List<LayoutJob> layouts) {
@@ -96,7 +106,7 @@ public final class RecipeAssembly {
                 Recipe recipe = chunk.get(i).recipe();
                 Optional<LaidOut> layout = laidOut.get(i);
                 recipes.add(layout.map(l -> recipe.toBuilder()
-                                .addAllLayoutStacks(l.stacks())
+                                .addAllLayoutStacks(withAlternativesCapped(l.stacks()))
                                 .build())
                         .orElse(recipe));
                 layout.ifPresent(l -> layouts.add(l.job()));
@@ -151,7 +161,7 @@ public final class RecipeAssembly {
                 }
                 continue;
             }
-            read.add(new Read(candidate, recipe));
+            read.add(new Read(candidate, withInputAlternativesCapped(recipe)));
         }
         return read;
     }
@@ -214,6 +224,34 @@ public final class RecipeAssembly {
             }
             return Optional.empty();
         }
+    }
+
+    /**
+     * {@code recipe} with each input Slot cut to its first {@link #MAX_ALTERNATIVES} alternatives; the
+     * same instance when no Slot has more.
+     */
+    private static Recipe withInputAlternativesCapped(Recipe recipe) {
+        if (recipe.getInputsList().stream().noneMatch(RecipeAssembly::hasTooManyAlternatives)) return recipe;
+        return recipe.toBuilder()
+                .clearInputs()
+                .addAllInputs(withAlternativesCapped(recipe.getInputsList()))
+                .build();
+    }
+
+    private static List<Slot> withAlternativesCapped(List<Slot> slots) {
+        return slots.stream().map(RecipeAssembly::withAlternativesCapped).toList();
+    }
+
+    private static Slot withAlternativesCapped(Slot slot) {
+        if (!hasTooManyAlternatives(slot)) return slot;
+        return slot.toBuilder()
+                .clearStacks()
+                .addAllStacks(slot.getStacksList().subList(0, MAX_ALTERNATIVES))
+                .build();
+    }
+
+    private static boolean hasTooManyAlternatives(Slot slot) {
+        return slot.getStacksCount() > MAX_ALTERNATIVES;
     }
 
     private static boolean isSkipped(String typeId) {
