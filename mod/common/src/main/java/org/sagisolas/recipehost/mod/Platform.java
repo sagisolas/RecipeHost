@@ -49,12 +49,14 @@ public final class Platform {
     }
 
     /**
-     * Fires on the render thread at the end of every client tick, including on menus and while
-     * paused. It runs outside Minecraft's task queue, so code there may wait on
-     * {@code Minecraft#submit} as it would inside a frame.
+     * Fires on the render thread once per rendered frame, in a world and on menus, after the
+     * frame's GUI so far is flushed: code there may draw into its own render target with
+     * Minecraft's shared buffers. It runs outside Minecraft's task queue, so code there may wait
+     * on {@code Minecraft#submit}. On Fabric it rides the HUD and screen passes, so it doesn't
+     * fire while the GUI is hidden (F1) with no screen open.
      */
     @ExpectPlatform
-    public static void onClientTick(Runnable callback) {
+    public static void onFrame(Runnable callback) {
         throw new AssertionError("@ExpectPlatform not wired");
     }
 }

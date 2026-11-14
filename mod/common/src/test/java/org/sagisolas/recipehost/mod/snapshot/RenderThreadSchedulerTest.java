@@ -24,9 +24,9 @@ public class RenderThreadSchedulerTest {
     private final RenderThreadScheduler scheduler = new RenderThreadScheduler(() -> now);
 
     @Test
-    public void workWaitsForTheTick() throws Exception {
+    public void workWaitsForTheFrame() throws Exception {
         CompletableFuture<String> future = scheduler.submit(deadline -> "done");
-        assertFalse("nothing runs before the tick", future.isDone());
+        assertFalse("nothing runs before the frame", future.isDone());
 
         scheduler.runSlices();
 
@@ -34,7 +34,7 @@ public class RenderThreadSchedulerTest {
     }
 
     @Test
-    public void slicesShareOneBudgetPerTick() {
+    public void slicesShareOneBudgetPerFrame() {
         List<Long> deadlines = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             scheduler.submit(deadline -> {
@@ -49,7 +49,7 @@ public class RenderThreadSchedulerTest {
         assertEquals("both get the same deadline", deadlines.get(0), deadlines.get(1));
 
         scheduler.runSlices();
-        assertEquals("the next tick runs the rest", 3, deadlines.size());
+        assertEquals("the next frame runs the rest", 3, deadlines.size());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class RenderThreadSchedulerTest {
     }
 
     @Test
-    public void workQueuedDuringTheTickRunsWhileBudgetRemains() throws Exception {
+    public void workQueuedDuringTheFrameRunsWhileBudgetRemains() throws Exception {
         CompletableFuture<CompletableFuture<String>> follower = new CompletableFuture<>();
         scheduler.submit(deadline -> follower.complete(scheduler.submit(d -> "follow-up")));
 
@@ -78,7 +78,7 @@ public class RenderThreadSchedulerTest {
     }
 
     @Test
-    public void aFailingSliceFailsItsFutureAndTheTickGoesOn() {
+    public void aFailingSliceFailsItsFutureAndTheFrameGoesOn() {
         IllegalStateException boom = new IllegalStateException("boom");
         CompletableFuture<Object> failing = scheduler.submit(deadline -> {
             throw boom;

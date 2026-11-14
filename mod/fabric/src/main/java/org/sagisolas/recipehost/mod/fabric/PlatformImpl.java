@@ -10,12 +10,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import org.sagisolas.recipehost.mod.ModDescriptor;
@@ -48,7 +49,49 @@ public final class PlatformImpl {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> callback.run());
     }
 
-    public static void onClientTick(Runnable callback) {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> callback.run());
+    /**
+     * fabric-api has no end-of-frame event, so this rides the GUI passes: the HUD in a world and
+     * each screen's render on menus, each flushing its own {@link GuiGraphics} first. A frame
+     * with both runs {@code callback} once.
+     */
+    public static void onFrame(Runnable callback) {
+        OncePerFrame frame = new OncePerFrame(callback);
+        HudRenderCallback.EVENT.register((graphics, deltaTracker) -> frame.afterHud(graphics));
+        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> ScreenEvents.afterRender(screen)
+                .register((rendered, graphics, mouseX, mouseY, partialTick) -> frame.afterScreen(graphics)));
+    }
+
+    /**
+     * Runs a callback once per frame from the HUD and screen passes. The HUD draws before a screen
+     * in the same frame, so a screen pass right after a HUD pass skips; without a HUD (on menus,
+     * or with the GUI hidden) every screen pass runs it.
+     */
+    private static final class OncePerFrame {
+        private final Runnable callback;
+        private boolean ranInHud;
+
+        OncePerFrame(Runnable callback) {
+            this.callback = callback;
+        }
+
+        void afterHud(GuiGraphics graphics) {
+            run(graphics);
+            ranInHud = true;
+        }
+
+        void afterScreen(GuiGraphics graphics) {
+            if (ranInHud) {
+                ranInHud = false;
+            } else {
+                run(graphics);
+            }
+        }
+
+        private void run(GuiGraphics graphics) {
+            // The pass's vertices are still buffered in Minecraft's shared buffers; drawn later,
+            // they would land in whatever render target the callback binds.
+            graphics.flush();
+            callback.run();
+        }
     }
 }

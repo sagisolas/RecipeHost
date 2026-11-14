@@ -87,8 +87,8 @@ public final class IconRenderer implements AutoCloseable {
         target.clear(Minecraft.ON_OSX);
         target.bindWrite(true);
 
-        // We run at the end of a client tick, outside the frame's GUI pass, so the
-        // projection/model-view left over from the last frame are the screen's
+        // We run during or after a frame's GUI pass, never inside the world's, so the
+        // projection/model-view in place are the screen's
         // (ortho over the scaled window, identity view). Under those the items
         // are scaled down and depth-clipped, giving fully transparent icons.
         // The ortho spans the sheet in GUI units while the viewport (set by

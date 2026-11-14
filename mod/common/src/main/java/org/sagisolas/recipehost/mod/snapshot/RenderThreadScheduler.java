@@ -15,9 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs Snapshot work on Minecraft's render thread in slices that fit a per-tick budget, so
- * producing a Snapshot doesn't drop frames. Work waits in this scheduler's own queue until
- * {@link #runSlices()} runs it; the composition root calls that at the end of every client tick.
+ * Runs Snapshot work on Minecraft's render thread in slices that fit a per-frame budget, so
+ * producing a Snapshot slows frames by a bounded amount. Work waits in this scheduler's own queue
+ * until {@link #runSlices()} runs it; the composition root calls that once per rendered frame
+ * ({@code Platform.onFrame}). Per frame rather than per 20 Hz tick, so the work gets render-thread
+ * time as often as the game draws.
  *
  * <p>The work is not given to {@code Minecraft#execute}. Work run from Minecraft's task queue
  * can't wait on {@code Minecraft#submit}: from inside a task, submit queues behind it instead of
@@ -28,7 +30,7 @@ public final class RenderThreadScheduler implements RenderThread {
 
     private static final Logger LOG = LoggerFactory.getLogger(RenderThreadScheduler.class);
 
-    /** Render-thread time the slices of one tick may take together. */
+    /** Render-thread time the slices of one frame may take together. */
     static final long BUDGET_NANOS = 8_000_000L;
 
     private final Queue<LongConsumer> slices = new ConcurrentLinkedQueue<>();
@@ -68,7 +70,7 @@ public final class RenderThreadScheduler implements RenderThread {
     }
 
     /**
-     * Runs queued slices on the calling (render) thread until the queue is empty or this tick's
+     * Runs queued slices on the calling (render) thread until the queue is empty or this frame's
      * budget is spent, giving each the deadline the budget ends at. At least one slice runs, so
      * the queue always makes progress; slices queued meanwhile run too while budget remains.
      */

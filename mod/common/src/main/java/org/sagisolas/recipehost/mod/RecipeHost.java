@@ -43,7 +43,7 @@ public final class RecipeHost {
 
         Platform.onScreenInit(buttons::install);
         Platform.onWorldLeave(pairing::worldLeft);
-        Platform.onClientTick(renderThread::runSlices);
+        Platform.onFrame(renderThread::runSlices);
     }
 
     /**
