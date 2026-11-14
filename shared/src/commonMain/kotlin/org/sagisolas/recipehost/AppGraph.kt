@@ -33,6 +33,7 @@ import org.sagisolas.recipehost.domain.recipes.ItemRecipes
 import org.sagisolas.recipehost.domain.recipes.LayoutImages
 import org.sagisolas.recipehost.platform.LocalNetworkAccess
 import org.sagisolas.recipehost.platform.QrScanner
+import org.sagisolas.recipehost.platform.ScreenWake
 import org.sagisolas.recipehost.presentation.BookmarksViewModel
 import org.sagisolas.recipehost.presentation.ItemGridViewModel
 import org.sagisolas.recipehost.presentation.ItemViewModel
@@ -53,12 +54,13 @@ import kotlin.time.Clock
 /**
  * The composition root: builds every app-scoped instance and wires them together. The Android
  * or iOS wrapper builds one per app process, with its platform's [driver] (whose schema is
- * [CatalogDatabase.Schema]), [qrScanner] and [localNetwork], and passes it to [App].
+ * [CatalogDatabase.Schema]), [qrScanner], [localNetwork] and [screenWake], and passes it to [App].
  */
 class AppGraph(
     driver: SqlDriver,
     qrScanner: QrScanner,
     private val localNetwork: LocalNetworkAccess,
+    screenWake: ScreenWake,
 ) {
     private val catalog = CatalogDatabase(driver)
 
@@ -120,6 +122,9 @@ class AppGraph(
                     .clear()
             }
         }
+        // The screen turning off would suspend the app and drop the Session, so it stays on while a
+        // Scan runs. On the main thread, where both platforms' calls belong.
+        appScope.launch(Dispatchers.Main) { scans.running.collect(screenWake::keepOn) }
     }
 
     private val qrPairing = QrPairing { pairing.scanQr() }

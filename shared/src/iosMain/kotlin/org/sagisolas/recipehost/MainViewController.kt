@@ -12,6 +12,7 @@ import co.touchlab.sqliter.DatabaseFileContext
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.platform.AvFoundationQrScanner
+import org.sagisolas.recipehost.platform.IdleTimerScreenWake
 import org.sagisolas.recipehost.platform.NetworkFrameworkLocalNetworkAccess
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
@@ -34,6 +35,7 @@ fun createAppGraph(): AppGraph {
         driver = driver,
         qrScanner = AvFoundationQrScanner(),
         localNetwork = NetworkFrameworkLocalNetworkAccess(),
+        screenWake = IdleTimerScreenWake(),
     )
 }
 

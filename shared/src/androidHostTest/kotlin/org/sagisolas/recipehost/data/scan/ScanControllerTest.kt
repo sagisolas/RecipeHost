@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
 import org.sagisolas.recipehost.data.pairing.PairingPayload
+import org.sagisolas.recipehost.data.transport.ScanFailure
 import org.sagisolas.recipehost.data.transport.SessionSource
 import org.sagisolas.recipehost.protocol.Envelope
 import org.sagisolas.recipehost.protocol.Handshake
@@ -169,5 +170,42 @@ class ScanControllerTest {
             runCurrent()
 
             assertEquals(1, clears, "e.g. the Settings ViewModel cleared mid-clear by a deep link")
+        }
+
+    @Test
+    fun runningLastsFromStartUntilTheScanIsDone() =
+        runTest {
+            val first = GatedSource()
+            val controller = controller(first)
+            val running = mutableListOf<Boolean>()
+            backgroundScope.launch { controller.running.collect { running += it } }
+            runCurrent()
+            assertEquals(listOf(false), running, "no Scan yet")
+
+            controller.start(payload)
+            runCurrent()
+            assertEquals(listOf(false, true), running, "Connecting, then Items: reported once")
+
+            first.finish.complete(Unit)
+            runCurrent()
+            assertEquals(listOf(false, true, false), running)
+
+            controller.start(payload) // the source's gate is open, so this Scan runs straight through
+            runCurrent()
+            assertEquals(listOf(false, true, false, true, false), running, "each Scan runs once")
+        }
+
+    @Test
+    fun runningEndsWhenTheScanFails() =
+        runTest {
+            val controller = controller { flow { throw ScanFailure.Network.Dropped() } }
+            val running = mutableListOf<Boolean>()
+            backgroundScope.launch { controller.running.collect { running += it } }
+
+            controller.start(payload)
+            runCurrent()
+
+            assertEquals(false, running.last(), "a failed Scan isn't running")
+            assertTrue(controller.progress.value is ScanProgress.Failed)
         }
 }

@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
                 driver = AndroidSqliteDriver(CatalogDatabase.Schema, applicationContext, DATABASE_NAME),
                 qrScanner = GmsQrScanner(this),
                 localNetwork = RuntimeLocalNetworkAccess(this),
+                screenWake = WindowScreenWake(this),
             )
         // A restored activity was already handed this intent before the process died.
         if (savedInstanceState == null) routePairingLink(intent)
