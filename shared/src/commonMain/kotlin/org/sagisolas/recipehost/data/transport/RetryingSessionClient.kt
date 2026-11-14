@@ -24,5 +24,10 @@ internal class RetryingSessionClient(
     private val source: SessionSource,
 ) : SessionSource {
     override fun open(payload: PairingPayload): Flow<Envelope> =
-        source.open(payload).retryWhen { cause, attempt -> cause is ScanFailure.Network && attempt == 0L }
+        source.open(payload).retryWhen { cause, attempt ->
+            (cause is ScanFailure.Network && attempt == 0L).also { retrying ->
+                // Logged here, as the retry's own failure is all that reaches the Scan's log.
+                if (retrying) println("[recipehost] Session failed, retrying once: ${cause.stackTraceToString()}")
+            }
+        }
 }

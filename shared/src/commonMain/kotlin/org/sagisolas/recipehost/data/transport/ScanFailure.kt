@@ -27,10 +27,11 @@ internal sealed class ScanFailure(
             val hosts: List<String>,
         ) : Network("local network access denied: ${hosts.joinToString()}")
 
-        /** The connection broke, or ended before `Done`. */
+        /** The connection broke, or ended before `Done`, after [received] envelopes. */
         class Dropped(
             cause: Throwable? = null,
-        ) : Network("connection dropped before Done", cause)
+            val received: Int = 0,
+        ) : Network("connection dropped before Done, after $received envelopes", cause)
     }
 
     /** The mod refused or the peers disagree. Retrying with the same payload can't help. */
