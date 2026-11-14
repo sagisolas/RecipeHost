@@ -29,7 +29,7 @@
 
     <string name="grid_mods">Моды</string>
     <string name="grid_scan">Скан</string>
-    <string name="grid_search_hint">Поиск, @mod поиск по моду</string>
+    <string name="grid_search_hint">@mod поиск по моду</string>
     <string name="grid_search_clear">Очистить</string>
 
     <string name="mod_list_title">Фильтрация по моду</string>

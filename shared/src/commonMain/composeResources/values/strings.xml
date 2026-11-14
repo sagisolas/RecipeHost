@@ -32,7 +32,7 @@
 
     <string name="grid_mods">Mods</string>
     <string name="grid_scan">Scan</string>
-    <string name="grid_search_hint">Item name, @mod to filter by mod</string>
+    <string name="grid_search_hint">@mod to filter by mod</string>
     <string name="grid_search_clear">Clear search</string>
 
     <string name="mod_list_title">Filter items by mod</string>
