@@ -64,8 +64,8 @@ public final class SnapshotSender {
      * Writing to the client failed: it went away. Says how far the stream got, so the log shows
      * whether the client gave up while the source was slow (a long {@code silentMillis}).
      */
-    public static final class ClientGone extends IOException {
-        public ClientGone(int framesWritten, Envelope.PayloadCase failedFrame, long silentMillis, IOException cause) {
+    static final class ClientGone extends IOException {
+        ClientGone(int framesWritten, Envelope.PayloadCase failedFrame, long silentMillis, IOException cause) {
             super(
                     "%s after %d frames, writing %s, %d ms after the previous frame"
                             .formatted(cause, framesWritten, failedFrame, silentMillis),

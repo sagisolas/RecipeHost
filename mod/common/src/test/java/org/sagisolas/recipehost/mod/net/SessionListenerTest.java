@@ -7,6 +7,7 @@ package org.sagisolas.recipehost.mod.net;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.google.protobuf.ByteString;
 import java.io.BufferedInputStream;
@@ -16,6 +17,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -148,6 +151,32 @@ public class SessionListenerTest {
             List<Envelope> frames = readAll(s);
             assertTrue("final frame must be Done", frames.get(frames.size() - 1).hasDone());
         }
+    }
+
+    @Test
+    public void oversizedAuthFrameIsDroppedWithoutReadingIt() throws Exception {
+        EmptySource source =
+                new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build());
+        listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(tokenOf(13)), source);
+        listener.start();
+
+        try (Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            s.setSoTimeout(2000);
+            OutputStream out = s.getOutputStream();
+            // Varint 1_000_000: a frame far bigger than any Auth, of which only the prefix is sent.
+            out.write(new byte[] {(byte) 0xC0, (byte) 0x84, 0x3D});
+            out.write(new byte[1024]);
+            out.flush();
+
+            try {
+                assertEquals("closed without a reply", -1, s.getInputStream().read());
+            } catch (SocketTimeoutException e) {
+                fail("the listener kept reading the oversized frame");
+            } catch (SocketException reset) {
+                // Closed with our unread bytes still queued: a reset, which is a close too.
+            }
+        }
+        assertEquals(0, source.handshakeCalls.get());
     }
 
     @Test

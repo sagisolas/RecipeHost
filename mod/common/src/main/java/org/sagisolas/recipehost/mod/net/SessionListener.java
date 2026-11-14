@@ -9,11 +9,14 @@ import com.google.protobuf.ByteString;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
@@ -40,12 +43,20 @@ public final class SessionListener implements Closeable {
     /** How long a new connection may take to send its {@code Auth} frame. */
     private static final int AUTH_TIMEOUT_MILLIS = 5_000;
 
+    /** Connections that may wait for their {@code Auth} at once; more are closed on accept. */
+    private static final int MAX_PENDING_AUTH = 8;
+
+    /** Bytes an {@code Auth} frame may take: its 32-byte token plus framing, with room to spare. */
+    private static final int MAX_AUTH_FRAME_BYTES = 256;
+
     private final ServerSocket serverSocket;
     private final ByteString expectedToken;
     private final SnapshotSource source;
     private final Runnable onSnapshotDelivered;
     private final Runnable onTerminated;
     private final AtomicBoolean terminated = new AtomicBoolean(false);
+    /** Bounds the threads and memory that connections can take before they authenticate. */
+    private final Semaphore pendingAuth = new Semaphore(MAX_PENDING_AUTH);
     /** Guards {@link #current}, {@link #streaming} and the {@link #closed} check before a session starts. */
     private final Object lock = new Object();
     /** The newest authenticated client's socket, or null. */
@@ -111,6 +122,10 @@ public final class SessionListener implements Closeable {
             } catch (IOException e) {
                 return;
             }
+            if (!pendingAuth.tryAcquire()) {
+                closeQuietly(client);
+                continue;
+            }
             Thread session = new Thread(() -> handleClient(client), "recipehost-session");
             session.setDaemon(true);
             session.start();
@@ -119,8 +134,14 @@ public final class SessionListener implements Closeable {
 
     private void handleClient(Socket client) {
         try (client) {
-            client.setSoTimeout(AUTH_TIMEOUT_MILLIS);
-            Envelope first = EnvelopeFraming.readFrame(new BufferedInputStream(client.getInputStream()));
+            Envelope first;
+            try {
+                client.setSoTimeout(AUTH_TIMEOUT_MILLIS);
+                first = EnvelopeFraming.readFrame(
+                        new BufferedInputStream(new LimitedInputStream(client.getInputStream(), MAX_AUTH_FRAME_BYTES)));
+            } finally {
+                pendingAuth.release();
+            }
             OutputStream out = new BufferedOutputStream(client.getOutputStream());
             if (first == null
                     || !first.hasAuth()
@@ -152,10 +173,8 @@ public final class SessionListener implements Closeable {
             current = client;
             streaming++;
         }
-        if (replaced != null) {
-            LOG.info("[recipehost] New connection replaces the session still streaming");
-            closeQuietly(replaced);
-        }
+        // Its stream ends at its next write, and logStreamEnd says it was replaced.
+        if (replaced != null) closeQuietly(replaced);
         return true;
     }
 
@@ -210,5 +229,31 @@ public final class SessionListener implements Closeable {
 
     private void terminateOnce() {
         if (terminated.compareAndSet(false, true)) onTerminated.run();
+    }
+
+    /** Ends the stream after {@code limit} bytes, so a frame can't claim more than that. */
+    private static final class LimitedInputStream extends FilterInputStream {
+        private int remaining;
+
+        LimitedInputStream(InputStream in, int limit) {
+            super(in);
+            this.remaining = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (remaining <= 0) return -1;
+            int b = super.read();
+            if (b >= 0) remaining--;
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            if (remaining <= 0) return -1;
+            int n = super.read(b, off, Math.min(len, remaining));
+            if (n > 0) remaining -= n;
+            return n;
+        }
     }
 }
