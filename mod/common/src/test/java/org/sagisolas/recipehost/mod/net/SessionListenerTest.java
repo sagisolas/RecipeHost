@@ -98,36 +98,90 @@ public class SessionListenerTest {
     }
 
     @Test
-    public void secondConcurrentConnectionIsRefused() throws Exception {
+    public void newAuthenticatedConnectionReplacesAStalledSession() throws Exception {
         byte[] token = tokenOf(4);
-        BlockingSource source =
-                new BlockingSource(Handshake.newBuilder().setProtocolVersion(1).build());
+        Handshake handshake = Handshake.newBuilder().setProtocolVersion(1).build();
+        FirstPullBlockingSource source = new FirstPullBlockingSource(handshake);
 
         listener = SessionListener.bind(InetAddress.getLoopbackAddress(), 0, ByteString.copyFrom(token), source);
         listener.start();
 
-        // First connection — authenticates, blocks inside the source so the session stays open.
-        Socket first = new Socket(InetAddress.getLoopbackAddress(), listener.port());
-        writeFrame(
-                first,
-                Envelope.newBuilder()
-                        .setAuth(Auth.newBuilder()
-                                .setToken(ByteString.copyFrom(token))
-                                .build())
-                        .build());
-        assertTrue("first session must reach the source", source.entered.await(2, TimeUnit.SECONDS));
+        // First connection: authenticates, then stalls inside the source (the phone gave up on it).
+        try (Socket first = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            writeFrame(first, authOf(token));
+            assertTrue("first session must reach the source", source.entered.await(2, TimeUnit.SECONDS));
 
-        // Second connection — should be refused with an Error, not hang.
-        try (Socket second = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
-            second.setSoTimeout(2000);
-            List<Envelope> frames = readAll(second);
-            assertEquals(1, frames.size());
-            assertTrue(frames.get(0).hasError());
-            assertEquals(ErrorCode.BUSY, frames.get(0).getError().getCode());
+            // The reconnect is served in full, not refused with BUSY.
+            try (Socket second = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+                second.setSoTimeout(2000);
+                writeFrame(second, authOf(token));
+                List<Envelope> frames = readAll(second);
+                assertEquals(handshake, frames.get(0).getHandshake());
+                assertTrue(
+                        "final frame must be Done",
+                        frames.get(frames.size() - 1).hasDone());
+            }
+
+            first.setSoTimeout(2000);
+            source.release.countDown();
+            List<Envelope> stale = readAll(first);
+            assertTrue(
+                    "the replaced session is closed without Done",
+                    stale.stream().noneMatch(Envelope::hasDone));
+        }
+    }
+
+    @Test
+    public void unauthenticatedConnectionDoesNotHoldTheSession() throws Exception {
+        byte[] token = tokenOf(11);
+        listener = SessionListener.bind(
+                InetAddress.getLoopbackAddress(),
+                0,
+                ByteString.copyFrom(token),
+                new EmptySource(Handshake.newBuilder().setProtocolVersion(1).build()));
+        listener.start();
+
+        try (Socket silent = new Socket(InetAddress.getLoopbackAddress(), listener.port());
+                Socket s = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            s.setSoTimeout(2000);
+            writeFrame(s, authOf(token));
+            List<Envelope> frames = readAll(s);
+            assertTrue("final frame must be Done", frames.get(frames.size() - 1).hasDone());
+        }
+    }
+
+    @Test
+    public void closeWaitsForAReplacedSessionStillStreaming() throws Exception {
+        byte[] token = tokenOf(12);
+        FirstPullBlockingSource source = new FirstPullBlockingSource(
+                Handshake.newBuilder().setProtocolVersion(1).build());
+        CountDownLatch terminated = new CountDownLatch(1);
+
+        listener = SessionListener.bind(
+                InetAddress.getLoopbackAddress(),
+                0,
+                ByteString.copyFrom(token),
+                source,
+                () -> {},
+                terminated::countDown);
+        listener.start();
+
+        try (Socket first = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+            writeFrame(first, authOf(token));
+            assertTrue(source.entered.await(2, TimeUnit.SECONDS));
+            try (Socket second = new Socket(InetAddress.getLoopbackAddress(), listener.port())) {
+                second.setSoTimeout(2000);
+                writeFrame(second, authOf(token));
+                readAll(second);
+            }
+
+            listener.close();
+            assertEquals("replaced session still pulls from the source", 1, terminated.getCount());
+
+            source.release.countDown();
         }
 
-        source.release.countDown();
-        first.close();
+        assertTrue("terminated once the replaced session finished", terminated.await(2, TimeUnit.SECONDS));
     }
 
     @Test
@@ -287,6 +341,12 @@ public class SessionListenerTest {
         return b;
     }
 
+    private static Envelope authOf(byte[] token) {
+        return Envelope.newBuilder()
+                .setAuth(Auth.newBuilder().setToken(ByteString.copyFrom(token)).build())
+                .build();
+    }
+
     private static void writeFrame(Socket s, Envelope envelope) throws IOException {
         OutputStream out = new BufferedOutputStream(s.getOutputStream());
         EnvelopeFraming.writeFrame(out, envelope);
@@ -347,6 +407,36 @@ public class SessionListenerTest {
                             release.await();
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
+                        }
+                        return Envelope.newBuilder().setHandshake(h).build();
+                    })
+                    .iterator();
+        }
+    }
+
+    /** Blocks the first session's pull until released; later sessions stream straight through. */
+    private static final class FirstPullBlockingSource implements SnapshotSource {
+        final Handshake handshake;
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        private final AtomicInteger calls = new AtomicInteger();
+
+        FirstPullBlockingSource(Handshake h) {
+            this.handshake = h;
+        }
+
+        @Override
+        public Iterator<Envelope> frames() {
+            boolean blocks = calls.getAndIncrement() == 0;
+            return List.of(handshake).stream()
+                    .map(h -> {
+                        if (blocks) {
+                            entered.countDown();
+                            try {
+                                release.await();
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                            }
                         }
                         return Envelope.newBuilder().setHandshake(h).build();
                     })

@@ -7,17 +7,21 @@ package org.sagisolas.recipehost.mod.net;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.sagisolas.recipehost.protocol.Envelope;
 import org.sagisolas.recipehost.protocol.EnvelopeFraming;
@@ -135,6 +139,29 @@ public class SnapshotSenderTest {
         Envelope last = frames.get(frames.size() - 1);
         assertTrue("expected trailing Error frame", last.hasError());
         assertFalse("no Done when erroring", last.hasDone());
+    }
+
+    @Test
+    public void aFailedWriteThrowsClientGoneWithoutAnErrorFrame() {
+        IOException brokenPipe = new IOException("Broken pipe");
+        AtomicInteger writes = new AtomicInteger();
+        OutputStream disconnected = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                writes.incrementAndGet();
+                throw brokenPipe;
+            }
+        };
+        SnapshotSource source = framesOf(Envelope.newBuilder()
+                .setHandshake(Handshake.newBuilder().setProtocolVersion(1))
+                .build());
+
+        SnapshotSender.ClientGone thrown =
+                assertThrows(SnapshotSender.ClientGone.class, () -> SnapshotSender.send(disconnected, source));
+
+        assertSame("the write failure is the cause", brokenPipe, thrown.getCause());
+        assertTrue("says how far the stream got", thrown.getMessage().contains("after 0 frames, writing HANDSHAKE"));
+        assertEquals("nothing is written after the failed write", 1, writes.get());
     }
 
     private static List<Envelope> drain(ByteArrayOutputStream out) throws IOException {

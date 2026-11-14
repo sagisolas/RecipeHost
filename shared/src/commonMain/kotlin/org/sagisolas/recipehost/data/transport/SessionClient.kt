@@ -41,9 +41,11 @@ internal class SessionClient(
         flow {
             val connection = connectFirstReachable(payload)
             try {
-                droppedOnIoError { connection.send(Envelope(auth = Auth(token = payload.token))) }
+                droppedOnIoError(received = 0) { connection.send(Envelope(auth = Auth(token = payload.token))) }
+                var received = 0
                 while (true) {
-                    val envelope = receiveWithinIdleTimeout(connection)
+                    val envelope = receiveWithinIdleTimeout(connection, received)
+                    received++
                     if (envelope.done != null) break
                     envelope.error?.let { throw ScanFailure.Domain.ModError(it.code) }
                     envelope.handshake?.let {
@@ -60,9 +62,8 @@ internal class SessionClient(
 
     /**
      * Tries the hosts one at a time, in payload order, never in parallel. The mod's
-     * `SessionListener` claims the one `Session` as soon as it accepts a TCP connection, before
-     * `Auth` arrives, so a losing parallel attempt could take the session and leave the
-     * winning one with its own `BUSY`.
+     * `SessionListener` serves only the newest authenticated connection, so a losing parallel
+     * attempt that authenticates last would cut off the winning one.
      */
     private suspend fun connectFirstReachable(payload: PairingPayload): EnvelopeConnection {
         for (host in payload.hosts) {
@@ -84,17 +85,27 @@ internal class SessionClient(
         throw ScanFailure.Network.Unreachable(payload.hosts)
     }
 
-    /** The next envelope; a clean EOF, an I/O error or [idleTimeout] of silence is a drop. */
-    private suspend fun receiveWithinIdleTimeout(connection: EnvelopeConnection): Envelope =
+    /**
+     * The next envelope; a clean EOF, an I/O error or [idleTimeout] of silence is a drop.
+     * [received] is how many envelopes came before, for the drop's message.
+     */
+    private suspend fun receiveWithinIdleTimeout(
+        connection: EnvelopeConnection,
+        received: Int,
+    ): Envelope =
         withTimeoutOrNull(idleTimeout) {
-            droppedOnIoError { connection.receive() } ?: throw ScanFailure.Network.Dropped()
-        } ?: throw ScanFailure.Network.Dropped(IOException("no envelope for $idleTimeout"))
+            droppedOnIoError(received) { connection.receive() }
+                ?: throw ScanFailure.Network.Dropped(IOException("the mod closed the connection"), received)
+        } ?: throw ScanFailure.Network.Dropped(IOException("no envelope for $idleTimeout"), received)
 
-    private inline fun <T> droppedOnIoError(block: () -> T): T =
+    private inline fun <T> droppedOnIoError(
+        received: Int,
+        block: () -> T,
+    ): T =
         try {
             block()
         } catch (e: IOException) {
-            throw ScanFailure.Network.Dropped(e)
+            throw ScanFailure.Network.Dropped(e, received)
         }
 
     private companion object {
