@@ -4,8 +4,8 @@ Mobile app + companion Minecraft mod for offline recipe browsing. Download recip
 
 ## Features
 
-### Search items from offline catalog    
- <img src="docs/images/item_grid.png" alt="Item grid" width="250"> 
+### Search items from offline catalog
+ <img src="docs/images/item_grid.png" alt="Item grid" width="250">
 
 ### Browse item's recipes and uses (including modded recipe types)
 
@@ -30,6 +30,14 @@ The mod is client only.
 ### Mobile app
 - Android 7.0
 - iOS 16
+
+## How it works
+
+Mobile app connects to TCP listener inside Minecraft mod by using IP, port and addr encoded in QR code. On scan, mod collects all items, icons, recipes and recipe layouts. Then all collected data is incrementally saved to local database, to allow browsing recipes from multiple instances.
+
+In order to support custom recipe types with its own gui, recipe layouts are captured as images with item slot positions. To capture such recipes, EMI is used, as it provides API to inspect its layout and inputs and has compatibility with JEI plugins.
+
+
 
 ## Development
 Project is developed using AI agents. Conventional commits format is used. Issues and PRs are welcome.
