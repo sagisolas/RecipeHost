@@ -27,7 +27,7 @@ class WelcomeViewModelTest {
 
     @Test
     fun aDeviceWithoutAScannerPointsToTheCameraApp() {
-        val viewModel = WelcomeViewModel(QrPairing { error("no Google Play services") })
+        val viewModel = WelcomeViewModel(QrPairing { error("no Google Play services") }) {}
         assertNull(viewModel.state.value.lastScan)
 
         viewModel.scanQr()
@@ -37,7 +37,7 @@ class WelcomeViewModelTest {
 
     @Test
     fun aDeniedCameraPointsToSettings() {
-        val viewModel = WelcomeViewModel(QrPairing { throw CameraAccessDenied() })
+        val viewModel = WelcomeViewModel(QrPairing { throw CameraAccessDenied() }) {}
 
         viewModel.scanQr()
 
@@ -46,10 +46,20 @@ class WelcomeViewModelTest {
 
     @Test
     fun aWorkingScannerShowsNoNotice() {
-        val viewModel = WelcomeViewModel(QrPairing {})
+        val viewModel = WelcomeViewModel(QrPairing {}) {}
 
         viewModel.scanQr()
 
         assertEquals(QrScanResult.Scanned, viewModel.state.value.lastScan)
+    }
+
+    @Test
+    fun theHiddenDemoEntryStartsTheDemo() {
+        var demos = 0
+        val viewModel = WelcomeViewModel(QrPairing {}) { demos++ }
+
+        viewModel.loadDemo()
+
+        assertEquals(1, demos)
     }
 }

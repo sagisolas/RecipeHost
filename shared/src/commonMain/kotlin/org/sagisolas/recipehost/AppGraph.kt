@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import okio.FileSystem
 import org.sagisolas.recipehost.data.catalog.CatalogDatabase
+import org.sagisolas.recipehost.data.catalog.DemoCatalog
 import org.sagisolas.recipehost.data.catalog.RecipeStore
 import org.sagisolas.recipehost.data.scan.RecipeSpool
 import org.sagisolas.recipehost.data.scan.ScanController
@@ -46,6 +47,7 @@ import org.sagisolas.recipehost.presentation.QrPairing
 import org.sagisolas.recipehost.presentation.ScanProgressViewModel
 import org.sagisolas.recipehost.presentation.SettingsViewModel
 import org.sagisolas.recipehost.presentation.WelcomeViewModel
+import org.sagisolas.recipehost.shared.generated.resources.Res
 import org.sagisolas.recipehost.ui.item.IconAtlasCache
 import org.sagisolas.recipehost.ui.item.LayoutImageCache
 import org.sagisolas.recipehost.ui.navigation.BookmarksEmptiness
@@ -90,6 +92,15 @@ class AppGraph(
                         FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "recipehost-recipes.spool",
                     ),
                 ),
+            loadDemo =
+                DemoCatalog(
+                    catalog,
+                    driver,
+                    FileSystem.SYSTEM,
+                    FileSystem.SYSTEM_TEMPORARY_DIRECTORY / "recipehost-demo.db",
+                    { Res.readBytes(DEMO_CATALOG) },
+                    Dispatchers.IO,
+                )::load,
             clear = ClearCatalog(catalog, Dispatchers.IO)::invoke,
         )
 
@@ -138,7 +149,7 @@ class AppGraph(
     // The ViewModel factories, called by `viewModel { }` in each screen's entry. Navigation state
     // is the UI's: `App` builds the `Navigator`, and the screens navigate after calling their ViewModel.
 
-    internal fun welcomeViewModel() = WelcomeViewModel(qrPairing)
+    internal fun welcomeViewModel() = WelcomeViewModel(qrPairing, pairing::startDemo)
 
     internal fun scanProgressViewModel() =
         ScanProgressViewModel(scans.progress, pairing.failure, qrPairing, localNetwork)
@@ -156,6 +167,9 @@ class AppGraph(
 
     internal fun settingsViewModel() = SettingsViewModel(scans::clearCatalog, scans.progress, catalogStats.counts)
 }
+
+/** The `Demo catalog`, a Catalog file from a vanilla game, among the Compose resources. */
+private const val DEMO_CATALOG = "files/demo-catalog.db"
 
 /** Decoded Icon atlases kept: 64 sheets of 16×8 32 px cells, about 32 MB (ADR 0014). */
 private const val ICON_ATLASES_KEPT = 64

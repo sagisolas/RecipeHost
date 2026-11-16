@@ -17,9 +17,13 @@ internal data class WelcomeUiState(
     val lastScan: QrScanResult? = null,
 )
 
-/** The Welcome screen, shown while the `Catalog` is empty. */
+/**
+ * The Welcome screen, shown while the `Catalog` is empty. [startDemo] loads the `Demo catalog`, for
+ * store reviewers who have no game to pair with.
+ */
 internal class WelcomeViewModel(
     private val qr: QrPairing,
+    private val startDemo: () -> Unit,
 ) : ViewModel() {
     private val _state = MutableStateFlow(WelcomeUiState())
     val state: StateFlow<WelcomeUiState> = _state.asStateFlow()
@@ -29,4 +33,7 @@ internal class WelcomeViewModel(
             _state.value = WelcomeUiState(lastScan = qr.tryScanQr())
         }
     }
+
+    /** Fills the Catalog from the Demo catalog; the UI shows Scan progress, as for a pairing link. */
+    fun loadDemo() = startDemo()
 }

@@ -6,7 +6,7 @@
 package org.sagisolas.recipehost.ui.designsystem
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -31,9 +31,11 @@ internal fun McButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
 ) {
     McPressable(
         onClick = onClick,
+        onLongClick = onLongClick,
         textures = McTheme.skin.button,
         modifier = modifier.height(McDimens.WidgetHeight),
         enabled = enabled,
@@ -94,7 +96,8 @@ internal fun McIconButton(
 
 /**
  * A clickable box whose background follows its interaction state through [McStateIndication].
- * The base of buttons, tabs, bottom-bar items and dropdown options.
+ * The base of buttons, tabs, bottom-bar items and dropdown options. [onLongClick], when given,
+ * runs on a long press instead of [onClick].
  */
 @Composable
 internal fun McPressable(
@@ -104,16 +107,18 @@ internal fun McPressable(
     enabled: Boolean = true,
     role: Role = Role.Button,
     contentAlignment: Alignment = Alignment.Center,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier =
-            modifier.clickable(
+            modifier.combinedClickable(
                 interactionSource = interactionSource,
                 indication = McStateIndication(textures, enabled),
                 enabled = enabled,
                 role = role,
+                onLongClick = onLongClick,
                 onClick = onClick,
             ),
         contentAlignment = contentAlignment,

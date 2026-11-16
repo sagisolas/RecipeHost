@@ -112,6 +112,10 @@ _Avoid_: Mod list (that's the filter)
 A recipe id the user saved for quick access while crafting, listed in the Bookmarks tab newest first. It shows the recipe under the current `Version selection`, and is hidden (but kept) while no selected release has that recipe. Short-lived: cleared together with the `Catalog`.
 _Avoid_: Favorite, star
 
+**Demo catalog**:
+A `Catalog` file collected from a vanilla game and bundled with the app (`files/demo-catalog.db`). A long press on the Welcome screen's "Scan QR" replaces the Catalog with it, so store reviewers can try the app without Minecraft. Regenerate it whenever the Catalog schema changes.
+_Avoid_: Test db, sample data
+
 ### Mod internals
 
 **Platform (class)**:

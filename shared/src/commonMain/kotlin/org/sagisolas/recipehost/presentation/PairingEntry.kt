@@ -52,6 +52,16 @@ class PairingEntry internal constructor(
         progressRequestChannel.trySend(Unit)
     }
 
+    /**
+     * Replaces the `Catalog` with the `Demo catalog` and shows its progress, as [start] does for a
+     * Scan; while a Scan runs, this only shows the running one. Call from the main thread.
+     */
+    internal fun startDemo() {
+        mutableFailure.value = null
+        scans.startDemo()
+        progressRequestChannel.trySend(Unit)
+    }
+
     /** Opens the in-app scanner and [start]s from the code it reads; a cancelled scan does nothing. */
     internal suspend fun scanQr() {
         qrScanner.scan()?.let { start(it) }

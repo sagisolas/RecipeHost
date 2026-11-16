@@ -96,7 +96,11 @@ internal fun WelcomeScreen(
                     )
                 }
                 WelcomeStep(3, stringResource(Res.string.welcome_step_scan)) {
-                    McButton(stringResource(Res.string.scan_qr), onClick = viewModel::scanQr)
+                    McButton(
+                        stringResource(Res.string.scan_qr),
+                        onClick = viewModel::scanQr,
+                        onLongClick = viewModel::loadDemo,
+                    )
                     scanNoticeOf(state.lastScan)?.let { McText(stringResource(it), color = McTheme.colors.textHint) }
                 }
             }

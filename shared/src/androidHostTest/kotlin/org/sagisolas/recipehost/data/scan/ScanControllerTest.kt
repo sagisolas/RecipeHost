@@ -68,11 +68,17 @@ class ScanControllerTest {
     /** Clears are counted, and each waits for [clearGate] when the test sets one. */
     private var clearGate: CompletableDeferred<Unit>? = null
 
-    private fun TestScope.controller(source: SessionSource) =
-        ScanController(backgroundScope, source, ingest) {
-            clearGate?.await()
-            clears++
-        }
+    /** What a demo load did, in order with the clears: `"clear"` and `"demo"`. */
+    private val steps = mutableListOf<String>()
+
+    private fun TestScope.controller(
+        source: SessionSource,
+        loadDemo: suspend () -> Unit = { steps += "demo" },
+    ) = ScanController(backgroundScope, source, ingest, loadDemo) {
+        clearGate?.await()
+        clears++
+        steps += "clear"
+    }
 
     @Test
     fun progressFollowsTheRunningScan() =
@@ -202,7 +208,7 @@ class ScanControllerTest {
     @Test
     fun runningEndsWhenTheScanFails() =
         runTest {
-            val controller = controller { flow { throw ScanFailure.Network.Dropped() } }
+            val controller = controller({ flow { throw ScanFailure.Network.Dropped() } })
             val running = mutableListOf<Boolean>()
             backgroundScope.launch { controller.running.collect { running += it } }
 
@@ -210,6 +216,50 @@ class ScanControllerTest {
             runCurrent()
 
             assertEquals(false, running.last(), "a failed Scan isn't running")
+            assertTrue(controller.progress.value is ScanProgress.Failed)
+        }
+
+    @Test
+    fun theDemoReplacesTheCatalogAndReportsLikeAScan() =
+        runTest {
+            val controller = controller(GatedSource())
+            val progress = mutableListOf<ScanProgress?>()
+            backgroundScope.launch { controller.progress.collect { progress += it } }
+            runCurrent()
+
+            assertTrue(controller.startDemo())
+            runCurrent()
+
+            assertEquals(listOf("clear", "demo"), steps)
+            assertEquals(
+                listOf(null, ScanProgress.Connecting, ScanProgress.Done),
+                progress,
+                "the Scan progress screen follows it to the Items tab",
+            )
+        }
+
+    @Test
+    fun theDemoWaitsForARunningScan() =
+        runTest {
+            val source = GatedSource()
+            val controller = controller(source)
+            controller.start(payload)
+            runCurrent()
+
+            assertFalse(controller.startDemo())
+            runCurrent()
+
+            assertEquals(emptyList(), steps)
+        }
+
+    @Test
+    fun aFailedDemoLoadIsAFailedScan() =
+        runTest {
+            val controller = controller(GatedSource(), loadDemo = { error("bad demo file") })
+
+            controller.startDemo()
+            runCurrent()
+
             assertTrue(controller.progress.value is ScanProgress.Failed)
         }
 }

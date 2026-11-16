@@ -45,6 +45,8 @@ class PairingEntryTest {
 
     private val source = RecordingSource()
 
+    private var demoLoads = 0
+
     /** What the fake [QrScanner] returns; `null` is a cancelled scan. */
     private var scanned: String? = null
 
@@ -57,6 +59,7 @@ class PairingEntryTest {
                 backgroundScope,
                 source,
                 CatalogDatabase(driver).let { ScanIngest(it, RecipeStore(it), Clock.System, tempRecipeSpool()) },
+                loadDemo = { demoLoads++ },
             ) {},
             QrScanner { scanned },
         )
@@ -123,6 +126,20 @@ class PairingEntryTest {
             assertEquals(emptyList(), source.opened)
             assertNull(entry.failure.value)
             assertNull(withTimeoutOrNull(1) { entry.progressRequests.first() }, "no request to show Scan progress")
+        }
+
+    @Test
+    fun theDemoLoadsAndShowsItsProgress() =
+        runTest {
+            val entry = entry()
+            entry.start("not a pairing URI")
+
+            entry.startDemo()
+            runCurrent()
+
+            assertEquals(1, demoLoads)
+            assertNull(entry.failure.value, "the last bad link's error doesn't show over the demo")
+            assertEquals(Unit, entry.progressRequests.first(), "asks the UI to show Scan progress")
         }
 
     private companion object {

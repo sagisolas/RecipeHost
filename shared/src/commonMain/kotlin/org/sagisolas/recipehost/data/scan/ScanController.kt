@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.sagisolas.recipehost.data.pairing.PairingPayload
@@ -28,6 +30,8 @@ internal class ScanController(
     private val scope: CoroutineScope,
     private val sessions: SessionSource,
     private val ingest: ScanIngest,
+    /** Fills an empty `Catalog` from the `Demo catalog`; `AppGraph` passes `DemoCatalog`. */
+    private val loadDemo: suspend () -> Unit,
     /** Empties the `Catalog`; `AppGraph` passes `ClearCatalog`. */
     private val clear: suspend () -> Unit,
 ) {
@@ -45,7 +49,24 @@ internal class ScanController(
     private var clearing: Job? = null
 
     /** Starts a `Scan` from [payload]; returns false and does nothing while another one runs. */
-    fun start(payload: PairingPayload): Boolean {
+    fun start(payload: PairingPayload): Boolean = run { ingest.ingest(sessions.open(payload)) }
+
+    /**
+     * Replaces the `Catalog` with the `Demo catalog`, reported like a `Scan` so the same screens
+     * follow it; returns false and does nothing while a Scan runs.
+     */
+    fun startDemo(): Boolean =
+        run {
+            flow<ScanProgress> {
+                clear()
+                loadDemo()
+                // Done, like a Scan's end: the Scan progress screen moves on to the Items tab.
+                emit(ScanProgress.Done)
+            }.catch { emit(ScanProgress.Failed(it)) }
+        }
+
+    /** Runs the Scan whose progress [scanProgress] reports, unless one is running already. */
+    private fun run(scanProgress: () -> Flow<ScanProgress>): Boolean {
         if (scan?.isActive == true) return false
         // Right away, so Scan progress never shows the last Scan's end for the new one.
         _progress.value = ScanProgress.Connecting
@@ -54,7 +75,7 @@ internal class ScanController(
             scope.launch {
                 // A Scan writing into a half-cleared Catalog would leave it neither empty nor whole.
                 clear?.join()
-                ingest.ingest(sessions.open(payload)).collect { _progress.value = it }
+                scanProgress().collect { _progress.value = it }
             }
         return true
     }
