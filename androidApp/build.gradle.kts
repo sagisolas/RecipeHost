@@ -64,6 +64,7 @@ android {
         versionCode = buildNumber(versionName!!)
     }
     androidResources {
+        generateLocaleConfig = true
         // The app's strings are English only; drop the translations libraries bring in.
         localeFilters += listOf("en", "ru")
     }
